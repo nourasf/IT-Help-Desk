@@ -1,75 +1,129 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import "./Login.css";
+
+import logo from "../assets/logo.png";
+import loginIllustration from "../assets/login-illustration.png";
 
 function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [error, setError] = useState("");
+  const [rememberMe, setRememberMe] = useState(false);
 
-  const navigate = useNavigate();
-
-  async function handleSubmit(event) {
+  const handleSubmit = (event) => {
     event.preventDefault();
-    setError("");
 
-    try {
-      const response = await fetch("https://localhost:5099/api/auth/login", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          email,
-          password,
-        }),
-      });
+    const loginData = {
+      email,
+      password,
+      rememberMe,
+    };
 
-      if (!response.ok) {
-        setError("Invalid email or password.");
-        return;
-      }
+    console.log(loginData);
 
-      const data = await response.json();
-
-      localStorage.setItem("token", data.token);
-      localStorage.setItem("role", data.role);
-
-      navigate("/dashboard");
-    } catch {
-      setError("Unable to connect to the server.");
-    }
-  }
+    // Later, connect this to your backend login endpoint.
+  };
 
   return (
-    <div>
-      <h1>IT Help Desk</h1>
+    <main className="login-page">
+      <section className="login-form-section">
+        <div className="login-form-container">
+          <img
+            src={logo}
+            alt="SupportHub logo"
+            className="supporthub-logo"
+          />
 
-      <form onSubmit={handleSubmit}>
-        <h2>Login</h2>
+          <div className="login-heading">
+            <h1>Welcome Back</h1>
+            <p>Sign in to Continue to your account.</p>
+          </div>
 
-        <label htmlFor="email">Email</label>
-        <input
-          id="email"
-          type="email"
-          value={email}
-          onChange={(event) => setEmail(event.target.value)}
-          required
-        />
+          <form className="login-form" onSubmit={handleSubmit}>
+            <div className="form-group">
+              <label htmlFor="email">Email Address</label>
 
-        <label htmlFor="password">Password</label>
-        <input
-          id="password"
-          type="password"
-          value={password}
-          onChange={(event) => setPassword(event.target.value)}
-          required
-        />
+              <input
+                id="email"
+                type="email"
+                placeholder="you@example.com"
+                value={email}
+                onChange={(event) => setEmail(event.target.value)}
+                required
+              />
+            </div>
 
-        {error && <p>{error}</p>}
+            <div className="form-group">
+              <label htmlFor="password">Password</label>
 
-        <button type="submit">Login</button>
-      </form>
-    </div>
+              <input
+                id="password"
+                type="password"
+                placeholder="••••••••••••••"
+                value={password}
+                onChange={(event) => setPassword(event.target.value)}
+                required
+              />
+            </div>
+
+            <div className="login-options">
+              <label className="remember-option">
+                <input
+                  type="checkbox"
+                  checked={rememberMe}
+                  onChange={(event) =>
+                    setRememberMe(event.target.checked)
+                  }
+                />
+
+                <span className="custom-checkbox"></span>
+                <span>Remember me</span>
+              </label>
+
+              <a href="/forgot-password" className="forgot-password-link">
+                Forgot Password?
+              </a>
+            </div>
+
+            <button type="submit" className="sign-in-button">
+              Sign In
+            </button>
+
+            <p className="create-account-text">
+              Don’t have an account?{" "}
+              <a href="/register">Create account.</a>
+            </p>
+          </form>
+        </div>
+      </section>
+
+      <section className="login-visual-section">
+        <div className="visual-content">
+          <div className="visual-heading">
+            <h2>IT Support Made Simple</h2>
+
+            <p>
+              Resolve tickets faster and collaborate with your team.
+            </p>
+          </div>
+
+          <img
+            src={loginIllustration}
+            alt="IT support illustration"
+            className="login-illustration"
+          />
+
+ <div className="ticket-notification">
+  <div className="ticket-icon">🎫</div>
+
+  <div className="ticket-information">
+    <strong>New Ticket</strong>
+    <span>Printer Not Working</span>
+    <div className="priority-badge">High Priority</div>
+  </div>
+</div>
+        </div>
+      </section>
+    </main>
   );
 }
 
