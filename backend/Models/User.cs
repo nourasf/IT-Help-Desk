@@ -9,6 +9,10 @@ namespace backend.Models
 
         public String PasswordHash{get; set;} = string.Empty;
 
+        public String? ResetPasswordToken {get; set;}
+
+        public DateTime? ResetPasswordExpiry {get; set;}
+
         public int RoleID { get; set; }
 
         public Role? Role {get; set;}
