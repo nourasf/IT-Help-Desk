@@ -1,26 +1,92 @@
 import { useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import "./Login.css";
 
 import logo from "../assets/logo.png";
 import loginIllustration from "../assets/login-illustration.png";
 
 function Login() {
+  const navigate = useNavigate();
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [rememberMe, setRememberMe] = useState(false);
 
-  const handleSubmit = (event) => {
+  const [error, setError] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+
+  const handleSubmit = async (event) => {
     event.preventDefault();
 
-    const loginData = {
-      email,
-      password,
-      rememberMe,
-    };
+    setError("");
+    setIsLoading(true);
 
-    console.log(loginData);
+    try {
+      const response = await fetch(
+        "http://localhost:5099/api/auth/login",
+        {
+          method: "POST",
 
-    // Later, connect this to your backend login endpoint.
+          headers: {
+            "Content-Type": "application/json",
+          },
+
+          body: JSON.stringify({
+            email,
+            password,
+          }),
+        }
+      );
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || "Invalid email or password.");
+      }
+
+      /*
+        Make sure your backend login response contains:
+
+        {
+          "token": "...",
+          "role": "Employee"
+        }
+      */
+
+      if (!data.token) {
+        throw new Error("The backend did not return a login token.");
+      }
+
+      if (!data.role) {
+        throw new Error("The backend did not return the user's role.");
+      }
+
+      /*
+        localStorage keeps the user logged in after closing the browser.
+        sessionStorage clears the login when the browser tab/session ends.
+      */
+
+      if (rememberMe) {
+        localStorage.setItem("token", data.token);
+        localStorage.setItem("role", data.role);
+
+        sessionStorage.removeItem("token");
+        sessionStorage.removeItem("role");
+      } else {
+        sessionStorage.setItem("token", data.token);
+        sessionStorage.setItem("role", data.role);
+
+        localStorage.removeItem("token");
+        localStorage.removeItem("role");
+      }
+
+      navigate("/dashboard");
+    } catch (error) {
+      console.error("Login error:", error);
+      setError(error.message || "Something went wrong while signing in.");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -35,10 +101,16 @@ function Login() {
 
           <div className="login-heading">
             <h1>Welcome Back</h1>
-            <p>Sign in to Continue to your account.</p>
+            <p>Sign in to continue to your account.</p>
           </div>
 
           <form className="login-form" onSubmit={handleSubmit}>
+            {error && (
+              <div className="login-error" role="alert">
+                {error}
+              </div>
+            )}
+
             <div className="form-group">
               <label htmlFor="email">Email Address</label>
 
@@ -48,6 +120,7 @@ function Login() {
                 placeholder="you@example.com"
                 value={email}
                 onChange={(event) => setEmail(event.target.value)}
+                autoComplete="email"
                 required
               />
             </div>
@@ -61,6 +134,7 @@ function Login() {
                 placeholder="••••••••••••••"
                 value={password}
                 onChange={(event) => setPassword(event.target.value)}
+                autoComplete="current-password"
                 required
               />
             </div>
@@ -79,18 +153,25 @@ function Login() {
                 <span>Remember me</span>
               </label>
 
-              <a href="/forgot-password" className="forgot-password-link">
+              <Link
+                to="/forgot-password"
+                className="forgot-password-link"
+              >
                 Forgot Password?
-              </a>
+              </Link>
             </div>
 
-            <button type="submit" className="sign-in-button">
-              Sign In
+            <button
+              type="submit"
+              className="sign-in-button"
+              disabled={isLoading}
+            >
+              {isLoading ? "Signing In..." : "Sign In"}
             </button>
 
             <p className="create-account-text">
-              Don’t have an account?{" "}
-              <a href="/register">Create account.</a>
+              Don&apos;t have an account?{" "}
+              <Link to="/register">Create account.</Link>
             </p>
           </form>
         </div>
@@ -112,15 +193,15 @@ function Login() {
             className="login-illustration"
           />
 
- <div className="ticket-notification">
-  <div className="ticket-icon">🎫</div>
+          <div className="ticket-notification">
+            <div className="ticket-icon">🎫</div>
 
-  <div className="ticket-information">
-    <strong>New Ticket</strong>
-    <span>Printer Not Working</span>
-    <div className="priority-badge">High Priority</div>
-  </div>
-</div>
+            <div className="ticket-information">
+              <strong>New Ticket</strong>
+              <span>Printer Not Working</span>
+              <div className="priority-badge">High Priority</div>
+            </div>
+          </div>
         </div>
       </section>
     </main>
