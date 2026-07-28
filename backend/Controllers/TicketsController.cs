@@ -1,5 +1,5 @@
 using backend.Data;
-using backend.DTOs;
+using backend.DTOs.Tickets;
 using backend.Models;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -14,6 +14,8 @@ namespace backend.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
+    
+
     public class TicketsController : ControllerBase
     {
         private readonly AppDbContext _context;
@@ -23,7 +25,9 @@ namespace backend.Controllers
             _context = context;
         }
 
+       
         [HttpPost("create-ticket")]
+        [Authorize(Roles="Employee")]
         public async Task<IActionResult> CreateTicket(
             CreateTicketRequest request)
         {
@@ -98,8 +102,33 @@ namespace backend.Controllers
 [HttpGet("{id}")]
 public async Task<IActionResult> GetTicketById(int id)
 {
-    var ticket = await _context.Tickets
-        .Where(t => t.Id == id && !t.IsDeleted)
+    var userIdValue = User.FindFirstValue(
+        ClaimTypes.NameIdentifier
+    );
+
+    var userRole = User.FindFirstValue(
+        ClaimTypes.Role
+    );
+
+    if (!int.TryParse(userIdValue, out var userId))
+    {
+        return Unauthorized(new
+        {
+            message = "Invalid or missing user ID in token."
+        });
+    }
+
+    var ticketQuery = _context.Tickets
+        .Where(t => t.Id == id && !t.IsDeleted);
+
+    if (userRole == "Employee")
+    {
+        ticketQuery = ticketQuery.Where(
+            t => t.CreatedByUserId == userId
+        );
+    }
+
+    var ticket = await ticketQuery
         .Select(t => new TicketResponse
         {
             Id = t.Id,
@@ -117,7 +146,7 @@ public async Task<IActionResult> GetTicketById(int id)
     {
         return NotFound(new
         {
-            message = "Ticket not found."
+            message = "Ticket not found or you do not have access."
         });
     }
 
@@ -224,6 +253,7 @@ if (request.AssignedToUserId.HasValue)
 
 
 [HttpDelete("{id}")]
+[Authorize(Roles="Admin")]
 public async Task<IActionResult> DeleteTicket(int id)
 {
    var ticket= await _context.Tickets
@@ -236,7 +266,9 @@ public async Task<IActionResult> DeleteTicket(int id)
                     message="Ticket not found."
                 });
             }
-            ticket.IsDeleted=true;
+            _context.Tickets.Remove(ticket);
+            await _context.SaveChangesAsync();
+
             ticket.UpdatedAt= DateTime.UtcNow;
             await _context.SaveChangesAsync();
 
@@ -245,7 +277,97 @@ public async Task<IActionResult> DeleteTicket(int id)
                 message="Ticket deleted successfully."
             });
 }
+[HttpGet("my-tickets")]
+[Authorize(Roles="Employee")]
+public async Task<IActionResult> GetMyTickets()
+{
+  var userIdValue= User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+  if(!int.TryParse(userIdValue, out var userId))
+  {
+    return Unauthorized(new
+    {
+        message="Invalid or missing user ID in token."
+    });
+  }
+  var tickets= await _context.Tickets
+  .Where(t=>
+  t.CreatedByUserId==userId && !t.IsDeleted)
+  .OrderByDescending(t=>t.CreatedAt)
+    .Select(t=> new TicketResponse
+    {
+        Id=t.Id,
+        TicketNumber=t.TicketNumber,
+        Subject=t.Subject,
+        Description=t.Description,
+        Category=t.Category.Name,
+        Priority=t.Priority.Name,
+        Status=t.Status.StatusName,
+        CreatedAt=t.CreatedAt
+    })
+    .ToListAsync();
+    return Ok(tickets);
 
 }
+[HttpPost("{id}/comments")]
+public async Task<IActionResult> AddComment(int id, AddTicketCommentRequest request)
+        {
+            var useIdValue = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            var userRole = User.FindFirstValue(ClaimTypes.Role);
+
+            if(!int.TryParse(useIdValue, out var userId))
+            {
+                return Unauthorized(new
+                {
+                    message = "Invalid or missing user ID in token."
+                });
+            }
+            if (string.IsNullOrWhiteSpace(request.Comment))
+            {
+                return BadRequest(new
+                {
+                    message = "Comment cannot be empty."
+                });
+            }
+            var ticket = await _context.Tickets
+                .FirstOrDefaultAsync(t => t.Id == id && !t.IsDeleted);
+                if (ticket == null)
+                {
+                    return NotFound(new
+                    {
+                        message = "Ticket not found."
+                    });
+                }
+                if (userRole == "Employee" && ticket.CreatedByUserId != userId)
+                {
+                    return Forbid();
+                   
+                }
+                var comment= new TicketComment
+                {
+                    Comment = request.Comment.Trim(),
+                    CreatedAt = DateTime.UtcNow,
+                    TicketID = ticket.Id,
+                    UserID = userId
+
+                };
+                _context.TicketComments.Add(comment);
+                await _context.SaveChangesAsync();
+
+                return Ok(new
+                {
+                    message = "Comment added successfully.",
+                    comment= new
+                    {
+                        comment.ID,
+                        comment.Comment,
+                        comment.CreatedAt,
+                        comment.UserID
+                    }
+                });
+
+        }
+}
+
 }
 

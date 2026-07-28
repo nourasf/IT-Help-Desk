@@ -1,7 +1,7 @@
-import DashboardLayout from "../components/DashboardLayout";
-import StatCard from "../components/StatCard";
+import DashboardLayout from "../../components/DashboardLayout";
+import StatCard from "../../components/StatCard";
 import { useEffect, useState } from "react";
-import { getManagerDashboard } from "../api/dashboard";
+import { getManagerDashboard } from "../../api/dashboard";
 function ManagerDashboard() {
 
      const navigate = useNavigate();

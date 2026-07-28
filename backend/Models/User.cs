@@ -16,5 +16,11 @@ namespace backend.Models
         public int RoleID { get; set; }
 
         public Role? Role {get; set;}
+        public ICollection<TicketComment> TicketComments { get; set; }
+    = new List<TicketComment>();
+
+    public ICollection<TicketHistory> TicketHistoryChanges { get; set; }
+    = new List<TicketHistory>();
+    
     }
 }

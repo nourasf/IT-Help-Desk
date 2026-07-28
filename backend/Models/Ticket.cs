@@ -39,4 +39,9 @@ public class Ticket
     public Priority Priority { get; set; } = null!;
 
     public Status Status { get; set; } = null!;
+
+    public ICollection<TicketComment> TicketComments {get; set;}= new List<TicketComment>();
+     
+    public ICollection<TicketHistory> History { get; set; }
+    = new List<TicketHistory>();
 }

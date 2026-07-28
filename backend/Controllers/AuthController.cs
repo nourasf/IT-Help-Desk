@@ -1,5 +1,5 @@
 using backend.Data;
-using backend.DTOs;
+using backend.DTOs.Auth;
 using backend.Models;
 using backend.Services;
 using Microsoft.AspNetCore.Mvc;
@@ -128,43 +128,58 @@ public async Task<IActionResult> ResetPassword(
         }
 
 [HttpPost("register")]
-public async Task<IActionResult>Register(RegisterRequestDto request)
+public async Task<IActionResult> Register(RegisterRequestDto request)
+{
+    var emailExists = await _context.Users
+        .AnyAsync(u => u.Email == request.Email);
+
+    if (emailExists)
+    {
+        return BadRequest(new
         {
-            var emailExists= await _context.Users
-            .AnyAsync(u=>u.Email==request.Email);
+            message = "Email already exists."
+        });
+    }
 
-            if(emailExists)
-            {
-                return BadRequest(new
-                {
-                    message="Email already exists."
-                });
-            }
-            var employeeRole= await _context.Roles
-            .FirstOrDefaultAsync(r=>r.Name=="Employee");
+    if (string.IsNullOrWhiteSpace(request.Role))
+    {
+        return BadRequest(new
+        {
+            message = "Role is required."
+        });
+    }
 
-            if(employeeRole==null)
-            {
-                return BadRequest(new
-                {
-                    message="Employee role does not exist."
-                });
-            }
-            var user= new User
-            {
-                FullName=request.FullName,
-                Email=request.Email,
-                PasswordHash=BCrypt.Net.BCrypt.HashPassword(request.Password),
-                RoleID=employeeRole.ID
-            };
-            _context.Users.Add(user);
-            await _context.SaveChangesAsync();
+    var roleName = request.Role.Trim();
 
-            return Ok(new
-            {
-                message="User registered successfully."
-            });
-        }
+    var role = await _context.Roles
+        .FirstOrDefaultAsync(r => r.Name.ToLower() == roleName.ToLower());
+
+    if (role == null)
+    {
+        return BadRequest(new
+        {
+            message = "Invalid role."
+        });
+    }
+
+    var user = new User
+    {
+        FullName = request.FullName,
+        Email = request.Email,
+        PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.Password),
+        RoleID = role.ID
+    };
+
+    _context.Users.Add(user);
+    await _context.SaveChangesAsync();
+
+    return Ok(new
+    {
+        message = "User registered successfully.",
+        role = role.Name,
+        roleID = role.ID
+    });
+}
 
     }
 }

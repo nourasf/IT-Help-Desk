@@ -1,9 +1,10 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import "./Login.css";
+import "../../styles/Login.css";
+import { saveAuthentication } from "../../utils/authStorage";
 
-import logo from "../assets/logo.png";
-import loginIllustration from "../assets/login-illustration.png";
+import logo from "../../assets/logo.png";
+import loginIllustration from "../../assets/login-illustration.png";
 
 function Login() {
   const navigate = useNavigate();
@@ -26,11 +27,9 @@ function Login() {
         "http://localhost:5099/api/auth/login",
         {
           method: "POST",
-
           headers: {
             "Content-Type": "application/json",
           },
-
           body: JSON.stringify({
             email,
             password,
@@ -44,46 +43,50 @@ function Login() {
         throw new Error(data.message || "Invalid email or password.");
       }
 
-      /*
-        Make sure your backend login response contains:
-
-        {
-          "token": "...",
-          "role": "Employee"
-        }
-      */
+      if (!data.role) {
+        throw new Error("The backend did not return the user's role.");
+      }
 
       if (!data.token) {
         throw new Error("The backend did not return a login token.");
       }
 
-      if (!data.role) {
-        throw new Error("The backend did not return the user's role.");
+      const normalizedRole = data.role.trim().toLowerCase();
+
+      saveAuthentication(
+        data.token,
+        data.role.trim(),
+        rememberMe
+      );
+
+      switch (normalizedRole) {
+        case "admin":
+          navigate("/admin-dashboard", { replace: true });
+          break;
+
+        case "manager":
+          navigate("/manager-dashboard", { replace: true });
+          break;
+
+        case "it support agent":
+        case "agent":
+        case "it":
+          navigate("/agent-dashboard", { replace: true });
+          break;
+
+        case "employee":
+          navigate("/employee-dashboard", { replace: true });
+          break;
+
+        default:
+          throw new Error(`Unknown user role: ${data.role}`);
       }
-
-      /*
-        localStorage keeps the user logged in after closing the browser.
-        sessionStorage clears the login when the browser tab/session ends.
-      */
-
-      if (rememberMe) {
-        localStorage.setItem("token", data.token);
-        localStorage.setItem("role", data.role);
-
-        sessionStorage.removeItem("token");
-        sessionStorage.removeItem("role");
-      } else {
-        sessionStorage.setItem("token", data.token);
-        sessionStorage.setItem("role", data.role);
-
-        localStorage.removeItem("token");
-        localStorage.removeItem("role");
-      }
-
-      navigate("/dashboard");
     } catch (error) {
       console.error("Login error:", error);
-      setError(error.message || "Something went wrong while signing in.");
+
+      setError(
+        error.message || "Something went wrong while signing in."
+      );
     } finally {
       setIsLoading(false);
     }

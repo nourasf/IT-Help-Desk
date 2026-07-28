@@ -22,6 +22,11 @@ namespace backend.Data
 
         public DbSet<Status> Statuses { get; set; }
 
+        public DbSet<TicketHistory> TicketHistories { get; set; }
+
+        public DbSet<TicketComment> TicketComments {get; set;}
+
+
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
@@ -37,6 +42,31 @@ namespace backend.Data
                 .WithMany()
                 .HasForeignKey(t => t.AssignedToUserId)
                 .OnDelete(DeleteBehavior.SetNull);
+
+              modelBuilder.Entity<TicketHistory>()
+    .HasOne(h => h.ChangedByUser)
+    .WithMany(u => u.TicketHistoryChanges)
+    .HasForeignKey(h => h.ChangedByUserID)
+    .OnDelete(DeleteBehavior.Restrict);
+
+modelBuilder.Entity<TicketHistory>()
+    .HasOne(h => h.Ticket)
+    .WithMany(t => t.History)
+    .HasForeignKey(h => h.TicketID)
+    .OnDelete(DeleteBehavior.Cascade);
+
+                modelBuilder.Entity<TicketComment>()
+    .HasOne(c => c.User)
+    .WithMany(u => u.TicketComments)
+    .HasForeignKey(c => c.UserID)
+    .OnDelete(DeleteBehavior.Restrict);
+
+
+                modelBuilder.Entity<TicketComment>()
+    .HasOne(c => c.Ticket)
+    .WithMany(t => t.TicketComments)
+    .HasForeignKey(c => c.TicketID)
+    .OnDelete(DeleteBehavior.Cascade);
         }
     }
 }

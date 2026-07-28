@@ -1,7 +1,7 @@
-import DashboardLayout from "../components/DashboardLayout";
-import StatCard from "../components/StatCard";
+import DashboardLayout from "../../components/DashboardLayout";
+import StatCard from "../../components/StatCard";
 import { useEffect, useState } from "react";
-import { getAdminDashboard } from "../api/dashboard";
+import { getAdminDashboard } from "../../api/dashboard";
 function AdminDashboard() {
     const [dashboard, setDashboard] = useState(null);
 

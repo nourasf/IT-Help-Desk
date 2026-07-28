@@ -1,87 +1,35 @@
 const API_URL = "http://localhost:5099/api/dashboard";
 
-export async function getEmployeeDashboard() {
-    const token = localStorage.getItem("token");
-
-    const response = await fetch(`${API_URL}/employee`, {
-        headers: {
-            Authorization: `Bearer ${token}`
-        }
-    });
-
-    if (!response.ok) {
-        throw new Error("Failed to load dashboard");
-    }
-
-    return await response.json();
-
-
-    export async function getAdminDashboard() {
-const token = localStorage.getItem("token");
- const response = await fetch("http://localhost:5099/api/dashboard/admin", {
-        headers: {
-            Authorization: `Bearer ${token}`
-        }
-    });
-
-    if (!response.ok) {
-        throw new Error("Failed to load admin dashboard");
-    }
-
-    return await response.json();
-
-    }
-
-    export async function getAgentDashboard() {
-        const token = localStorage.getItem("token");
-        const response = await fetch("http://localhost:5099/api/dashboard/agent", {
-            headers: {
-                Authorization: `Bearer ${token}`
-            }
-        });
-
-        if (!response.ok) {
-            throw new Error("Failed to load agent dashboard");
-        }
-
-        return await response.json();
-    }
-
-      export async function getManagerDashboard() {
-        const token = localStorage.getItem("token");
-        const response = await fetch("http://localhost:5099/api/dashboard/manager", {
-            headers: {
-                Authorization: `Bearer ${token}`
-            }
-        });
-
-        if (!response.ok) {
-            throw new Error("Failed to load manager dashboard");
-        }
-
-        return await response.json();
-    }
-    function getToken() {
+function getToken() {
   return (
     localStorage.getItem("token") ||
     sessionStorage.getItem("token")
   );
 }
 
-const API_URL = "http://localhost:5099/api/dashboard";
-
 async function requestDashboard(endpoint) {
   const token = getToken();
 
   if (!token) {
-    throw new Error("You are not logged in.");
+    throw new Error("No authentication token found. Please log in again.");
   }
 
   const response = await fetch(`${API_URL}/${endpoint}`, {
+    method: "GET",
     headers: {
       Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
     },
   });
+
+  if (response.status === 401) {
+    localStorage.removeItem("token");
+    localStorage.removeItem("role");
+    sessionStorage.removeItem("token");
+    sessionStorage.removeItem("role");
+
+    throw new Error("Your login session is invalid or expired.");
+  }
 
   if (!response.ok) {
     throw new Error(`Failed to load ${endpoint} dashboard.`);
@@ -104,5 +52,4 @@ export function getAgentDashboard() {
 
 export function getManagerDashboard() {
   return requestDashboard("manager");
-}
 }
