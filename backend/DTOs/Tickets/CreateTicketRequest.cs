@@ -1,12 +1,19 @@
+using System.ComponentModel.DataAnnotations;
+
 namespace backend.DTOs.Tickets;
 
 public class CreateTicketRequest
 {
-public String Subject {get;set;}= string.Empty;
-public String Description {get;set;}= string.Empty;
+    [Required]
+    [MaxLength(150)]
+    public string Subject { get; set; } = string.Empty;
 
-public int CategoryId {get;set;}
+    [Required]
+    public string Description { get; set; } = string.Empty;
 
-public int PriorityId {get;set;}
+    [Required]
+    public string Category { get; set; } = string.Empty;
 
+    [Required]
+    public string Priority { get; set; } = string.Empty;
 }

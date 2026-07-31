@@ -558,6 +558,90 @@
   box-shadow: 0 13px 23px rgba(83, 66, 142, 0.29);
 }
 
+.send-ticket-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.65;
+  transform: none;
+}
+
+/* Ticket submission feedback */
+
+.ticket-submit-message {
+  display: flex;
+  width: 100%;
+  max-width: 1240px;
+  min-height: 68px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  margin: 0 auto 18px;
+  padding: 14px 18px;
+  box-sizing: border-box;
+  border: 1px solid;
+  border-radius: 15px;
+  animation: ticketMessageAppear 0.35s ease both;
+  box-shadow: 0 10px 24px rgba(65, 49, 100, 0.1);
+}
+
+.ticket-submit-message > div {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.ticket-submit-message strong {
+  font-size: 14px;
+}
+
+.ticket-submit-message span {
+  font-size: 13px;
+}
+
+.ticket-submit-message.success {
+  border-color: #acd9bd;
+  background: #edf9f1;
+  color: #267047;
+}
+
+.ticket-submit-message.error {
+  border-color: #edb8be;
+  background: #fff0f1;
+  color: #a33a46;
+}
+
+.ticket-submit-message button {
+  padding: 9px 16px;
+  border: none;
+  border-radius: 20px;
+  background: #3f9462;
+  color: #ffffff;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+  cursor: pointer;
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.ticket-submit-message button:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 8px 16px rgba(38, 112, 71, 0.18);
+}
+
+@keyframes ticketMessageAppear {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 /* Responsive */
 
 @media (max-width: 1050px) {
@@ -616,6 +700,15 @@
   .cancel-ticket-button,
   .send-ticket-button {
     flex: 1;
+  }
+
+  .ticket-submit-message {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .ticket-submit-message button {
+    width: 100%;
   }
 }
 

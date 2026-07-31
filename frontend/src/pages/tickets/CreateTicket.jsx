@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import DashboardLayout from "../../components/DashboardLayout";
+import { createTicket } from "../../api/ticket";
 import "../../styles/CreateTicket.css";
 
 function CreateTicket() {
@@ -12,6 +13,9 @@ function CreateTicket() {
     priority: "",
     description: "",
   });
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [successMessage, setSuccessMessage] = useState("");
+  const [errorMessage, setErrorMessage] = useState("");
 
   const handleChange = (event) => {
     const { name, value } = event.target;
@@ -20,11 +24,46 @@ function CreateTicket() {
       ...current,
       [name]: value,
     }));
+
+    setSuccessMessage("");
+    setErrorMessage("");
   };
 
-  const handleSubmit = (event) => {
+  const handleSubmit = async (event) => {
     event.preventDefault();
-    console.log(form);
+
+    setSuccessMessage("");
+    setErrorMessage("");
+    setIsSubmitting(true);
+
+    try {
+      const result = await createTicket(form);
+
+      setSuccessMessage(
+        `Ticket ${result.ticketNumber} created successfully.`
+      );
+
+      setForm({
+        subject: "",
+        category: "",
+        priority: "",
+        description: "",
+      });
+
+      window.scrollTo({
+        top: 0,
+        behavior: "smooth",
+      });
+    } catch (requestError) {
+      console.error("Create ticket error:", requestError);
+
+      setErrorMessage(
+        requestError.message ||
+          "The ticket could not be created."
+      );
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleApplySuggestion = () => {
@@ -58,6 +97,38 @@ function CreateTicket() {
             ← Back to dashboard
           </button>
         </section>
+
+        {successMessage && (
+          <div
+            className="ticket-submit-message success"
+            role="status"
+            aria-live="polite"
+          >
+            <div>
+              <strong>Ticket created</strong>
+              <span>{successMessage}</span>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => navigate("/my-tickets")}
+            >
+              View My Tickets
+            </button>
+          </div>
+        )}
+
+        {errorMessage && (
+          <div
+            className="ticket-submit-message error"
+            role="alert"
+          >
+            <div>
+              <strong>Ticket not created</strong>
+              <span>{errorMessage}</span>
+            </div>
+          </div>
+        )}
 
         <form className="create-ticket-card" onSubmit={handleSubmit}>
           <section className="ticket-form-section">
@@ -244,8 +315,12 @@ function CreateTicket() {
                 Cancel
               </button>
 
-              <button type="submit" className="send-ticket-button">
-                Send Ticket
+              <button
+                type="submit"
+                className="send-ticket-button"
+                disabled={isSubmitting}
+              >
+                {isSubmitting ? "Sending..." : "Send Ticket"}
               </button>
             </div>
           </footer>
