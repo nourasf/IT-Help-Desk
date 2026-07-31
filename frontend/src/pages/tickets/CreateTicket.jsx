@@ -1,7 +1,10 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import DashboardLayout from "../../components/DashboardLayout";
-import { createTicket } from "../../api/ticket";
+import {
+  createTicket,
+  getTicketFormOptions,
+} from "../../api/ticket";
 import "../../styles/CreateTicket.css";
 
 function CreateTicket() {
@@ -16,6 +19,65 @@ function CreateTicket() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [successMessage, setSuccessMessage] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
+  const [ticketOptions, setTicketOptions] = useState({
+    categories: [],
+    priorities: [],
+  });
+  const [isLoadingOptions, setIsLoadingOptions] = useState(true);
+  const [optionsError, setOptionsError] = useState("");
+  const [optionsReloadKey, setOptionsReloadKey] = useState(0);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    let isMounted = true;
+
+    const timeoutId = window.setTimeout(() => {
+      controller.abort();
+    }, 8000);
+
+    async function loadTicketOptions() {
+      setIsLoadingOptions(true);
+      setOptionsError("");
+
+      try {
+        const data = await getTicketFormOptions(controller.signal);
+
+        if (isMounted) {
+          setTicketOptions(data);
+        }
+      } catch (requestError) {
+        if (!isMounted) {
+          return;
+        }
+
+        setTicketOptions({
+          categories: [],
+          priorities: [],
+        });
+
+        setOptionsError(
+          requestError.name === "AbortError"
+            ? "Loading categories took too long. Make sure the backend is running."
+            : requestError.message ||
+                "The ticket options could not be loaded."
+        );
+      } finally {
+        window.clearTimeout(timeoutId);
+
+        if (isMounted) {
+          setIsLoadingOptions(false);
+        }
+      }
+    }
+
+    loadTicketOptions();
+
+    return () => {
+      isMounted = false;
+      window.clearTimeout(timeoutId);
+      controller.abort();
+    };
+  }, [optionsReloadKey]);
 
   const handleChange = (event) => {
     const { name, value } = event.target;
@@ -130,6 +192,27 @@ function CreateTicket() {
           </div>
         )}
 
+        {optionsError && (
+          <div
+            className="ticket-submit-message error"
+            role="alert"
+          >
+            <div>
+              <strong>Options unavailable</strong>
+              <span>{optionsError}</span>
+            </div>
+
+            <button
+              type="button"
+              onClick={() =>
+                setOptionsReloadKey((current) => current + 1)
+              }
+            >
+              Try Again
+            </button>
+          </div>
+        )}
+
         <form className="create-ticket-card" onSubmit={handleSubmit}>
           <section className="ticket-form-section">
             <div className="ticket-section-heading">
@@ -158,35 +241,63 @@ function CreateTicket() {
               <label className="ticket-field">
                 <span>Category</span>
 
-                <select
-                  name="category"
-                  value={form.category}
-                  onChange={handleChange}
-                  required
-                >
-                  <option value="">Select category</option>
-                  <option value="hardware">Hardware</option>
-                  <option value="software">Software</option>
-                  <option value="network">Network</option>
-                  <option value="email">Email</option>
-                </select>
+                <div className="ticket-select-wrapper">
+                  <select
+                    name="category"
+                    value={form.category}
+                    onChange={handleChange}
+                    disabled={isLoadingOptions || Boolean(optionsError)}
+                    required
+                  >
+                    <option value="">
+                      {isLoadingOptions
+                        ? "Loading categories..."
+                        : ticketOptions.categories.length > 0
+                          ? "Select category"
+                          : "No categories available"}
+                    </option>
+
+                    {ticketOptions.categories.map((category) => (
+                      <option
+                        key={category.id}
+                        value={category.name.toLowerCase()}
+                      >
+                        {category.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
               </label>
 
               <label className="ticket-field">
                 <span>Priority</span>
 
-                <select
-                  name="priority"
-                  value={form.priority}
-                  onChange={handleChange}
-                  required
-                >
-                  <option value="">Select priority</option>
-                  <option value="low">Low</option>
-                  <option value="medium">Medium</option>
-                  <option value="high">High</option>
-                  <option value="critical">Critical</option>
-                </select>
+                <div className="ticket-select-wrapper">
+                  <select
+                    name="priority"
+                    value={form.priority}
+                    onChange={handleChange}
+                    disabled={isLoadingOptions || Boolean(optionsError)}
+                    required
+                  >
+                    <option value="">
+                      {isLoadingOptions
+                        ? "Loading priorities..."
+                        : ticketOptions.priorities.length > 0
+                          ? "Select priority"
+                          : "No priorities available"}
+                    </option>
+
+                    {ticketOptions.priorities.map((priority) => (
+                      <option
+                        key={priority.id}
+                        value={priority.name.toLowerCase()}
+                      >
+                        {priority.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
               </label>
 
               <label className="ticket-field full-width-field">
