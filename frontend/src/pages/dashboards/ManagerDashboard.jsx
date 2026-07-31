@@ -1,106 +1,415 @@
-import DashboardLayout from "../../components/DashboardLayout";
-import StatCard from "../../components/StatCard";
 import { useEffect, useState } from "react";
+import DashboardLayout from "../../components/DashboardLayout";
 import { getManagerDashboard } from "../../api/dashboard";
-function ManagerDashboard() {
+import "../../styles/ManagerDashboard.css";
 
-     const navigate = useNavigate();
-const [dashboard, setDashboard] = useState(null);
+const statusColors = {
+  Open: "#8c78cb",
+  "In Progress": "#5b8fd6",
+  Pending: "#d4a744",
+  Resolved: "#45a775",
+  Closed: "#7e8798",
+};
 
-useEffect(() => {
-    loadDashboard();
-}, []);
+function ManagerIcon({ name }) {
+  const icons = {
+    tickets: (
+      <>
+        <path d="M4 6h16v12H4z" />
+        <path d="M8 6v12" />
+        <path d="M16 6v12" />
+      </>
+    ),
+    active: (
+      <>
+        <circle cx="12" cy="12" r="9" />
+        <path d="M12 7v5l3 2" />
+      </>
+    ),
+    overdue: (
+      <>
+        <path d="M12 4 3.5 19h17z" />
+        <path d="M12 9v4" />
+        <path d="M12 16h.01" />
+      </>
+    ),
+    resolved: (
+      <>
+        <circle cx="12" cy="12" r="9" />
+        <path d="m8 12 2.5 2.5L16.5 9" />
+      </>
+    ),
+  };
 
-async function loadDashboard() {
-    try {
-        const data = await getEmployeeDashboard();
-        setDashboard(data);
-    } catch (err) {
-        console.error(err);
-    }
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      {icons[name]}
+    </svg>
+  );
 }
 
-if (!dashboard)
-    return <DashboardLayout>Loading...</DashboardLayout>;
+function ManagerMetric({ icon, label, value, description, tone }) {
+  return (
+    <article className={`manager-metric ${tone}`}>
+      <div className="manager-metric-icon">
+        <ManagerIcon name={icon} />
+      </div>
+      <div>
+        <p>{label}</p>
+        <strong>{value}</strong>
+        <span>{description}</span>
+      </div>
+    </article>
+  );
+}
+
+function performanceLabel(rate) {
+  if (rate >= 75) return "Excellent";
+  if (rate >= 50) return "Good";
+  if (rate > 0) return "Needs attention";
+  return "No data";
+}
+
+function formatDate(value) {
+  return new Date(value).toLocaleDateString([], {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
+}
+
+function ManagerDashboard() {
+  const [dashboard, setDashboard] = useState(null);
+  const [error, setError] = useState("");
+
+  async function loadDashboard() {
+    setError("");
+
+    try {
+      const data = await getManagerDashboard();
+      setDashboard(data);
+    } catch (requestError) {
+      setError(requestError.message || "The dashboard could not be loaded.");
+    }
+  }
+
+  useEffect(() => {
+    loadDashboard();
+  }, []);
+
+  if (error) {
+    return (
+      <DashboardLayout activePage="dashboard">
+        <div className="manager-dashboard-state">
+          <h1>Dashboard unavailable</h1>
+          <p>{error}</p>
+          <button type="button" onClick={loadDashboard}>
+            Try Again
+          </button>
+        </div>
+      </DashboardLayout>
+    );
+  }
+
+  if (!dashboard) {
+    return (
+      <DashboardLayout activePage="dashboard">
+        <div className="manager-dashboard-state">Loading dashboard...</div>
+      </DashboardLayout>
+    );
+  }
+
+  const statusData = dashboard.ticketsByStatus || [];
+  const agents = dashboard.agentPerformance || [];
+  const recentTickets = dashboard.recentTickets || [];
+  const statusTotal = statusData.reduce(
+    (total, status) => total + status.count,
+    0
+  );
+
   return (
     <DashboardLayout activePage="dashboard">
-      <h1>Welcome back, Manager 👋</h1>
-
-      <div className="stats-grid">
-        <StatCard
-          dotClass="purple"
-          title="Team Tickets"
-          value="28"
-          description="Total team tickets"
-        />
-
-        <StatCard
-          dotClass="yellow"
-          title="Open"
-          value="9"
-          description="Currently active"
-        />
-
-        <StatCard
-          dotClass="red"
-          title="Overdue"
-          value="3"
-          description="Past expected resolution"
-        />
-
-        <StatCard
-          dotClass="green"
-          title="Resolved"
-          value="19"
-          description="Resolved this month"
-        />
-      </div>
-
-      <section className="dashboard-table-section">
-        <div className="section-heading">
-          <h2>Team Performance</h2>
+      <header className="manager-dashboard-header">
+        <div>
+          <p className="manager-eyebrow">Team operations</p>
+          <h1>Manager Dashboard</h1>
+          <p>
+            Monitor team workload, resolution progress, and ticket performance.
+          </p>
         </div>
 
-        <div className="tickets-panel">
-          <table className="tickets-table">
+        <div className="manager-header-summary">
+          <span>Average resolution</span>
+          <strong>
+            {dashboard.averageResolutionTime > 0
+              ? `${dashboard.averageResolutionTime}h`
+              : "No data"}
+          </strong>
+        </div>
+      </header>
+
+      <section className="manager-metrics-grid" aria-label="Team metrics">
+        <ManagerMetric
+          icon="tickets"
+          label="Team Tickets"
+          value={dashboard.teamTickets}
+          description="All support tickets"
+          tone="purple"
+        />
+        <ManagerMetric
+          icon="active"
+          label="Active"
+          value={dashboard.openTickets}
+          description={`${dashboard.unassignedTickets} currently unassigned`}
+          tone="blue"
+        />
+        <ManagerMetric
+          icon="overdue"
+          label="Overdue"
+          value={dashboard.overdueTickets}
+          description={`${dashboard.criticalTickets} critical tickets`}
+          tone="red"
+        />
+        <ManagerMetric
+          icon="resolved"
+          label="Resolved"
+          value={dashboard.resolvedTickets}
+          description="Resolved or closed"
+          tone="green"
+        />
+      </section>
+
+      <section className="manager-overview-grid">
+        <article className="manager-panel">
+          <div className="manager-panel-heading">
+            <div>
+              <p>Workflow overview</p>
+              <h2>Tickets by Status</h2>
+            </div>
+            <span>{dashboard.teamTickets} total</span>
+          </div>
+
+          {statusData.length > 0 ? (
+            <div className="manager-status-list">
+              {statusData.map((status, index) => {
+                const percentage = statusTotal
+                  ? (status.count / statusTotal) * 100
+                  : 0;
+                const color =
+                  statusColors[status.name] ||
+                  ["#8c78cb", "#5b8fd6", "#45a775", "#d4a744"][
+                    index % 4
+                  ];
+
+                return (
+                  <div className="manager-status-item" key={status.name}>
+                    <div>
+                      <span>
+                        <i style={{ backgroundColor: color }} />
+                        {status.name}
+                      </span>
+                      <strong>{status.count}</strong>
+                    </div>
+                    <div className="manager-progress-track">
+                      <span
+                        style={{
+                          width: `${percentage}%`,
+                          backgroundColor: color,
+                        }}
+                      />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <p className="manager-empty-state">No ticket data yet.</p>
+          )}
+        </article>
+
+        <article className="manager-panel manager-health-panel">
+          <div className="manager-panel-heading">
+            <div>
+              <p>Team capacity</p>
+              <h2>Workload Health</h2>
+            </div>
+          </div>
+
+          <div className="manager-health-grid">
+            <div>
+              <span>Support agents</span>
+              <strong>{dashboard.supportAgents}</strong>
+            </div>
+            <div>
+              <span>Unassigned</span>
+              <strong>{dashboard.unassignedTickets}</strong>
+            </div>
+            <div>
+              <span>Critical</span>
+              <strong>{dashboard.criticalTickets}</strong>
+            </div>
+            <div>
+              <span>Overdue</span>
+              <strong>{dashboard.overdueTickets}</strong>
+            </div>
+          </div>
+
+          <div className="manager-health-message">
+            <strong>
+              {dashboard.overdueTickets === 0
+                ? "Workload is on track"
+                : "Some tickets need attention"}
+            </strong>
+            <p>
+              {dashboard.overdueTickets === 0
+                ? "There are no active tickets older than three days."
+                : `${dashboard.overdueTickets} active ticket${
+                    dashboard.overdueTickets === 1 ? " is" : "s are"
+                  } older than three days.`}
+            </p>
+          </div>
+        </article>
+      </section>
+
+      <section className="manager-panel manager-performance-panel">
+        <div className="manager-panel-heading">
+          <div>
+            <p>Support team</p>
+            <h2>Agent Performance</h2>
+          </div>
+          <span>{agents.length} agents</span>
+        </div>
+
+        <div className="manager-table-wrapper">
+          <table className="manager-table">
             <thead>
               <tr>
                 <th>Agent</th>
                 <th>Assigned</th>
                 <th>Resolved</th>
-                <th>Open</th>
+                <th>Active</th>
                 <th>Average Resolution</th>
+                <th>Completion</th>
                 <th>Performance</th>
               </tr>
             </thead>
-
             <tbody>
-              <tr>
-                <td>Ali Hassan</td>
-                <td>12</td>
-                <td>9</td>
-                <td>3</td>
-                <td>2.5 hours</td>
-                <td>Excellent</td>
-              </tr>
+              {agents.length > 0 ? (
+                agents.map((agent) => (
+                  <tr key={agent.agent}>
+                    <td>
+                      <span className="manager-agent-avatar">
+                        {agent.agent.charAt(0).toUpperCase()}
+                      </span>
+                      <strong>{agent.agent}</strong>
+                    </td>
+                    <td>{agent.assigned}</td>
+                    <td>{agent.resolved}</td>
+                    <td>{agent.open}</td>
+                    <td>
+                      {agent.averageResolutionTime > 0
+                        ? `${agent.averageResolutionTime} hours`
+                        : "-"}
+                    </td>
+                    <td>
+                      <div className="manager-rate-cell">
+                        <div className="manager-rate-track">
+                          <span
+                            style={{
+                              width: `${Math.min(agent.resolutionRate, 100)}%`,
+                            }}
+                          />
+                        </div>
+                        <strong>{agent.resolutionRate}%</strong>
+                      </div>
+                    </td>
+                    <td>
+                      <span
+                        className={`manager-performance-badge ${
+                          agent.resolutionRate >= 75
+                            ? "excellent"
+                            : agent.resolutionRate >= 50
+                              ? "good"
+                              : "attention"
+                        }`}
+                      >
+                        {performanceLabel(agent.resolutionRate)}
+                      </span>
+                    </td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td className="manager-empty-table" colSpan="7">
+                    No support-agent performance data yet.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </section>
 
-              <tr>
-                <td>Maya Fares</td>
-                <td>10</td>
-                <td>7</td>
-                <td>3</td>
-                <td>3.2 hours</td>
-                <td>Good</td>
-              </tr>
+      <section className="manager-panel manager-recent-panel">
+        <div className="manager-panel-heading">
+          <div>
+            <p>Latest requests</p>
+            <h2>Recent Team Tickets</h2>
+          </div>
+        </div>
 
+        <div className="manager-table-wrapper">
+          <table className="manager-table manager-recent-table">
+            <thead>
               <tr>
-                <td>Karim Nasser</td>
-                <td>8</td>
-                <td>5</td>
-                <td>3</td>
-                <td>4.1 hours</td>
-                <td>Good</td>
+                <th>Ticket</th>
+                <th>Employee</th>
+                <th>Assigned To</th>
+                <th>Category</th>
+                <th>Status</th>
+                <th>Priority</th>
+                <th>Created</th>
               </tr>
+            </thead>
+            <tbody>
+              {recentTickets.length > 0 ? (
+                recentTickets.map((ticket) => (
+                  <tr key={ticket.id}>
+                    <td>
+                      <strong>{ticket.ticketNumber}</strong>
+                      <span>{ticket.subject}</span>
+                    </td>
+                    <td>{ticket.employee}</td>
+                    <td>{ticket.assignedTo}</td>
+                    <td>{ticket.category}</td>
+                    <td>
+                      <span className="manager-ticket-badge status">
+                        {ticket.status}
+                      </span>
+                    </td>
+                    <td>
+                      <span className="manager-ticket-badge priority">
+                        {ticket.priority}
+                      </span>
+                    </td>
+                    <td>{formatDate(ticket.createdAt)}</td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td className="manager-empty-table" colSpan="7">
+                    No recent tickets yet.
+                  </td>
+                </tr>
+              )}
             </tbody>
           </table>
         </div>
