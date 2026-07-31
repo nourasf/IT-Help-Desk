@@ -27,74 +27,87 @@ namespace backend.Controllers
 
        
         [HttpPost("create-ticket")]
-        [Authorize(Roles="Employee")]
+        [Authorize(Roles = "Employee")]
         public async Task<IActionResult> CreateTicket(
-            CreateTicketRequest request)
+            [FromBody] CreateTicketRequest request)
         {
-            var categoryExists = await _context.Categories
-            .AnyAsync(c=> c.ID==request.CategoryId);
+            var categoryName = request.Category.Trim().ToLower();
 
-            if(!categoryExists)
+            var category = await _context.Categories
+                .FirstOrDefaultAsync(c =>
+                    c.IsActive &&
+                    c.Name.ToLower() == categoryName);
+
+            if (category == null)
             {
                 return BadRequest(new
                 {
-                    message= "invalid Category."
+                    message = "Invalid ticket category."
                 });
             }
 
-            var priorityExists= await _context.Priorities
-            .AnyAsync(p=>p.ID== request.PriorityId);
+            var priorityName = request.Priority.Trim().ToLower();
 
-            if(!priorityExists)
+            var priority = await _context.Priorities
+                .FirstOrDefaultAsync(p =>
+                    p.Name.ToLower() == priorityName);
+
+            if (priority == null)
             {
                 return BadRequest(new
                 {
-                    message="Invalid priority."
+                    message = "Invalid ticket priority."
                 });
             }
-            var openStatus= await _context.Statuses
-            .FirstOrDefaultAsync(s=>s.StatusName=="Open");
 
-            if(openStatus==null)
+            var openStatus = await _context.Statuses
+                .FirstOrDefaultAsync(s =>
+                    s.StatusName.ToLower() == "open");
+
+            if (openStatus == null)
             {
                 return BadRequest(new
                 {
-                    message="Open status not found."
+                    message = "The Open ticket status was not found."
                 });
             }
 
-            var userIdValue= User.FindFirstValue(ClaimTypes.NameIdentifier);
-            if(string.IsNullOrEmpty(userIdValue)||
-            !int.TryParse(userIdValue, out var userId))
+            var userIdValue = User.FindFirstValue(
+                ClaimTypes.NameIdentifier);
+
+            if (string.IsNullOrEmpty(userIdValue) ||
+                !int.TryParse(userIdValue, out var userId))
             {
                 return Unauthorized(new
                 {
-                    message="Invalid or missing user ID in token."
+                    message = "Invalid or missing user ID in token."
                 });
             }
 
-            var ticket= new Ticket
+            var ticket = new Ticket
             {
-                TicketNumber= $"TKT-{Guid.NewGuid().ToString()[..8].ToUpper()}",
-                Subject= request.Subject,
-                Description= request.Description,
-                CategoryId= request.CategoryId,
-                PriorityId= request.PriorityId,
-                StatusId= openStatus.ID,
-                CreatedAt= DateTime.UtcNow,
-                CreatedByUserId= userId 
+                TicketNumber =
+                    $"TKT-{Guid.NewGuid().ToString()[..8].ToUpper()}",
+                Subject = request.Subject.Trim(),
+                Description = request.Description.Trim(),
+                CategoryId = category.ID,
+                PriorityId = priority.ID,
+                StatusId = openStatus.ID,
+                CreatedAt = DateTime.UtcNow,
+                CreatedByUserId = userId
             };
+
             _context.Tickets.Add(ticket);
             await _context.SaveChangesAsync();
 
             return CreatedAtAction(
                 nameof(GetTicketById),
-                new { id= ticket.Id},
+                new { id = ticket.Id },
                 new
                 {
-                    message= "Ticket created successfully.",
-                    ticketId= ticket.Id,
-                    ticketNumber= ticket.TicketNumber
+                    message = "Ticket created successfully.",
+                    ticketId = ticket.Id,
+                    ticketNumber = ticket.TicketNumber
                 }
             );
         }
@@ -370,4 +383,3 @@ public async Task<IActionResult> AddComment(int id, AddTicketCommentRequest requ
 }
 
 }
-
