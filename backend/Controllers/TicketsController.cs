@@ -25,6 +25,41 @@ namespace backend.Controllers
             _context = context;
         }
 
+        [HttpGet("form-options")]
+        [Authorize(Roles = "Employee")]
+        public async Task<IActionResult> GetTicketFormOptions()
+        {
+            var categories = await _context.Categories
+                .AsNoTracking()
+                .Where(category => category.IsActive)
+                .OrderBy(category => category.Name)
+                .Select(category => new
+                {
+                    category.ID,
+                    category.Name,
+                    category.Description
+                })
+                .ToListAsync();
+
+            var priorities = await _context.Priorities
+                .AsNoTracking()
+                .OrderBy(priority => priority.ID)
+                .Select(priority => new
+                {
+                    priority.ID,
+                    priority.Name,
+                    priority.Level,
+                    Color = priority.color
+                })
+                .ToListAsync();
+
+            return Ok(new
+            {
+                categories,
+                priorities
+            });
+        }
+
        
         [HttpPost("create-ticket")]
         [Authorize(Roles = "Employee")]
