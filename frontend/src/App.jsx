@@ -11,7 +11,7 @@ import AdminDashboard from "./pages/dashboards/AdminDashboard";
 import ManagerDashboard from "./pages/dashboards/ManagerDashboard";
 import EmployeeDashboard from "./pages/dashboards/EmployeeDashboard";
 import AgentDashboard from "./pages/dashboards/AgentDashboard";
-import Register from "./pages/auth/Register";
+import CreateUser from "./pages/admin/CreateUser";
 import CreateTicket from "./pages/tickets/CreateTicket";
 import MyTickets from "./pages/tickets/MyTickets";
 import TicketDetails from "./pages/tickets/TicketDetails";
@@ -77,7 +77,14 @@ function App() {
 
    
 
-   <Route path="/register" element={<Register />}/>
+        <Route
+          path="/admin/users/create"
+          element={
+            <ProtectedRoute allowedRole="Admin">
+              <CreateUser />
+            </ProtectedRoute>
+          }
+        />
 
   <Route
   path="/create-ticket"
