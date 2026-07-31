@@ -200,68 +200,135 @@ namespace backend.Controllers
         }
 
         [HttpGet("manager")]
+        [Authorize(Roles = "Manager")]
         public async Task<IActionResult> GetManagerDashboard()
         {
             var tickets = await _context.Tickets
-            .Include(t => t.Status)
-            .Include(t => t.AssignedToUser)
-            .Where(t => !t.IsDeleted)
-            .ToListAsync();
+                .Include(t => t.Status)
+                .Include(t => t.Priority)
+                .Include(t => t.Category)
+                .Include(t => t.CreatedByUser)
+                .Include(t => t.AssignedToUser)
+                .Where(t => !t.IsDeleted)
+                .OrderByDescending(t => t.CreatedAt)
+                .ToListAsync();
 
             var supportAgents = await _context.Users
                 .Include(u => u.Role)
-                .Where(u => u.Role.Name == "IT Support Agent")
+                .Where(u => u.Role != null &&
+                    (u.Role.Name == "IT Support Agent" ||
+                     u.Role.Name == "Agent" ||
+                     u.Role.Name == "IT"))
                 .ToListAsync();
 
+            var activeTickets = tickets
+                .Where(t =>
+                    t.Status.StatusName == "Open" ||
+                    t.Status.StatusName == "In Progress" ||
+                    t.Status.StatusName == "Pending")
+                .ToList();
+
+            var resolvedTickets = tickets
+                .Where(t =>
+                    t.Status.StatusName == "Resolved" ||
+                    t.Status.StatusName == "Closed")
+                .ToList();
+
+            var resolutionDurations = resolvedTickets
+                .Where(t => t.ClosedAt.HasValue || t.UpdatedAt.HasValue)
+                .Select(t =>
+                    ((t.ClosedAt ?? t.UpdatedAt)!.Value - t.CreatedAt)
+                    .TotalHours)
+                .Where(hours => hours >= 0)
+                .ToList();
 
             var result = new
             {
                 TeamTickets = tickets.Count,
+                OpenTickets = activeTickets.Count,
+                OverdueTickets = activeTickets.Count(t =>
+                    t.CreatedAt < DateTime.UtcNow.AddDays(-3)),
+                ResolvedTickets = resolvedTickets.Count,
+                UnassignedTickets = activeTickets.Count(t =>
+                    t.AssignedToUserId == null),
+                CriticalTickets = activeTickets.Count(t =>
+                    t.Priority.Name == "Critical"),
+                SupportAgents = supportAgents.Count,
+                AverageResolutionTime = resolutionDurations.Any()
+                    ? Math.Round(resolutionDurations.Average(), 1)
+                    : 0,
 
-                OpenTickets = tickets.Count(t=>
-                t.Status.StatusName=="Open"||
-                t.Status.StatusName=="In Progress"),
+                TicketsByStatus = tickets
+                    .GroupBy(t => t.Status.StatusName)
+                    .Select(group => new
+                    {
+                        Name = group.Key,
+                        Count = group.Count()
+                    })
+                    .OrderByDescending(item => item.Count),
 
-                OverdueTickets = tickets.Count(t=>
-                t.Status.StatusName!="Resolved" &&
-                t.CreatedAt < DateTime.UtcNow.AddDays(-3)),
-
-                ResolvedTickets= tickets.Count(t=>
-                t.Status.StatusName=="Resolved"),
-
-                AgentPerformance= supportAgents.Select(agent=>
+                RecentTickets = tickets.Take(6).Select(t => new
                 {
-                    var assignedTickets= tickets
-                    .Where(t=>t.AssignedToUserId==agent.ID)
-                    .ToList();
+                    t.Id,
+                    t.TicketNumber,
+                    t.Subject,
+                    Employee = t.CreatedByUser.FullName,
+                    AssignedTo = t.AssignedToUser != null
+                        ? t.AssignedToUser.FullName
+                        : "Unassigned",
+                    Status = t.Status.StatusName,
+                    Priority = t.Priority.Name,
+                    Category = t.Category.Name,
+                    t.CreatedAt
+                }),
 
-                    var resolvedTickets= assignedTickets
-                    .Where(t=>t.Status.StatusName=="Resolved")
-                    .ToList();
+                AgentPerformance = supportAgents.Select(agent =>
+                {
+                    var assignedTickets = tickets
+                        .Where(t => t.AssignedToUserId == agent.ID)
+                        .ToList();
 
-                    var averageResolutionHours= resolvedTickets.Any()
-                    ? resolvedTickets
-                    .Where(t=> t.UpdatedAt.HasValue)
-                    .Select(t=>
-                    (t.UpdatedAt!.Value - t.CreatedAt).TotalHours)
-                    .DefaultIfEmpty(0)
-                    .Average()
-                    : 0;
+                    var agentResolvedTickets = assignedTickets
+                        .Where(t =>
+                            t.Status.StatusName == "Resolved" ||
+                            t.Status.StatusName == "Closed")
+                        .ToList();
+
+                    var agentResolutionDurations = agentResolvedTickets
+                        .Where(t => t.ClosedAt.HasValue || t.UpdatedAt.HasValue)
+                        .Select(t =>
+                            ((t.ClosedAt ?? t.UpdatedAt)!.Value - t.CreatedAt)
+                            .TotalHours)
+                        .Where(hours => hours >= 0)
+                        .ToList();
+
+                    var averageResolutionHours =
+                        agentResolutionDurations.Any()
+                            ? agentResolutionDurations.Average()
+                            : 0;
+
+                    var resolutionRate = assignedTickets.Any()
+                        ? (double)agentResolvedTickets.Count /
+                          assignedTickets.Count * 100
+                        : 0;
+
                     return new
                     {
-                        Agent= agent.FullName,
-                        Assigned=assignedTickets.Count,
-                        Resolved= resolvedTickets.Count,
-                        Open= assignedTickets.Count(t=>
-                        t.Status.StatusName != "Resolved"),
-                        AverageResolutionTime= Math.Round(averageResolutionHours,1)
-
+                        Agent = agent.FullName,
+                        Assigned = assignedTickets.Count,
+                        Resolved = agentResolvedTickets.Count,
+                        Open = assignedTickets.Count(t =>
+                            t.Status.StatusName == "Open" ||
+                            t.Status.StatusName == "In Progress" ||
+                            t.Status.StatusName == "Pending"),
+                        AverageResolutionTime =
+                            Math.Round(averageResolutionHours, 1),
+                        ResolutionRate = Math.Round(resolutionRate, 0)
                     };
                 })
             };
-            return Ok(result);
 
-           
+            return Ok(result);
         }
 
     }
