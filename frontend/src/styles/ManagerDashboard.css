@@ -1,0 +1,530 @@
+.manager-dashboard-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  margin-bottom: 24px;
+  animation: managerFadeDown 0.5s ease both;
+}
+
+.manager-dashboard-header h1 {
+  margin: 3px 0 8px;
+  color: var(--dark-text);
+  font-size: 34px;
+  font-weight: 750;
+  line-height: 1.15;
+  letter-spacing: -0.035em;
+}
+
+.manager-dashboard-header > div > p:last-child {
+  margin: 0;
+  color: var(--normal-text);
+  font-size: 15px;
+}
+
+.manager-eyebrow {
+  margin: 0;
+  color: #7765ba;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.manager-header-summary {
+  min-width: 180px;
+  padding: 14px 18px;
+  border: 1px solid rgba(255, 255, 255, 0.8);
+  border-radius: 15px;
+  background: rgba(255, 255, 255, 0.7);
+  box-shadow: 0 10px 24px rgba(73, 55, 111, 0.11);
+}
+
+.manager-header-summary span,
+.manager-header-summary strong {
+  display: block;
+}
+
+.manager-header-summary span {
+  color: var(--muted-text);
+  font-size: 12px;
+}
+
+.manager-header-summary strong {
+  margin-top: 3px;
+  color: var(--dark-text);
+  font-size: 21px;
+}
+
+.manager-metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(180px, 1fr));
+  gap: 18px;
+  margin-bottom: 20px;
+}
+
+.manager-metric {
+  display: flex;
+  min-height: 125px;
+  align-items: flex-start;
+  gap: 15px;
+  padding: 19px;
+  border: 1px solid rgba(255, 255, 255, 0.82);
+  border-radius: 17px;
+  background: #ffffff;
+  box-shadow: 0 12px 26px rgba(73, 55, 111, 0.13);
+  animation: managerFadeUp 0.5s ease both;
+  transition: transform 0.24s ease, box-shadow 0.24s ease;
+}
+
+.manager-metric:nth-child(2) {
+  animation-delay: 0.06s;
+}
+
+.manager-metric:nth-child(3) {
+  animation-delay: 0.12s;
+}
+
+.manager-metric:nth-child(4) {
+  animation-delay: 0.18s;
+}
+
+.manager-metric:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 18px 34px rgba(73, 55, 111, 0.18);
+}
+
+.manager-metric-icon {
+  display: grid;
+  width: 43px;
+  height: 43px;
+  flex: 0 0 43px;
+  place-items: center;
+  border-radius: 12px;
+}
+
+.manager-metric-icon svg {
+  width: 23px;
+  height: 23px;
+}
+
+.manager-metric.purple .manager-metric-icon {
+  color: #806bc1;
+  background: #eee9fa;
+}
+
+.manager-metric.blue .manager-metric-icon {
+  color: #4d81c6;
+  background: #e9f2fc;
+}
+
+.manager-metric.red .manager-metric-icon {
+  color: #c64e5d;
+  background: #fdebed;
+}
+
+.manager-metric.green .manager-metric-icon {
+  color: #338d61;
+  background: #e6f6ed;
+}
+
+.manager-metric p {
+  margin: 0 0 5px;
+  color: var(--normal-text);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.manager-metric strong {
+  display: block;
+  color: var(--dark-text);
+  font-size: 29px;
+  line-height: 1;
+}
+
+.manager-metric span {
+  display: block;
+  margin-top: 8px;
+  color: var(--muted-text);
+  font-size: 12px;
+}
+
+.manager-overview-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.25fr) minmax(300px, 0.75fr);
+  gap: 18px;
+  margin-bottom: 20px;
+}
+
+.manager-panel {
+  padding: 22px 24px;
+  border: 1px solid rgba(255, 255, 255, 0.8);
+  border-radius: 17px;
+  background: #ffffff;
+  box-shadow: 0 12px 26px rgba(73, 55, 111, 0.13);
+  animation: managerFadeUp 0.55s ease both;
+}
+
+.manager-panel-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18px;
+  margin-bottom: 18px;
+}
+
+.manager-panel-heading p {
+  margin: 0 0 3px;
+  color: #8473bb;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.065em;
+  text-transform: uppercase;
+}
+
+.manager-panel-heading h2 {
+  margin: 0;
+  color: var(--dark-text);
+  font-size: 20px;
+  line-height: 1.3;
+  letter-spacing: -0.02em;
+}
+
+.manager-panel-heading > span {
+  padding: 5px 10px;
+  border-radius: 13px;
+  background: #f0ecf8;
+  color: #75699a;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.manager-status-list {
+  display: grid;
+  gap: 14px;
+}
+
+.manager-status-item > div:first-child {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 6px;
+  color: var(--normal-text);
+  font-size: 14px;
+}
+
+.manager-status-item > div:first-child span {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+}
+
+.manager-status-item i {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+}
+
+.manager-status-item strong {
+  color: var(--dark-text);
+}
+
+.manager-progress-track,
+.manager-rate-track {
+  height: 7px;
+  overflow: hidden;
+  border-radius: 8px;
+  background: #eeeaf4;
+}
+
+.manager-progress-track span,
+.manager-rate-track span {
+  display: block;
+  min-width: 3px;
+  height: 100%;
+  border-radius: inherit;
+  animation: managerGrowBar 0.85s ease both;
+}
+
+.manager-health-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.manager-health-grid > div {
+  min-height: 67px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: #f7f4fb;
+}
+
+.manager-health-grid span,
+.manager-health-grid strong {
+  display: block;
+}
+
+.manager-health-grid span {
+  color: var(--normal-text);
+  font-size: 12px;
+}
+
+.manager-health-grid strong {
+  margin-top: 3px;
+  color: var(--dark-text);
+  font-size: 22px;
+}
+
+.manager-health-message {
+  margin-top: 13px;
+  padding: 14px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #eee9fa, #f8f6fc);
+}
+
+.manager-health-message strong {
+  color: var(--dark-text);
+  font-size: 13px;
+}
+
+.manager-health-message p {
+  margin: 4px 0 0;
+  color: var(--normal-text);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.manager-performance-panel {
+  margin-bottom: 20px;
+}
+
+.manager-table-wrapper {
+  width: 100%;
+  overflow-x: auto;
+}
+
+.manager-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.manager-table th,
+.manager-table td {
+  padding: 12px;
+  border-bottom: 1px solid #ece8f2;
+  color: var(--normal-text);
+  font-size: 13px;
+  text-align: left;
+  vertical-align: middle;
+  white-space: nowrap;
+}
+
+.manager-table th {
+  color: #898397;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.045em;
+  text-transform: uppercase;
+}
+
+.manager-table tbody tr {
+  transition: background-color 0.2s ease;
+}
+
+.manager-table tbody tr:hover {
+  background: #faf8ff;
+}
+
+.manager-table td:first-child {
+  color: var(--dark-text);
+}
+
+.manager-agent-avatar {
+  display: inline-grid;
+  width: 32px;
+  height: 32px;
+  margin-right: 9px;
+  place-items: center;
+  border-radius: 10px;
+  background: #eee9f8;
+  color: #7966b6;
+  font-weight: 800;
+}
+
+.manager-rate-cell {
+  display: flex;
+  min-width: 130px;
+  align-items: center;
+  gap: 9px;
+}
+
+.manager-rate-track {
+  width: 82px;
+}
+
+.manager-rate-track span {
+  background: linear-gradient(90deg, #8c78cb, #b46fc7);
+}
+
+.manager-rate-cell strong {
+  min-width: 34px;
+  color: var(--dark-text);
+  font-size: 12px;
+}
+
+.manager-performance-badge,
+.manager-ticket-badge {
+  display: inline-block;
+  padding: 5px 9px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.manager-performance-badge.excellent {
+  color: #28734c;
+  background: #e5f5eb;
+}
+
+.manager-performance-badge.good {
+  color: #806321;
+  background: #faf2dc;
+}
+
+.manager-performance-badge.attention {
+  color: #a1434d;
+  background: #fbe8eb;
+}
+
+.manager-recent-table td:first-child strong,
+.manager-recent-table td:first-child span {
+  display: block;
+}
+
+.manager-recent-table td:first-child span {
+  max-width: 160px;
+  margin-top: 3px;
+  overflow: hidden;
+  color: var(--muted-text);
+  text-overflow: ellipsis;
+}
+
+.manager-ticket-badge.status {
+  color: #665693;
+  background: #eee9f8;
+}
+
+.manager-ticket-badge.priority {
+  color: #a3543e;
+  background: #fbece5;
+}
+
+.manager-empty-state,
+.manager-empty-table {
+  color: var(--muted-text);
+  font-size: 13px;
+}
+
+.manager-empty-table {
+  padding: 30px 12px !important;
+  text-align: center !important;
+}
+
+.manager-dashboard-state {
+  padding: 32px;
+  border-radius: 17px;
+  background: #ffffff;
+  box-shadow: 0 12px 26px rgba(73, 55, 111, 0.13);
+  color: var(--normal-text);
+}
+
+.manager-dashboard-state h1 {
+  margin-top: 0;
+  color: var(--dark-text);
+}
+
+.manager-dashboard-state button {
+  padding: 10px 18px;
+  border: none;
+  border-radius: 20px;
+  background: #8c78cb;
+  color: #ffffff;
+  font-weight: 700;
+}
+
+@keyframes managerFadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes managerFadeDown {
+  from {
+    opacity: 0;
+    transform: translateY(-12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes managerGrowBar {
+  from {
+    transform: scaleX(0);
+    transform-origin: left;
+  }
+  to {
+    transform: scaleX(1);
+    transform-origin: left;
+  }
+}
+
+@media (max-width: 1200px) {
+  .manager-metrics-grid {
+    grid-template-columns: repeat(2, minmax(200px, 1fr));
+  }
+
+  .manager-overview-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 700px) {
+  .manager-dashboard-header {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .manager-header-summary {
+    width: 100%;
+  }
+
+  .manager-metrics-grid,
+  .manager-health-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .manager-dashboard-header h1 {
+    font-size: 29px;
+  }
+
+  .manager-panel {
+    padding: 19px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .manager-dashboard-header,
+  .manager-metric,
+  .manager-panel,
+  .manager-progress-track span,
+  .manager-rate-track span {
+    animation: none;
+  }
+}
