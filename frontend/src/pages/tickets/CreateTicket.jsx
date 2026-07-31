@@ -1,4 +1,9 @@
-import { useEffect, useState } from "react";
+import {
+  useEffect,
+  useId,
+  useRef,
+  useState,
+} from "react";
 import { useNavigate } from "react-router-dom";
 import DashboardLayout from "../../components/DashboardLayout";
 import {
@@ -6,6 +11,212 @@ import {
   getTicketFormOptions,
 } from "../../api/ticket";
 import "../../styles/CreateTicket.css";
+
+function TicketDropdown({
+  ariaLabel,
+  value,
+  options,
+  placeholder,
+  loadingText,
+  isLoading,
+  disabled,
+  variant,
+  onChange,
+}) {
+  const dropdownRef = useRef(null);
+  const listboxId = useId();
+  const [isOpen, setIsOpen] = useState(false);
+  const [activeIndex, setActiveIndex] = useState(0);
+
+  const selectedIndex = options.findIndex(
+    (option) => option.value === value
+  );
+  const selectedOption = options[selectedIndex];
+
+  useEffect(() => {
+    function handleOutsideClick(event) {
+      if (!dropdownRef.current?.contains(event.target)) {
+        setIsOpen(false);
+      }
+    }
+
+    document.addEventListener("pointerdown", handleOutsideClick);
+
+    return () => {
+      document.removeEventListener("pointerdown", handleOutsideClick);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (disabled) {
+      setIsOpen(false);
+    }
+  }, [disabled]);
+
+  function openDropdown() {
+    if (disabled || options.length === 0) {
+      return;
+    }
+
+    setActiveIndex(selectedIndex >= 0 ? selectedIndex : 0);
+    setIsOpen(true);
+  }
+
+  function selectOption(option) {
+    onChange(option.value);
+    setIsOpen(false);
+  }
+
+  function handleKeyDown(event) {
+    if (disabled || options.length === 0) {
+      return;
+    }
+
+    if (event.key === "ArrowDown" || event.key === "ArrowUp") {
+      event.preventDefault();
+
+      if (!isOpen) {
+        openDropdown();
+        return;
+      }
+
+      const direction = event.key === "ArrowDown" ? 1 : -1;
+
+      setActiveIndex((current) =>
+        (current + direction + options.length) % options.length
+      );
+      return;
+    }
+
+    if (event.key === "Home" && isOpen) {
+      event.preventDefault();
+      setActiveIndex(0);
+      return;
+    }
+
+    if (event.key === "End" && isOpen) {
+      event.preventDefault();
+      setActiveIndex(options.length - 1);
+      return;
+    }
+
+    if (event.key === "Enter" || event.key === " ") {
+      event.preventDefault();
+
+      if (isOpen) {
+        selectOption(options[activeIndex]);
+      } else {
+        openDropdown();
+      }
+      return;
+    }
+
+    if (event.key === "Escape") {
+      setIsOpen(false);
+    }
+  }
+
+  const displayText = isLoading
+    ? loadingText
+    : selectedOption?.label || placeholder;
+
+  return (
+    <div
+      className={`ticket-dropdown ${isOpen ? "open" : ""}`}
+      ref={dropdownRef}
+      onBlur={(event) => {
+        if (!event.currentTarget.contains(event.relatedTarget)) {
+          setIsOpen(false);
+        }
+      }}
+    >
+      <button
+        type="button"
+        className={`ticket-dropdown-trigger ${
+          selectedOption ? "has-value" : ""
+        }`}
+        aria-label={ariaLabel}
+        aria-haspopup="listbox"
+        aria-expanded={isOpen}
+        aria-controls={listboxId}
+        aria-activedescendant={
+          isOpen ? `${listboxId}-option-${activeIndex}` : undefined
+        }
+        disabled={disabled}
+        onClick={() =>
+          isOpen ? setIsOpen(false) : openDropdown()
+        }
+        onKeyDown={handleKeyDown}
+      >
+        <span className="ticket-dropdown-trigger-content">
+          {selectedOption && (
+            <span
+              className={`ticket-dropdown-marker ${variant}`}
+              style={
+                selectedOption.color
+                  ? { backgroundColor: selectedOption.color }
+                  : undefined
+              }
+            />
+          )}
+
+          <span>{displayText}</span>
+        </span>
+
+        <span className="ticket-dropdown-chevron" aria-hidden="true" />
+      </button>
+
+      {isOpen && (
+        <div
+          id={listboxId}
+          className="ticket-dropdown-menu"
+          role="listbox"
+          aria-label={ariaLabel}
+        >
+          {options.map((option, index) => {
+            const isSelected = option.value === value;
+            const isActive = index === activeIndex;
+
+            return (
+              <button
+                id={`${listboxId}-option-${index}`}
+                key={option.id ?? option.value}
+                type="button"
+                className={`ticket-dropdown-option ${
+                  isSelected ? "selected" : ""
+                } ${isActive ? "active" : ""}`}
+                role="option"
+                aria-selected={isSelected}
+                onMouseEnter={() => setActiveIndex(index)}
+                onClick={() => selectOption(option)}
+              >
+                <span
+                  className={`ticket-dropdown-marker ${variant}`}
+                  style={
+                    option.color
+                      ? { backgroundColor: option.color }
+                      : undefined
+                  }
+                />
+
+                <span className="ticket-dropdown-option-label">
+                  {option.label}
+                </span>
+
+                <span
+                  className="ticket-dropdown-check"
+                  aria-hidden="true"
+                >
+                  ✓
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
 
 function CreateTicket() {
   const navigate = useNavigate();
@@ -91,11 +302,29 @@ function CreateTicket() {
     setErrorMessage("");
   };
 
+  const handleDropdownChange = (name, value) => {
+    setForm((current) => ({
+      ...current,
+      [name]: value,
+    }));
+
+    setSuccessMessage("");
+    setErrorMessage("");
+  };
+
   const handleSubmit = async (event) => {
     event.preventDefault();
 
     setSuccessMessage("");
     setErrorMessage("");
+
+    if (!form.category || !form.priority) {
+      setErrorMessage(
+        "Please select both a category and a priority."
+      );
+      return;
+    }
+
     setIsSubmitting(true);
 
     try {
@@ -238,67 +467,66 @@ function CreateTicket() {
                 />
               </label>
 
-              <label className="ticket-field">
+              <div className="ticket-field">
                 <span>Category</span>
 
-                <div className="ticket-select-wrapper">
-                  <select
-                    name="category"
-                    value={form.category}
-                    onChange={handleChange}
-                    disabled={isLoadingOptions || Boolean(optionsError)}
-                    required
-                  >
-                    <option value="">
-                      {isLoadingOptions
-                        ? "Loading categories..."
-                        : ticketOptions.categories.length > 0
-                          ? "Select category"
-                          : "No categories available"}
-                    </option>
+                <TicketDropdown
+                  ariaLabel="Category"
+                  value={form.category}
+                  options={ticketOptions.categories.map((category) => ({
+                    id: category.id,
+                    value: category.name.toLowerCase(),
+                    label: category.name,
+                  }))}
+                  placeholder={
+                    ticketOptions.categories.length > 0
+                      ? "Select category"
+                      : "No categories available"
+                  }
+                  loadingText="Loading categories..."
+                  isLoading={isLoadingOptions}
+                  disabled={
+                    isLoadingOptions ||
+                    Boolean(optionsError) ||
+                    ticketOptions.categories.length === 0
+                  }
+                  variant="category"
+                  onChange={(value) =>
+                    handleDropdownChange("category", value)
+                  }
+                />
+              </div>
 
-                    {ticketOptions.categories.map((category) => (
-                      <option
-                        key={category.id}
-                        value={category.name.toLowerCase()}
-                      >
-                        {category.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </label>
-
-              <label className="ticket-field">
+              <div className="ticket-field">
                 <span>Priority</span>
 
-                <div className="ticket-select-wrapper">
-                  <select
-                    name="priority"
-                    value={form.priority}
-                    onChange={handleChange}
-                    disabled={isLoadingOptions || Boolean(optionsError)}
-                    required
-                  >
-                    <option value="">
-                      {isLoadingOptions
-                        ? "Loading priorities..."
-                        : ticketOptions.priorities.length > 0
-                          ? "Select priority"
-                          : "No priorities available"}
-                    </option>
-
-                    {ticketOptions.priorities.map((priority) => (
-                      <option
-                        key={priority.id}
-                        value={priority.name.toLowerCase()}
-                      >
-                        {priority.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </label>
+                <TicketDropdown
+                  ariaLabel="Priority"
+                  value={form.priority}
+                  options={ticketOptions.priorities.map((priority) => ({
+                    id: priority.id,
+                    value: priority.name.toLowerCase(),
+                    label: priority.name,
+                    color: priority.color,
+                  }))}
+                  placeholder={
+                    ticketOptions.priorities.length > 0
+                      ? "Select priority"
+                      : "No priorities available"
+                  }
+                  loadingText="Loading priorities..."
+                  isLoading={isLoadingOptions}
+                  disabled={
+                    isLoadingOptions ||
+                    Boolean(optionsError) ||
+                    ticketOptions.priorities.length === 0
+                  }
+                  variant="priority"
+                  onChange={(value) =>
+                    handleDropdownChange("priority", value)
+                  }
+                />
+              </div>
 
               <label className="ticket-field full-width-field">
                 <span>Description</span>
@@ -429,7 +657,11 @@ function CreateTicket() {
               <button
                 type="submit"
                 className="send-ticket-button"
-                disabled={isSubmitting}
+                disabled={
+                  isSubmitting ||
+                  isLoadingOptions ||
+                  Boolean(optionsError)
+                }
               >
                 {isSubmitting ? "Sending..." : "Send Ticket"}
               </button>
