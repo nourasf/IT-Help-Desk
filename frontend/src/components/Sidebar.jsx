@@ -1,5 +1,6 @@
 import { NavLink, useNavigate } from "react-router-dom";
 import logo from "../assets/logo.png";
+import { getStoredRole } from "../utils/authStorage";
 
 function SidebarIcon({ name }) {
   const icons = {
@@ -88,6 +89,7 @@ function SidebarIcon({ name }) {
 
 function Sidebar({ activePage, collapsed, onToggle }) {
   const navigate = useNavigate();
+  const role = getStoredRole()?.trim().toLowerCase();
 
   function handleLogout() {
     localStorage.removeItem("token");
@@ -98,25 +100,48 @@ function Sidebar({ activePage, collapsed, onToggle }) {
     navigate("/login", { replace: true });
   }
 
+  const dashboardPaths = {
+    admin: "/admin-dashboard",
+    manager: "/manager-dashboard",
+    "it support agent": "/agent-dashboard",
+    agent: "/agent-dashboard",
+    it: "/agent-dashboard",
+    employee: "/employee-dashboard",
+  };
+
   const links = [
     {
       name: "dashboard",
       label: "Dashboard",
-      path: "/agent-dashboard",
+      path: dashboardPaths[role] || "/login",
       icon: "dashboard",
     },
-    {
-      name: "tickets",
-      label: "My Tickets",
-      path: "/my-tickets",
-      icon: "tickets",
-    },
-    {
-      name: "create-ticket",
-      label: "Create Ticket",
-      path: "/create-ticket",
-      icon: "create",
-    },
+    ...(role === "admin"
+      ? [
+          {
+            name: "create-user",
+            label: "Create User",
+            path: "/admin/users/create",
+            icon: "create",
+          },
+        ]
+      : []),
+    ...(role === "employee"
+      ? [
+          {
+            name: "tickets",
+            label: "My Tickets",
+            path: "/my-tickets",
+            icon: "tickets",
+          },
+          {
+            name: "create-ticket",
+            label: "Create Ticket",
+            path: "/create-ticket",
+            icon: "create",
+          },
+        ]
+      : []),
     {
       name: "notifications",
       label: "Notifications",
