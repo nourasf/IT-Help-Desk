@@ -53,43 +53,99 @@ namespace backend.Controllers
 
             return Ok(result);
         }
-[HttpGet("admin")]
-public async Task<IActionResult> GetAdminDashboard()
+        [HttpGet("admin")]
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> GetAdminDashboard()
         {
-            var totalUsers = await _context.Users
-            .CountAsync(u=>u.Role.Name =="IT Support Agent");
-
-            var totalAgents = await _context.Users
-            .CountAsync(u=>u.Role.Name =="IT Support Agent");
+            var users = await _context.Users
+                .Include(u => u.Role)
+                .ToListAsync();
 
             var tickets = await _context.Tickets
-            .Include(t => t.Status)
-            .Include(t => t.Priority)
-            .Include(t => t.CreatedByUser)
-              .ThenInclude(u => u.Role)
-            .Where(t => !t.IsDeleted)
-            .OrderByDescending(t => t.CreatedAt)
-            .ToListAsync();
+                .Include(t => t.Status)
+                .Include(t => t.Priority)
+                .Include(t => t.Category)
+                .Include(t => t.CreatedByUser)
+                    .ThenInclude(u => u.Role)
+                .Where(t => !t.IsDeleted)
+                .OrderByDescending(t => t.CreatedAt)
+                .ToListAsync();
 
             var result = new
             {
-                TotalUsers = totalUsers,
-                
-                SupportAgents= totalAgents,
+                TotalUsers = users.Count,
+                SupportAgents = users.Count(u =>
+                    u.Role != null && u.Role.Name == "IT Support Agent"),
                 TotalTickets = tickets.Count,
-                CriticalTickets = tickets.Count(t => t.Priority.Name == "Critical"),
+                ActiveTickets = tickets.Count(t =>
+                    t.Status.StatusName == "Open" ||
+                    t.Status.StatusName == "In Progress" ||
+                    t.Status.StatusName == "Pending"),
+                ResolvedTickets = tickets.Count(t =>
+                    t.Status.StatusName == "Resolved" ||
+                    t.Status.StatusName == "Closed"),
+                CriticalTickets = tickets.Count(t =>
+                    t.Priority.Name == "Critical" &&
+                    t.Status.StatusName != "Resolved" &&
+                    t.Status.StatusName != "Closed"),
+                UnassignedTickets = tickets.Count(t =>
+                    t.AssignedToUserId == null &&
+                    t.Status.StatusName != "Resolved" &&
+                    t.Status.StatusName != "Closed"),
 
-                RecentActivity= tickets.Take(5).Select(t=> new
+                TicketsByStatus = tickets
+                    .GroupBy(t => t.Status.StatusName)
+                    .Select(group => new
+                    {
+                        Name = group.Key,
+                        Count = group.Count()
+                    })
+                    .OrderByDescending(item => item.Count),
+
+                TicketsByPriority = tickets
+                    .GroupBy(t => t.Priority.Name)
+                    .Select(group => new
+                    {
+                        Name = group.Key,
+                        Count = group.Count()
+                    })
+                    .OrderByDescending(item => item.Count),
+
+                TicketsByCategory = tickets
+                    .GroupBy(t => t.Category.Name)
+                    .Select(group => new
+                    {
+                        Name = group.Key,
+                        Count = group.Count()
+                    })
+                    .OrderByDescending(item => item.Count),
+
+                UsersByRole = users
+                    .GroupBy(u => u.Role?.Name ?? "No Role")
+                    .Select(group => new
+                    {
+                        Name = group.Key,
+                        Count = group.Count()
+                    })
+                    .OrderByDescending(item => item.Count),
+
+                RecentActivity = tickets.Take(6).Select(t => new
                 {
-                    User= t.CreatedByUser.FullName,
-                    Role =t.CreatedByUser.Role.Name,
-                    Action= "Created Ticket",
-                    Target= t.TicketNumber,
-                    Date= t.CreatedAt
+                    User = t.CreatedByUser.FullName,
+                    Role = t.CreatedByUser.Role != null
+                        ? t.CreatedByUser.Role.Name
+                        : "No Role",
+                    Action = "Created ticket",
+                    Target = t.TicketNumber,
+                    t.Subject,
+                    Status = t.Status.StatusName,
+                    Priority = t.Priority.Name,
+                    Date = t.CreatedAt
                 })
             };
+
             return Ok(result);
-            }
+        }
 
         [ HttpGet("agent")]
         public async Task<IActionResult> GetAgentDashboard()
