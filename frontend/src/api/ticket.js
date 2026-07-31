@@ -37,6 +37,55 @@ function getValidationMessage(errors) {
   );
 }
 
+export async function getTicketFormOptions(signal) {
+  const token = getStoredToken();
+
+  if (!token) {
+    throw new Error(
+      "Your session has expired. Please sign in again."
+    );
+  }
+
+  const response = await fetch(`${API_URL}/form-options`, {
+    method: "GET",
+    headers: {
+      Accept: "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    signal,
+  });
+
+  const data = await readResponse(response);
+
+  if (response.status === 401) {
+    throw new Error(
+      "Your session has expired. Please sign in again."
+    );
+  }
+
+  if (response.status === 403) {
+    throw new Error(
+      "Only employees can load ticket options."
+    );
+  }
+
+  if (!response.ok) {
+    throw new Error(
+      data.message ||
+        `Could not load ticket options. Error ${response.status}.`
+    );
+  }
+
+  return {
+    categories: Array.isArray(data.categories)
+      ? data.categories
+      : [],
+    priorities: Array.isArray(data.priorities)
+      ? data.priorities
+      : [],
+  };
+}
+
 export async function createTicket(ticket) {
   const token = getStoredToken();
 
