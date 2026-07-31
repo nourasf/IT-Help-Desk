@@ -172,10 +172,6 @@ function Login() {
               {isLoading ? "Signing In..." : "Sign In"}
             </button>
 
-            <p className="create-account-text">
-              Don&apos;t have an account?{" "}
-              <Link to="/register">Create account.</Link>
-            </p>
           </form>
         </div>
       </section>
