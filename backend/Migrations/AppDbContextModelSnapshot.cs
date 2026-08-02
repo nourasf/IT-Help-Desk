@@ -182,6 +182,82 @@ namespace backend.Migrations
                     b.ToTable("Tickets");
                 });
 
+            modelBuilder.Entity("backend.Models.TicketActivityLog", b =>
+                {
+                    b.Property<int>("ID")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("ID"));
+
+                    b.Property<string>("ActivityType")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("PerformedByUserID")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("ProgressPercent")
+                        .HasColumnType("int");
+
+                    b.Property<int>("TicketID")
+                        .HasColumnType("int");
+
+                    b.HasKey("ID");
+
+                    b.HasIndex("PerformedByUserID");
+
+                    b.HasIndex("TicketID");
+
+                    b.ToTable("TicketActivityLogs");
+                });
+
+            modelBuilder.Entity("backend.Models.TicketAssignment", b =>
+                {
+                    b.Property<int>("ID")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("ID"));
+
+                    b.Property<int>("AgentUserID")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("AssignedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("AssignedByUserID")
+                        .HasColumnType("int");
+
+                    b.Property<int>("TicketID")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("UnassignedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("UnassignmentReason")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("ID");
+
+                    b.HasIndex("AgentUserID");
+
+                    b.HasIndex("AssignedByUserID");
+
+                    b.HasIndex("TicketID")
+                        .IsUnique()
+                        .HasFilter("[UnassignedAt] IS NULL");
+
+                    b.ToTable("TicketAssignments");
+                });
+
             modelBuilder.Entity("backend.Models.TicketComment", b =>
                 {
                     b.Property<int>("ID")
@@ -246,6 +322,43 @@ namespace backend.Migrations
                     b.HasIndex("TicketID");
 
                     b.ToTable("TicketHistories");
+                });
+
+            modelBuilder.Entity("backend.Models.TicketWorkSession", b =>
+                {
+                    b.Property<int>("ID")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("ID"));
+
+                    b.Property<int>("AgentUserID")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("DurationMinutes")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("EndedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime>("StartAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("StopReason")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("TicketID")
+                        .HasColumnType("int");
+
+                    b.HasKey("ID");
+
+                    b.HasIndex("AgentUserID");
+
+                    b.HasIndex("TicketID")
+                        .IsUnique()
+                        .HasFilter("[EndedAt] IS NULL");
+
+                    b.ToTable("TicketWorkSessions");
                 });
 
             modelBuilder.Entity("backend.Models.User", b =>
@@ -345,6 +458,52 @@ namespace backend.Migrations
                     b.Navigation("User");
                 });
 
+            modelBuilder.Entity("backend.Models.TicketActivityLog", b =>
+                {
+                    b.HasOne("backend.Models.User", "PerformedByUser")
+                        .WithMany()
+                        .HasForeignKey("PerformedByUserID")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("backend.Models.Ticket", "Ticket")
+                        .WithMany("ActivityLogs")
+                        .HasForeignKey("TicketID")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("PerformedByUser");
+
+                    b.Navigation("Ticket");
+                });
+
+            modelBuilder.Entity("backend.Models.TicketAssignment", b =>
+                {
+                    b.HasOne("backend.Models.User", "AgentUser")
+                        .WithMany()
+                        .HasForeignKey("AgentUserID")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("backend.Models.User", "AssignedByUser")
+                        .WithMany()
+                        .HasForeignKey("AssignedByUserID")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("backend.Models.Ticket", "Ticket")
+                        .WithMany("Assignments")
+                        .HasForeignKey("TicketID")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("AgentUser");
+
+                    b.Navigation("AssignedByUser");
+
+                    b.Navigation("Ticket");
+                });
+
             modelBuilder.Entity("backend.Models.TicketHistory", b =>
                 {
                     b.HasOne("backend.Models.User", "ChangedByUser")
@@ -360,6 +519,25 @@ namespace backend.Migrations
                         .IsRequired();
 
                     b.Navigation("ChangedByUser");
+
+                    b.Navigation("Ticket");
+                });
+
+            modelBuilder.Entity("backend.Models.TicketWorkSession", b =>
+                {
+                    b.HasOne("backend.Models.User", "AgentUser")
+                        .WithMany()
+                        .HasForeignKey("AgentUserID")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("backend.Models.Ticket", "Ticket")
+                        .WithMany("WorkSessions")
+                        .HasForeignKey("TicketID")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("AgentUser");
 
                     b.Navigation("Ticket");
                 });
@@ -397,9 +575,15 @@ namespace backend.Migrations
 
             modelBuilder.Entity("backend.Models.Ticket", b =>
                 {
+                    b.Navigation("ActivityLogs");
+
+                    b.Navigation("Assignments");
+
                     b.Navigation("History");
 
                     b.Navigation("TicketComments");
+
+                    b.Navigation("WorkSessions");
                 });
 
             modelBuilder.Entity("backend.Models.User", b =>

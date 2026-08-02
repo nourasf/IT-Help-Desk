@@ -298,6 +298,103 @@
   margin-bottom: 20px;
 }
 
+.manager-assignment-panel {
+  margin-bottom: 20px;
+}
+
+.manager-assignment-table {
+  min-width: 1050px;
+}
+
+.manager-assignment-table td:first-child strong,
+.manager-assignment-table td:first-child span {
+  display: block;
+}
+
+.manager-assignment-table td:first-child span {
+  max-width: 230px;
+  margin-top: 4px;
+  color: #77728a;
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.manager-agent-select {
+  width: 100%;
+  min-width: 190px;
+  padding: 10px 34px 10px 12px;
+  border: 1px solid #ded9eb;
+  border-radius: 10px;
+  background-color: #ffffff;
+  color: #39324f;
+  font: inherit;
+  font-size: 13px;
+  outline: none;
+  cursor: pointer;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.manager-agent-select:hover {
+  border-color: #a99bd3;
+}
+
+.manager-agent-select:focus {
+  border-color: #7e68be;
+  box-shadow: 0 0 0 3px rgba(126, 104, 190, 0.14);
+}
+
+.manager-agent-select:disabled {
+  background-color: #f3f1f7;
+  cursor: not-allowed;
+}
+
+.manager-assign-button {
+  min-width: 90px;
+  padding: 10px 17px;
+  border: 0;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #8068c5, #6851aa);
+  color: #ffffff;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 6px 14px rgba(104, 81, 170, 0.22);
+  transition: transform 0.2s ease, box-shadow 0.2s ease,
+    opacity 0.2s ease;
+}
+
+.manager-assign-button:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 8px 18px rgba(104, 81, 170, 0.3);
+}
+
+.manager-assign-button:disabled {
+  opacity: 0.5;
+  box-shadow: none;
+  cursor: not-allowed;
+}
+
+.manager-assignment-message {
+  margin: 0 0 18px;
+  padding: 12px 15px;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.manager-assignment-message.success {
+  border: 1px solid #b8e4cd;
+  background-color: #edf9f2;
+  color: #28784c;
+}
+
+.manager-assignment-message.error {
+  border: 1px solid #efc4c8;
+  background-color: #fff1f2;
+  color: #b33a46;
+}
+
 .manager-table-wrapper {
   width: 100%;
   overflow-x: auto;
