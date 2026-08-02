@@ -464,7 +464,8 @@ public async Task<IActionResult> AssignTicket(int id, AssignTicketRequest reques
                     message = "Agent user not found."
                 });
             }
-            var agentRole= await _context.Role?.Name.Trim().ToLower();
+            var agentRole = agent.Role?.Name.Trim().ToLowerInvariant()
+                ?? string.Empty;
 
             if(agentRole != "it support agent" && agentRole !="agent" && agentRole!="it")
             {
@@ -501,7 +502,7 @@ public async Task<IActionResult> AssignTicket(int id, AssignTicketRequest reques
         workSession.DurationMinutes = Math.Max(
             1,
             (int)Math.Ceiling(
-                (now - workSession.StartedAt).TotalMinutes
+                (now - workSession.StartAt).TotalMinutes
             )
         );
 
@@ -586,7 +587,6 @@ public async Task<IActionResult> AssignTicket(int id, AssignTicketRequest reques
 
 
         }
-
 
 
 

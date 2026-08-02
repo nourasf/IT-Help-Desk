@@ -35,10 +35,10 @@ function EmployeeDashboard() {
     }
   }
 
-  const tickets =
-    dashboard?.recentTickets ||
-    dashboard?.tickets ||
-    [];
+  const tickets = useMemo(
+    () => dashboard?.recentTickets || dashboard?.tickets || [],
+    [dashboard]
+  );
 
   const actionRequiredTickets = tickets.filter((ticket) => {
     const status = ticket.status?.toLowerCase();

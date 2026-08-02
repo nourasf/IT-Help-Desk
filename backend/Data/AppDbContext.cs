@@ -26,6 +26,12 @@ namespace backend.Data
 
         public DbSet<TicketComment> TicketComments {get; set;}
 
+        public DbSet<TicketAssignment> TicketAssignments { get; set; }
+
+        public DbSet<TicketWorkSession> TicketWorkSessions { get; set; }
+
+        public DbSet<TicketActivityLog> TicketActivityLogs { get; set; }
+
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -67,6 +73,58 @@ modelBuilder.Entity<TicketHistory>()
     .WithMany(t => t.TicketComments)
     .HasForeignKey(c => c.TicketID)
     .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<TicketAssignment>()
+                .HasOne(a => a.Ticket)
+                .WithMany(t => t.Assignments)
+                .HasForeignKey(a => a.TicketID)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<TicketAssignment>()
+                .HasOne(a => a.AgentUser)
+                .WithMany()
+                .HasForeignKey(a => a.AgentUserID)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<TicketAssignment>()
+                .HasOne(a => a.AssignedByUser)
+                .WithMany()
+                .HasForeignKey(a => a.AssignedByUserID)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<TicketAssignment>()
+                .HasIndex(a => a.TicketID)
+                .IsUnique()
+                .HasFilter("[UnassignedAt] IS NULL");
+
+            modelBuilder.Entity<TicketWorkSession>()
+                .HasOne(s => s.Ticket)
+                .WithMany(t => t.WorkSessions)
+                .HasForeignKey(s => s.TicketID)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<TicketWorkSession>()
+                .HasOne(s => s.AgentUser)
+                .WithMany()
+                .HasForeignKey(s => s.AgentUserID)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<TicketWorkSession>()
+                .HasIndex(s => s.TicketID)
+                .IsUnique()
+                .HasFilter("[EndedAt] IS NULL");
+
+            modelBuilder.Entity<TicketActivityLog>()
+                .HasOne(l => l.Ticket)
+                .WithMany(t => t.ActivityLogs)
+                .HasForeignKey(l => l.TicketID)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<TicketActivityLog>()
+                .HasOne(l => l.PerformedByUser)
+                .WithMany()
+                .HasForeignKey(l => l.PerformedByUserID)
+                .OnDelete(DeleteBehavior.Restrict);
         }
     }
 }
