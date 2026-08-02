@@ -1,6 +1,10 @@
 import { useEffect, useState } from "react";
 import DashboardLayout from "../../components/DashboardLayout";
 import { getManagerDashboard } from "../../api/dashboard";
+import {
+  assignTicket,
+  getAssignmentOptions,
+} from "../../api/ticket";
 import "../../styles/ManagerDashboard.css";
 
 const statusColors = {
@@ -89,6 +93,15 @@ function formatDate(value) {
 function ManagerDashboard() {
   const [dashboard, setDashboard] = useState(null);
   const [error, setError] = useState("");
+  const [assignmentOptions, setAssignmentOptions] = useState({
+    tickets: [],
+    agents: [],
+  });
+  const [selectedAgents, setSelectedAgents] = useState({});
+  const [assignmentLoading, setAssignmentLoading] = useState(true);
+  const [assigningTicketId, setAssigningTicketId] = useState(null);
+  const [assignmentMessage, setAssignmentMessage] = useState("");
+  const [assignmentError, setAssignmentError] = useState("");
 
   async function loadDashboard() {
     setError("");
@@ -101,9 +114,86 @@ function ManagerDashboard() {
     }
   }
 
+  async function loadAssignmentOptions(signal) {
+    setAssignmentLoading(true);
+    setAssignmentError("");
+
+    try {
+      const data = await getAssignmentOptions(signal);
+      setAssignmentOptions(data);
+    } catch (requestError) {
+      if (requestError.name !== "AbortError") {
+        setAssignmentError(
+          requestError.message ||
+            "The assignment options could not be loaded."
+        );
+      }
+    } finally {
+      if (!signal?.aborted) {
+        setAssignmentLoading(false);
+      }
+    }
+  }
+
   useEffect(() => {
+    const controller = new AbortController();
+
     loadDashboard();
+
+    loadAssignmentOptions(controller.signal);
+
+    return () => {
+      controller.abort();
+    };
   }, []);
+
+  function handleAgentChange(ticketId, agentUserId) {
+    setSelectedAgents((currentSelections) => ({
+      ...currentSelections,
+      [ticketId]: agentUserId,
+    }));
+    setAssignmentError("");
+    setAssignmentMessage("");
+  }
+
+  async function handleAssignTicket(ticketId) {
+    const agentUserId = selectedAgents[ticketId];
+
+    if (!agentUserId) {
+      setAssignmentMessage("");
+      setAssignmentError("Please select an agent first.");
+      return;
+    }
+
+    setAssigningTicketId(ticketId);
+    setAssignmentMessage("");
+    setAssignmentError("");
+
+    try {
+      const result = await assignTicket(ticketId, agentUserId);
+
+      setAssignmentMessage(
+        result.message || "The ticket was assigned successfully."
+      );
+
+      setSelectedAgents((currentSelections) => {
+        const updatedSelections = { ...currentSelections };
+        delete updatedSelections[ticketId];
+        return updatedSelections;
+      });
+
+      await Promise.all([
+        loadDashboard(),
+        loadAssignmentOptions(),
+      ]);
+    } catch (requestError) {
+      setAssignmentError(
+        requestError.message || "The ticket could not be assigned."
+      );
+    } finally {
+      setAssigningTicketId(null);
+    }
+  }
 
   if (error) {
     return (
@@ -277,6 +367,108 @@ function ManagerDashboard() {
             </p>
           </div>
         </article>
+      </section>
+
+      <section className="manager-panel manager-assignment-panel">
+        <div className="manager-panel-heading">
+          <div>
+            <p>Ticket distribution</p>
+            <h2>Unassigned Tickets</h2>
+          </div>
+          <span>{assignmentOptions.tickets.length} waiting</span>
+        </div>
+
+        {assignmentMessage && (
+          <p className="manager-assignment-message success">
+            {assignmentMessage}
+          </p>
+        )}
+
+        {assignmentError && (
+          <p className="manager-assignment-message error">
+            {assignmentError}
+          </p>
+        )}
+
+        {assignmentLoading ? (
+          <p className="manager-empty-state">
+            Loading unassigned tickets...
+          </p>
+        ) : assignmentOptions.tickets.length === 0 ? (
+          <p className="manager-empty-state">
+            All available tickets are currently assigned.
+          </p>
+        ) : (
+          <div className="manager-table-wrapper">
+            <table className="manager-table manager-assignment-table">
+              <thead>
+                <tr>
+                  <th>Ticket</th>
+                  <th>Category</th>
+                  <th>Priority</th>
+                  <th>Status</th>
+                  <th>Created</th>
+                  <th>Select Agent</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                {assignmentOptions.tickets.map((ticket) => (
+                  <tr key={ticket.id}>
+                    <td>
+                      <strong>{ticket.ticketNumber}</strong>
+                      <span>{ticket.subject}</span>
+                    </td>
+                    <td>{ticket.category}</td>
+                    <td>
+                      <span className="manager-ticket-badge priority">
+                        {ticket.priority}
+                      </span>
+                    </td>
+                    <td>
+                      <span className="manager-ticket-badge status">
+                        {ticket.status}
+                      </span>
+                    </td>
+                    <td>{formatDate(ticket.createdAt)}</td>
+                    <td>
+                      <select
+                        className="manager-agent-select"
+                        value={selectedAgents[ticket.id] || ""}
+                        onChange={(event) =>
+                          handleAgentChange(ticket.id, event.target.value)
+                        }
+                        disabled={assigningTicketId === ticket.id}
+                      >
+                        <option value="">Choose an agent</option>
+                        {assignmentOptions.agents.map((agent) => (
+                          <option key={agent.id} value={agent.id}>
+                            {agent.name} ({agent.activeTickets} active)
+                          </option>
+                        ))}
+                      </select>
+                    </td>
+                    <td>
+                      <button
+                        type="button"
+                        className="manager-assign-button"
+                        onClick={() => handleAssignTicket(ticket.id)}
+                        disabled={
+                          assigningTicketId === ticket.id ||
+                          !selectedAgents[ticket.id]
+                        }
+                      >
+                        {assigningTicketId === ticket.id
+                          ? "Assigning..."
+                          : "Assign"}
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </section>
 
       <section className="manager-panel manager-performance-panel">
