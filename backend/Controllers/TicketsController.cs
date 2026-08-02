@@ -415,6 +415,178 @@ public async Task<IActionResult> AddComment(int id, AddTicketCommentRequest requ
                 });
 
         }
-}
 
+[HttpPost("{id:int}/assign")]
+[Authorize(Roles="Manager,Agent")]
+public async Task<IActionResult> AssignTicket(int id, AssignTicketRequest request)
+        {
+            var assignedByValue= User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+            if(!int.TryParse(assignedByValue, out var assignedByUserId))
+            {
+                return Unauthorized(new
+                {
+                    message="Invalid or missing user ID in token."
+                });
+
+
+            }
+
+            var ticket= await _context.Tickets
+            .Include(t=>t.Status)
+            .Include(t=>t.AssignedToUser)
+            .Include(t=>t.Assignments)
+            .Include(t=>t.WorkSessions)
+            .FirstOrDefaultAsync(t=>t.Id==id && !t.IsDeleted);
+
+            if(ticket==null)
+            {
+                return NotFound(new
+                {
+                    message="Ticket not found."
+                });
+            }
+            if(ticket.Status.StatusName.Equals("Closed",StringComparison.OrdinalIgnoreCase))
+            {
+                return BadRequest(new
+                {
+                    message="Cannot assign a closed ticket."
+                });
+
+            }
+            var agent= await _context.Users
+            .Include(u=>u.Role)
+            .FirstOrDefaultAsync(u=>u.ID==request.AgentUserId);
+            if (agent == null)
+            {
+                return BadRequest(new
+                {
+                    message = "Agent user not found."
+                });
+            }
+            var agentRole= await _context.Role?.Name.Trim().ToLower();
+
+            if(agentRole != "it support agent" && agentRole !="agent" && agentRole!="it")
+            {
+                return BadRequest(new
+                {
+                    message="The assigned user is not an agent."
+                });
+            }
+             var now = DateTime.UtcNow;
+    var previousAgentName = ticket.AssignedToUser?.FullName;
+
+    /*
+     * End the previous assignment.
+     */
+    var currentAssignment = ticket.Assignments
+        .FirstOrDefault(a => a.UnassignedAt == null);
+
+    if (currentAssignment != null)
+    {
+        currentAssignment.UnassignedAt = now;
+        currentAssignment.UnassignmentReason =
+            $"Reassigned to {agent.FullName}.";
+    }
+
+    /*
+     * Stop the previous agent's active timer.
+     * Their completed working time is preserved.
+     */
+    foreach (var workSession in ticket.WorkSessions
+                 .Where(session => session.EndedAt == null))
+    {
+        workSession.EndedAt = now;
+
+        workSession.DurationMinutes = Math.Max(
+            1,
+            (int)Math.Ceiling(
+                (now - workSession.StartedAt).TotalMinutes
+            )
+        );
+
+        workSession.StopReason = "Ticket reassigned.";
+    }
+
+    /*
+     * Create the new assignment record.
+     */
+    var assignment = new TicketAssignment
+    {
+        TicketID = ticket.Id,
+        AgentUserID = agent.ID,
+        AssignedByUserID = assignedByUserId,
+        AssignedAt = now
+    };
+
+    _context.TicketAssignments.Add(assignment);
+
+    /*
+     * Store the current agent directly on the ticket.
+     */
+    ticket.AssignedToUserId = agent.ID;
+    ticket.UpdatedAt = now;
+
+    /*
+     * Add permanent audit history.
+     */
+    _context.TicketHistories.Add(new TicketHistory
+    {
+        TicketID = ticket.Id,
+        ChangedByUserID = assignedByUserId,
+        Action = previousAgentName == null
+            ? "Ticket assigned"
+            : "Ticket reassigned",
+        OldValue = previousAgentName,
+        NewValue = agent.FullName,
+        CreatedAt = now
+    });
+
+    /*
+     * Add the readable activity timeline entry.
+     */
+    _context.TicketActivityLogs.Add(new TicketActivityLog
+    {
+        TicketID = ticket.Id,
+        PerformedByUserID = assignedByUserId,
+        ActivityType = previousAgentName == null
+            ? "Assigned"
+            : "Reassigned",
+        Description = previousAgentName == null
+            ? $"Ticket assigned to {agent.FullName}."
+            : $"Ticket reassigned from {previousAgentName} to {agent.FullName}.",
+        CreatedAt = now
+    });
+
+    try
+    {
+        await _context.SaveChangesAsync();
+    }
+    catch (DbUpdateException)
+    {
+        return Conflict(new
+        {
+            message =
+                "The ticket assignment changed. Refresh and try again."
+        });
+    }
+
+    return Ok(new
+    {
+        message = $"Ticket assigned to {agent.FullName}.",
+        assignedAgent = new
+        {
+            id = agent.ID,
+            name = agent.FullName
+        }
+    });
 }
+            
+            }
+
+
+        }
+
+
+
+
