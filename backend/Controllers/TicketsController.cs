@@ -416,6 +416,58 @@ public async Task<IActionResult> AddComment(int id, AddTicketCommentRequest requ
 
         }
 
+[HttpGet("assignment-options")]
+[Authorize(Roles = "Manager")]
+public async Task<IActionResult> GetAssignmentOptions()
+{
+    var tickets = await _context.Tickets
+        .AsNoTracking()
+        .Where(t =>
+            !t.IsDeleted &&
+            t.AssignedToUserId == null &&
+            t.Status.StatusName != "Resolved" &&
+            t.Status.StatusName != "Closed")
+        .OrderBy(t => t.CreatedAt)
+        .Select(t => new
+        {
+            id = t.Id,
+            ticketNumber = t.TicketNumber,
+            subject = t.Subject,
+            category = t.Category.Name,
+            priority = t.Priority.Name,
+            status = t.Status.StatusName,
+            createdAt = t.CreatedAt
+        })
+        .ToListAsync();
+
+    var agents = await _context.Users
+        .AsNoTracking()
+        .Where(u =>
+            u.Role != null &&
+            (u.Role.Name == "IT Support Agent" ||
+             u.Role.Name == "Agent" ||
+             u.Role.Name == "IT"))
+        .Select(u => new
+        {
+            id = u.ID,
+            name = u.FullName,
+            activeTickets = _context.Tickets.Count(t =>
+                t.AssignedToUserId == u.ID &&
+                !t.IsDeleted &&
+                t.Status.StatusName != "Resolved" &&
+                t.Status.StatusName != "Closed")
+        })
+        .OrderBy(agent => agent.activeTickets)
+        .ThenBy(agent => agent.name)
+        .ToListAsync();
+
+    return Ok(new
+    {
+        tickets,
+        agents
+    });
+}
+
 [HttpPost("{id:int}/assign")]
 [Authorize(Roles="Manager,Agent")]
 public async Task<IActionResult> AssignTicket(int id, AssignTicketRequest request)
@@ -587,6 +639,5 @@ public async Task<IActionResult> AssignTicket(int id, AssignTicketRequest reques
 
 
         }
-
 
 
