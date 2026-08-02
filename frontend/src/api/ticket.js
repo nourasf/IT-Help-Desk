@@ -174,3 +174,91 @@ export async function getMyTickets() {
 
   return data;
 }
+
+export async function getAssignmentOptions(signal) {
+  const token = getStoredToken();
+
+  if (!token) {
+    throw new Error(
+      "Your session has expired. Please sign in again."
+    );
+  }
+
+  const response = await fetch(`${API_URL}/assignment-options`, {
+    method: "GET",
+    headers: {
+      Accept: "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    signal,
+  });
+
+  const data = await readResponse(response);
+
+  if (response.status === 401) {
+    throw new Error(
+      "Your session has expired. Please sign in again."
+    );
+  }
+
+  if (response.status === 403) {
+    throw new Error(
+      "Only managers can load assignment options."
+    );
+  }
+
+  if (!response.ok) {
+    throw new Error(
+      data.message || "Could not load tickets and agents."
+    );
+  }
+
+  return {
+    tickets: Array.isArray(data.tickets) ? data.tickets : [],
+    agents: Array.isArray(data.agents) ? data.agents : [],
+  };
+}
+
+export async function assignTicket(ticketId, agentUserId) {
+  const token = getStoredToken();
+
+  if (!token) {
+    throw new Error(
+      "Your session has expired. Please sign in again."
+    );
+  }
+
+  const response = await fetch(`${API_URL}/${ticketId}/assign`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Accept: "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({
+      agentUserId: Number(agentUserId),
+    }),
+  });
+
+  const data = await readResponse(response);
+
+  if (response.status === 401) {
+    throw new Error(
+      "Your session has expired. Please sign in again."
+    );
+  }
+
+  if (response.status === 403) {
+    throw new Error(
+      "You do not have permission to assign tickets."
+    );
+  }
+
+  if (!response.ok) {
+    throw new Error(
+      data.message || "The ticket could not be assigned."
+    );
+  }
+
+  return data;
+}
