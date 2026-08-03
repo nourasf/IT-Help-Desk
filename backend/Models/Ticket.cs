@@ -48,4 +48,7 @@ public class Ticket
      
     public ICollection<TicketHistory> History { get; set; }
     = new List<TicketHistory>();
+
+    public ICollection<TicketAssignment> TicketAssignments { get; set; } = 
+    new List<TicketAssignment>();
 }

@@ -147,58 +147,104 @@ namespace backend.Controllers
             return Ok(result);
         }
 
-        [ HttpGet("agent")]
-        public async Task<IActionResult> GetAgentDashboard()
+    [HttpGet("agent")]
+[Authorize(Roles = "IT Support Agent")]
+public async Task<IActionResult> GetAgentDashboard()
+{
+    var userIdClaim = User.FindFirstValue(
+        ClaimTypes.NameIdentifier
+    );
+
+    if (string.IsNullOrWhiteSpace(userIdClaim) ||
+        !int.TryParse(userIdClaim, out var userId))
+    {
+        return Unauthorized(new
         {
-            var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            message = "Invalid or missing user ID in token."
+        });
+    }
 
-            if(string.IsNullOrEmpty(userIdClaim))
-            {
-                return Unauthorized();
-            }
-            var userId = int.Parse(userIdClaim);
+    var activeAssignedTickets = _context.Tickets
+        .AsNoTracking()
+        .Where(t =>
+            !t.IsDeleted &&
+            t.AssignedToUserId == userId &&
+            t.Status.StatusName != "Resolved" &&
+            t.Status.StatusName != "Closed");
 
-            var tickets = await _context.Tickets
-            .Include(t => t.Status)
-            .Include(t => t.Priority)
-            .Include(t => t.Category)
-            .Include(t => t.CreatedByUser)
-            .Where(t=>!t.IsDeleted)
-            .OrderByDescending(t=>t.CreatedAt)
-            .ToListAsync();
+    var assignedToMe = await activeAssignedTickets.CountAsync();
 
-            var assignedTickets = tickets
-            .Where(t => t.AssignedToUserId == userId)
-            .ToList();
+    var unassignedTickets = await _context.Tickets
+        .AsNoTracking()
+        .CountAsync(t =>
+            !t.IsDeleted &&
+            t.AssignedToUserId == null &&
+            t.Status.StatusName != "Resolved" &&
+            t.Status.StatusName != "Closed");
 
-            var result= new
-            {
-                AssignedToMe= assignedTickets.Count,
+    var criticalTickets = await activeAssignedTickets
+        .CountAsync(t => t.Priority.Name == "Critical");
 
-                UnassignedTickets= tickets.Count(t=>t.AssignedToUserId==null),
+    var resolvedToday = await _context.Tickets
+        .AsNoTracking()
+        .CountAsync(t =>
+            !t.IsDeleted &&
+            t.AssignedToUserId == userId &&
+            t.Status.StatusName == "Resolved" &&
+            t.UpdatedAt.HasValue &&
+            t.UpdatedAt.Value.Date == DateTime.UtcNow.Date);
 
-                CriticalTickets= tickets.Count(t=>t.Priority.Name=="Critical" && t.Status.StatusName!="Resolved"),
+    var recentTickets = await activeAssignedTickets
+        .OrderByDescending(t => t.CreatedAt)
+        .Take(10)
+        .Select(t => new
+        {
+            id = t.Id,
+            ticketNumber = t.TicketNumber,
+            employee = t.CreatedByUser.FullName,
+            subject = t.Subject,
+            category = t.Category.Name,
+            status = t.Status.StatusName,
+            priority = t.Priority.Name,
+            createdAt = t.CreatedAt
+        })
+        .ToListAsync();
 
-                ResolvedToday= assignedTickets.Count(t=>
-                t.Status.StatusName=="Resolved" &&
-                t.UpdatedAt.HasValue &&
-                t.UpdatedAt.Value.Date==DateTime.UtcNow.Date),
+        var availableTickets = await _context.Tickets
+        .AsNoTracking()
+        .Where(t=>
+        !t.IsDeleted &&
+        t.AssignedToUserId ==null &&
+        t.Status.StatusName != "Resolved" &&
+        t.Status.StatusName != "Closed")
+        .OrderByDescending(t=>
+        t.Priority.Name=="Critical")
+        .ThenBy(t=>t.CreatedAt)
+        .Take(5)
+        .Select(t=> new
+        {
+            id=t.Id,
+            ticketNumber=t.TicketNumber,
+            employee=t.CreatedByUser.FullName,
+            subject=t.Subject,
+            category=t.Category.Name,
+            status=t.Status.StatusName,
+            priority=t.Priority.Name,
+            createdAt=t.CreatedAt
+        })
+        .ToListAsync();
 
-                RecentTickets= assignedTickets.Take(5).Select(t=> new
-                {
-                    t.Id,
-                    t.TicketNumber,
-                    Employee= t.CreatedByUser.FullName,
-                    t.Subject,
-                    Status= t.Status.StatusName,
-                    Priority= t.Priority.Name,
-                    t.CreatedAt
-                })
 
-            };
-            return Ok(result);
-        }
-
+    return Ok(new
+    {
+        assignedToMe,
+        unassignedTickets,
+        criticalTickets,
+        resolvedToday,
+        recentTickets,
+        availableTickets
+    });
+}
         [HttpGet("manager")]
         [Authorize(Roles = "Manager")]
         public async Task<IActionResult> GetManagerDashboard()

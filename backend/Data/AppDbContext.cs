@@ -26,6 +26,15 @@ namespace backend.Data
 
         public DbSet<TicketComment> TicketComments {get; set;}
 
+        public DbSet<TicketAssignment> TicketAssignments { get; set; }
+
+        public DbSet<TicketWorkSession> TicketWorkSessions { get; set; }
+
+        public DbSet<TicketActivityLog> TicketActivityLogs { get; set; }
+
+
+
+
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -67,6 +76,59 @@ modelBuilder.Entity<TicketHistory>()
     .WithMany(t => t.TicketComments)
     .HasForeignKey(c => c.TicketID)
     .OnDelete(DeleteBehavior.Cascade);
+
+    modelBuilder.Entity<TicketAssignment>()
+    .HasOne(a=>a.Ticket)
+    .WithMany(t=>t.TicketAssignments)
+    .HasForeignKey(a=>a.TicketID)
+    .OnDelete(DeleteBehavior.Cascade);
+
+    modelBuilder.Entity<TicketAssignment>()
+    .HasOne(a=>a.AgentUser)
+    .WithMany()
+    .HasForeignKey(a=>a.AgentUserID)
+    .OnDelete(DeleteBehavior.Restrict);
+
+    modelBuilder.Entity<TicketAssignment>()
+    .HasOne(a=>a.AssignedByUser)
+    .WithMany()
+    .HasForeignKey(a=>a.AssignedByUserID)
+    .OnDelete(DeleteBehavior.Restrict);
+
+    modelBuilder.Entity<TicketAssignment>()
+    .HasIndex(a=>a.TicketID)
+    .HasFilter("[UnassignedAt] IS NULL")
+    .IsUnique();
+
+    modelBuilder.Entity<TicketWorkSession>()
+    .HasOne(w=>w.Ticket)
+    .WithMany()
+    .HasForeignKey(w=>w.TicketID)
+    .OnDelete(DeleteBehavior.Cascade);
+
+    modelBuilder.Entity<TicketWorkSession>()
+    .HasOne(w=>w.AgentUser)
+    .WithMany()
+    .HasForeignKey(w=>w.AgentUserID)
+    .OnDelete(DeleteBehavior.Restrict);
+
+    modelBuilder.Entity<TicketWorkSession>()
+    .HasIndex(w=>w.TicketID)
+    .HasFilter("[EndedAt] IS NULL")
+    .IsUnique();
+
+    modelBuilder.Entity<TicketActivityLog>()
+    .HasOne(l=>l.Ticket)
+    .WithMany()
+    .HasForeignKey(l=>l.TicketID)
+    .OnDelete(DeleteBehavior.Cascade);
+
+    modelBuilder.Entity<TicketActivityLog>()
+    .HasOne(l=>l.PerformedByUser)
+    .WithMany()
+    .HasForeignKey(l=>l.PerformedByUserID)
+    .OnDelete(DeleteBehavior.Restrict);
+
         }
     }
 }

@@ -61,93 +61,147 @@ namespace backend.Controllers
         }
 
        
-        [HttpPost("create-ticket")]
-        [Authorize(Roles = "Employee")]
-        public async Task<IActionResult> CreateTicket(
-            [FromBody] CreateTicketRequest request)
+      [HttpPost("create-ticket")]
+[Authorize(Roles = "Employee")]
+public async Task<IActionResult> CreateTicket(
+    [FromBody] CreateTicketRequest request)
+{
+    if (request == null)
+    {
+        return BadRequest(new
         {
-            var categoryName = request.Category.Trim().ToLower();
+            message = "Ticket information is required."
+        });
+    }
 
-            var category = await _context.Categories
-                .FirstOrDefaultAsync(c =>
-                    c.IsActive &&
-                    c.Name.ToLower() == categoryName);
+    if (string.IsNullOrWhiteSpace(request.Subject))
+    {
+        return BadRequest(new
+        {
+            message = "Subject is required."
+        });
+    }
 
-            if (category == null)
-            {
-                return BadRequest(new
-                {
-                    message = "Invalid ticket category."
-                });
-            }
+    if (string.IsNullOrWhiteSpace(request.Description))
+    {
+        return BadRequest(new
+        {
+            message = "Description is required."
+        });
+    }
 
-            var priorityName = request.Priority.Trim().ToLower();
+    if (string.IsNullOrWhiteSpace(request.Category))
+    {
+        return BadRequest(new
+        {
+            message = "Category is required."
+        });
+    }
 
-            var priority = await _context.Priorities
-                .FirstOrDefaultAsync(p =>
-                    p.Name.ToLower() == priorityName);
+    if (string.IsNullOrWhiteSpace(request.Priority))
+    {
+        return BadRequest(new
+        {
+            message = "Priority is required."
+        });
+    }
 
-            if (priority == null)
-            {
-                return BadRequest(new
-                {
-                    message = "Invalid ticket priority."
-                });
-            }
+    var categoryName = request.Category.Trim();
 
-            var openStatus = await _context.Statuses
-                .FirstOrDefaultAsync(s =>
-                    s.StatusName.ToLower() == "open");
+    var category = await _context.Categories
+        .FirstOrDefaultAsync(c =>
+            c.IsActive &&
+            c.Name.ToLower() == categoryName.ToLower());
 
-            if (openStatus == null)
-            {
-                return BadRequest(new
-                {
-                    message = "The Open ticket status was not found."
-                });
-            }
+    if (category == null)
+    {
+        return BadRequest(new
+        {
+            message = "Invalid ticket category."
+        });
+    }
 
-            var userIdValue = User.FindFirstValue(
-                ClaimTypes.NameIdentifier);
+    var priorityName = request.Priority.Trim();
 
-            if (string.IsNullOrEmpty(userIdValue) ||
-                !int.TryParse(userIdValue, out var userId))
-            {
-                return Unauthorized(new
-                {
-                    message = "Invalid or missing user ID in token."
-                });
-            }
+    var priority = await _context.Priorities
+        .FirstOrDefaultAsync(p =>
+            p.Name.ToLower() == priorityName.ToLower());
 
-            var ticket = new Ticket
-            {
-                TicketNumber =
-                    $"TKT-{Guid.NewGuid().ToString()[..8].ToUpper()}",
-                Subject = request.Subject.Trim(),
-                Description = request.Description.Trim(),
-                CategoryId = category.ID,
-                PriorityId = priority.ID,
-                StatusId = openStatus.ID,
-                CreatedAt = DateTime.UtcNow,
-                CreatedByUserId = userId
-            };
+    if (priority == null)
+    {
+        return BadRequest(new
+        {
+            message = "Invalid ticket priority."
+        });
+    }
 
-            _context.Tickets.Add(ticket);
-            await _context.SaveChangesAsync();
+    var openStatus = await _context.Statuses
+        .FirstOrDefaultAsync(s =>
+            s.StatusName.ToLower() == "open");
 
-            return CreatedAtAction(
-                nameof(GetTicketById),
-                new { id = ticket.Id },
-                new
-                {
-                    message = "Ticket created successfully.",
-                    ticketId = ticket.Id,
-                    ticketNumber = ticket.TicketNumber
-                }
-            );
+    if (openStatus == null)
+    {
+        return BadRequest(new
+        {
+            message = "The Open ticket status was not found."
+        });
+    }
+
+    var userIdValue = User.FindFirstValue(
+        ClaimTypes.NameIdentifier);
+
+    if (string.IsNullOrWhiteSpace(userIdValue) ||
+        !int.TryParse(userIdValue, out var userId))
+    {
+        return Unauthorized(new
+        {
+            message = "Invalid or missing user ID in token."
+        });
+    }
+
+    var employeeExists = await _context.Users
+        .AnyAsync(u => u.ID == userId);
+
+    if (!employeeExists)
+    {
+        return Unauthorized(new
+        {
+            message = "The authenticated user was not found."
+        });
+    }
+
+    var ticket = new Ticket
+    {
+        TicketNumber =
+            $"TKT-{Guid.NewGuid().ToString("N")[..8].ToUpper()}",
+        Subject = request.Subject.Trim(),
+        Description = request.Description.Trim(),
+        CategoryId = category.ID,
+        PriorityId = priority.ID,
+        StatusId = openStatus.ID,
+        CreatedAt = DateTime.UtcNow,
+        UpdatedAt = DateTime.UtcNow,
+        CreatedByUserId = userId,
+        IsDeleted = false
+    };
+
+    _context.Tickets.Add(ticket);
+    await _context.SaveChangesAsync();
+
+    return CreatedAtAction(
+        nameof(GetTicketById),
+        new { id = ticket.Id },
+        new
+        {
+            message = "Ticket created successfully.",
+            ticketId = ticket.Id,
+            ticketNumber = ticket.TicketNumber
         }
+    );
+}
 
-[HttpGet("{id}")]
+[HttpGet("{id:int}")]
+[Authorize]
 public async Task<IActionResult> GetTicketById(int id)
 {
     var userIdValue = User.FindFirstValue(
@@ -158,7 +212,8 @@ public async Task<IActionResult> GetTicketById(int id)
         ClaimTypes.Role
     );
 
-    if (!int.TryParse(userIdValue, out var userId))
+    if (string.IsNullOrWhiteSpace(userIdValue) ||
+        !int.TryParse(userIdValue, out var userId))
     {
         return Unauthorized(new
         {
@@ -167,7 +222,10 @@ public async Task<IActionResult> GetTicketById(int id)
     }
 
     var ticketQuery = _context.Tickets
-        .Where(t => t.Id == id && !t.IsDeleted);
+        .AsNoTracking()
+        .Where(t =>
+            t.Id == id &&
+            !t.IsDeleted);
 
     if (userRole == "Employee")
     {
@@ -175,18 +233,72 @@ public async Task<IActionResult> GetTicketById(int id)
             t => t.CreatedByUserId == userId
         );
     }
+    else if (userRole == "IT Support Agent")
+    {
+        ticketQuery = ticketQuery.Where(
+            t => t.AssignedToUserId == userId
+        );
+    }
+    else if (userRole != "Manager" &&
+             userRole != "Admin")
+    {
+        return Forbid();
+    }
 
     var ticket = await ticketQuery
-        .Select(t => new TicketResponse
+        .Select(t => new
         {
-            Id = t.Id,
-            TicketNumber = t.TicketNumber,
-            Subject = t.Subject,
-            Description = t.Description,
-            Category = t.Category.Name,
-            Priority = t.Priority.Name,
-            Status = t.Status.StatusName,
-            CreatedAt = t.CreatedAt
+            id = t.Id,
+            ticketNumber = t.TicketNumber,
+            subject = t.Subject,
+            description = t.Description,
+            category = t.Category.Name,
+            priority = t.Priority.Name,
+            status = t.Status.StatusName,
+            createdAt = t.CreatedAt,
+            updatedAt = t.UpdatedAt,
+            closedAt = t.ClosedAt,
+
+            employee = new
+            {
+                id = t.CreatedByUser.ID,
+                name = t.CreatedByUser.FullName,
+                email = t.CreatedByUser.Email
+            },
+
+            assignedAgent = t.AssignedToUserId == null
+                ? null
+                : new
+                {
+                    id = t.AssignedToUser.ID,
+                    name = t.AssignedToUser.FullName,
+                    email = t.AssignedToUser.Email
+                },
+
+            activeWorkSession = _context.TicketWorkSessions
+                .Where(session =>
+                    session.TicketID == t.Id &&
+                    session.AgentUserID == userId &&
+                    session.EndedAt == null)
+                .Select(session => new
+                {
+                    id = session.ID,
+                    startedAt = session.StartAt
+                })
+                .FirstOrDefault(),
+
+            totalWorkMinutes = _context.TicketWorkSessions
+                .Where(session =>
+                    session.TicketID == t.Id &&
+                    session.EndedAt != null)
+                .Sum(session =>
+                    session.DurationMinutes ?? 0),
+
+            isClosed =
+                t.Status.StatusName.ToLower() == "closed",
+
+            canEdit =
+                t.Status.StatusName.ToLower() != "closed"
         })
         .FirstOrDefaultAsync();
 
@@ -194,13 +306,13 @@ public async Task<IActionResult> GetTicketById(int id)
     {
         return NotFound(new
         {
-            message = "Ticket not found or you do not have access."
+            message =
+                "Ticket not found or you do not have access."
         });
     }
 
     return Ok(ticket);
 }
-
 [HttpGet]
 public async Task<IActionResult> GetTickets()
         {
@@ -417,7 +529,7 @@ public async Task<IActionResult> AddComment(int id, AddTicketCommentRequest requ
         }
 
 [HttpPost("{id:int}/assign")]
-[Authorize(Roles="Manager,Agent")]
+[Authorize(Roles="Manager")]
 public async Task<IActionResult> AssignTicket(int id, AssignTicketRequest request)
         {
             var assignedByValue= User.FindFirstValue(ClaimTypes.NameIdentifier);
@@ -435,8 +547,6 @@ public async Task<IActionResult> AssignTicket(int id, AssignTicketRequest reques
             var ticket= await _context.Tickets
             .Include(t=>t.Status)
             .Include(t=>t.AssignedToUser)
-            .Include(t=>t.Assignments)
-            .Include(t=>t.WorkSessions)
             .FirstOrDefaultAsync(t=>t.Id==id && !t.IsDeleted);
 
             if(ticket==null)
@@ -464,7 +574,10 @@ public async Task<IActionResult> AssignTicket(int id, AssignTicketRequest reques
                     message = "Agent user not found."
                 });
             }
-            var agentRole= await _context.Role?.Name.Trim().ToLower();
+            var agentRole= await _context.Roles
+                .Where(r => r.ID == agent.RoleID)
+                .Select(r => r.Name.Trim().ToLower())
+                .FirstOrDefaultAsync();
 
             if(agentRole != "it support agent" && agentRole !="agent" && agentRole!="it")
             {
@@ -479,8 +592,10 @@ public async Task<IActionResult> AssignTicket(int id, AssignTicketRequest reques
     /*
      * End the previous assignment.
      */
-    var currentAssignment = ticket.Assignments
-        .FirstOrDefault(a => a.UnassignedAt == null);
+    var currentAssignment = await _context.TicketAssignments
+        .FirstOrDefaultAsync(a =>
+            a.TicketID == ticket.Id &&
+            a.UnassignedAt == null);
 
     if (currentAssignment != null)
     {
@@ -493,21 +608,16 @@ public async Task<IActionResult> AssignTicket(int id, AssignTicketRequest reques
      * Stop the previous agent's active timer.
      * Their completed working time is preserved.
      */
-    foreach (var workSession in ticket.WorkSessions
-                 .Where(session => session.EndedAt == null))
-    {
-        workSession.EndedAt = now;
+var activeWorkSessions = await _context.TicketWorkSessions
+    .Where(session =>
+        session.TicketID == ticket.Id &&
+        session.EndedAt == null)
+    .ToListAsync();
 
-        workSession.DurationMinutes = Math.Max(
-            1,
-            (int)Math.Ceiling(
-                (now - workSession.StartedAt).TotalMinutes
-            )
-        );
-
-        workSession.StopReason = "Ticket reassigned.";
-    }
-
+foreach (var workSession in activeWorkSessions)
+{
+    workSession.EndedAt = now;
+}
     /*
      * Create the new assignment record.
      */
@@ -581,11 +691,339 @@ public async Task<IActionResult> AssignTicket(int id, AssignTicketRequest reques
         }
     });
 }
+
+
+[HttpGet("assignment-options")]
+[Authorize(Roles="Manager")]
+public async Task<IActionResult> GetAssignmentOptions()
+        {
+            var tickets= await _context.Tickets
+            .AsNoTracking()
+            .Where(t=>
+            !t.IsDeleted &&
+            t.AssignedToUserId==null &&
+            t.Status.StatusName!="Closed")
+            .OrderBy(t=>t.CreatedAt)
+            .Select(t=> new
+            {
+                id=t.Id,
+                ticketNumber=t.TicketNumber,
+                subject=t.Subject,
+                category=t.Category.Name,
+                priority=t.Priority.Name,
+                status=t.Status.StatusName,
+                createdAt=t.CreatedAt
+            })
+            .ToListAsync();
+
+            var agents= await _context.Users
+            .AsNoTracking()
+            .Where(u=>u.Role.Name=="It Support Agent")
+            .Select(u=> new
+            {
+                id=u.ID,
+                name=u.FullName,
+
+                activeTickets=_context.Tickets.Count(t=>
+                t.AssignedToUserId==u.ID &&
+                !t.IsDeleted &&
+                t.Status.StatusName!="Closed" &&
+                t.Status.StatusName!="Resolved")
+            })
+            .OrderBy(a=>a.activeTickets)
+            .ThenBy(a=>a.name)
+            .ToListAsync();
+            return Ok(new
+            {
+                tickets,
+                agents
+            });
+        }
             
+
+
+              [HttpPost("{id:int}/take")]
+        [Authorize(Roles="IT Support Agent")]
+        public async Task<IActionResult> TakeTicket(int id){
+            var userIdValue= User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if(string.IsNullOrWhiteSpace(userIdValue) ||
+            !int.TryParse(userIdValue, out var agentUserId))
+            {
+                return Unauthorized(new
+                {
+                    message="Invalid or missing user ID in token."
+                });
+            }
+            var ticket= await _context.Tickets
+            .Include(t=>t.Status)
+            .FirstOrDefaultAsync(t=>t.Id==id && !t.IsDeleted);
+
+            if(ticket==null)
+            {
+                return NotFound(new
+                {
+                    message="Ticket not found."
+                });
+            }
+
+            if(ticket.AssignedToUserId!=null)
+            {
+                return Conflict(new
+                {
+                    message="Ticket is already assigned."
+                });
+            }
+            var statusName= ticket.Status.StatusName;
+
+            if(statusName.Equals("Closed", StringComparison.OrdinalIgnoreCase)||
+            statusName.Equals("Resolved", StringComparison.OrdinalIgnoreCase))
+            {
+                return BadRequest(new
+                {
+                    message="Cannot take a closed or resolved ticket."
+                });
+            }
+
+            var agent= await _context.Users
+            .Include(u=>u.Role)
+            .FirstOrDefaultAsync(u=>u.ID==agentUserId);
+
+            if (agent == null)
+            {
+                return Unauthorized(new
+                {
+                    message="Agent user not found."
+                });
+            }
+
+            if(!agent.Role.Name.Equals(
+                "IT Support Agent", StringComparison.OrdinalIgnoreCase))
+            {
+                return Forbid();
+            }
+            var now= DateTime.UtcNow;
+            ticket.AssignedToUserId=agentUserId;
+            ticket.UpdatedAt=now;
+
+            _context.TicketAssignments.Add(new TicketAssignment
+            {
+                TicketID=ticket.Id,
+                AgentUserID=agentUserId,
+                AssignedByUserID=agentUserId,
+                AssignedAt=now 
+            
+            });
+
+            _context.TicketHistories.Add(new TicketHistory
+            {
+                TicketID=ticket.Id,
+                ChangedByUserID=agentUserId,
+                Action="Ticket taken",
+                OldValue=null,
+                NewValue=agent.FullName,
+                CreatedAt=now
+            });
+            _context.TicketActivityLogs.Add(new TicketActivityLog
+            {
+                TicketID=ticket.Id,
+                PerformedByUserID=agentUserId,
+                ActivityType="Taken",
+                Description=$"{agent.FullName} took the ticket.",
+                CreatedAt=now
+            });
+
+            try
+            {
+                await _context.SaveChangesAsync();
+            }
+            catch(DbUpdateException)
+            {
+                return Conflict(new
+                {
+                    message="The ticket assignment changed. Refresh and try again."
+                });
+            }
+            return Ok(new
+            {
+                message="Ticket Taken successfully.",
+                ticketId=ticket.Id,
+                ticketNumber=ticket.TicketNumber,
+            });
+            
+
+        }
+
+
+        [HttpPost("{id:int}/start-work")]
+        [Authorize(Roles="IT Support Agent")]
+        public async Task<IActionResult> StartWork(int id)
+        {
+            var userIdValue= User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if(string.IsNullOrWhiteSpace(userIdValue) ||
+            !int.TryParse(userIdValue, out var agentUserId))
+            {
+                return Unauthorized(new
+                {
+                    message="Invalid or missing user ID in token."
+                });
+            }
+            var ticket= await _context.Tickets
+            .Include(t=>t.Status)
+            .FirstOrDefaultAsync(t=>t.Id==id && !t.IsDeleted && t.AssignedToUserId==agentUserId);
+
+            if(ticket==null)
+            {
+                return NotFound(new
+                {
+                    message="Ticket not found or not assigned to you."
+                });
+            }
+            if(ticket.Status.StatusName.Equals("Closed", StringComparison.OrdinalIgnoreCase)||
+            ticket.Status.StatusName.Equals("Resolved", StringComparison.OrdinalIgnoreCase))
+            {
+                return BadRequest(new
+                {
+                    message="Cannot start work on a closed or resolved ticket."
+                });
+            }
+            var activeSession= await _context.TicketWorkSessions
+            .FirstOrDefaultAsync(session=>
+            session.AgentUserID==agentUserId &&
+            session.EndedAt==null);
+            if(activeSession!=null)
+            {
+                return Conflict(new
+                {
+                   message= activeSession.TicketID==ticket.Id
+                   ?"You already have an active work session on this ticket."
+                   :"YOU already have an active work session on a active ticket.",
+                   activeTicketId=activeSession.TicketID
+                });
+            }
+            var workSession= new TicketWorkSession
+            {
+                TicketID=ticket.Id,
+                AgentUserID=agentUserId,
+                StartAt=DateTime.UtcNow
+            };
+            _context.TicketWorkSessions.Add(workSession);
+            ticket.UpdatedAt=DateTime.UtcNow;
+
+            var inProgressStatus= await _context.Statuses
+            .FirstOrDefaultAsync(status =>
+            status.StatusName.ToLower()=="in progress");
+
+            if(inProgressStatus!=null &&
+            !ticket.Status.StatusName.Equals(
+                "In Progress",StringComparison.OrdinalIgnoreCase
+            ))
+            {
+                var previousStatus= ticket.Status.StatusName;
+
+                _context.TicketHistories.Add(new TicketHistory
+                {
+                    TicketID=ticket.Id,
+                    ChangedByUserID=agentUserId,
+                    Action="Status changed",
+                    OldValue=previousStatus,
+                    NewValue="In Progress",
+                    CreatedAt=DateTime.UtcNow
+                });
+            }
+
+            _context
+.TicketActivityLogs.Add(new TicketActivityLog
+            {
+                TicketID=ticket.Id,
+                PerformedByUserID=agentUserId,
+                ActivityType="Work Started",
+                Description="work session started.",
+                CreatedAt=DateTime.UtcNow
+            });
+
+            await _context.SaveChangesAsync();
+            return Ok(new
+            {
+                message="Work session started.",
+                sessionId=workSession.ID,
+                startedAt= workSession.StartAt,
+                status="In Progress"
+            });
+        }
+  [HttpPost("{id:int}/pause-work")]
+  public async Task<IActionResult> PauseWork(int id)
+        {
+            var userIdValue=User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (string.IsNullOrWhiteSpace(userIdValue) ||
+                !int.TryParse(userIdValue, out var agentUserId))
+            {
+                return Unauthorized(new
+                {
+                    message = "Invalid or missing user ID in token."
+                });
+            }
+            var ticketExists = await _context.Tickets
+                .AnyAsync(t => t.Id == id && !t.IsDeleted && t.AssignedToUserId == agentUserId);
+
+                if(!ticketExists)
+                {
+                    return NotFound(new
+                    {
+                        message = "Ticket not found or not assigned to you."
+                    });
+                }
+                var activeSession=await _context.TicketWorkSessions
+                .FirstOrDefaultAsync(session=>
+                session.TicketID==id &&
+                    session.AgentUserID==agentUserId &&
+                    session.EndedAt==null);
+
+                    if(activeSession==null)
+                    {
+                        return BadRequest(new
+                        {
+                            message="No active work session found for this ticket."
+                        });
+                    }
+
+                    var now=DateTime.UtcNow;
+                    var duration= now -activeSession.StartAt;
+                    activeSession.EndedAt=now;
+
+                    activeSession.DurationMinutes=Math.Max(1,
+                    (int)Math.Ceiling(duration.TotalMinutes));
+                    activeSession.StopReason="Paused";
+                    var ticket= await _context.Tickets
+                    .FirstAsync(t=>t.Id==id);
+
+                    ticket.UpdatedAt=now;
+
+                    _context.TicketActivityLogs.Add(new TicketActivityLog
+                    {
+                        TicketID=id,
+                        PerformedByUserID=agentUserId,
+                        ActivityType="Work Paused",
+                        Description=$"Work session paused after {activeSession.DurationMinutes} minutes.",
+                        CreatedAt=now
+                    });
+                    await _context.SaveChangesAsync();
+                    return Ok(new
+                    {
+                        message="Work session paused.",
+                        sessionId=activeSession.ID,
+                        endedAt=activeSession.EndedAt,
+                        durationMinutes=activeSession.DurationMinutes,
+
+                    });
+
+        }
+        
             }
 
 
         }
+
+      
 
 
 

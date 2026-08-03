@@ -1,7 +1,11 @@
 import { useEffect, useState } from "react";
 import DashboardLayout from "../../components/DashboardLayout";
 import { getManagerDashboard } from "../../api/dashboard";
+import { assignTicket, getAssignmentOptions } from "../../api/ticket";
 import "../../styles/ManagerDashboard.css";
+
+
+
 
 const statusColors = {
   Open: "#8c78cb",
@@ -78,6 +82,20 @@ function performanceLabel(rate) {
   return "No data";
 }
 
+function getAgentWorkload(activeTicketsValue) {
+  const activeTickets = Number(activeTicketsValue) || 0;
+
+  if (activeTickets <= 2) {
+    return { label: "Available", tone: "available" };
+  }
+
+  if (activeTickets <= 4) {
+    return { label: "Moderate workload", tone: "moderate" };
+  }
+
+  return { label: "Busy", tone: "busy" };
+}
+
 function formatDate(value) {
   return new Date(value).toLocaleDateString([], {
     month: "short",
@@ -86,9 +104,32 @@ function formatDate(value) {
   });
 }
 
+function formatTicketAge(value) {
+  const createdDate = new Date(value);
+  const today = new Date();
+  const difference = today.getTime() - createdDate.getTime();
+  const daysWaiting = Math.max(
+    0,
+    Math.floor(difference / (1000 * 60 * 60 * 24)),
+  );
+
+  if (daysWaiting === 0) return "Created today";
+  if (daysWaiting === 1) return "Waiting 1 day";
+  return `Waiting ${daysWaiting} days`;
+}
+
 function ManagerDashboard() {
   const [dashboard, setDashboard] = useState(null);
   const [error, setError] = useState("");
+  const [assignmentOptions, setAssignmentOptions] = useState({
+    tickets: [],
+    agents: [],
+  });
+  const [selectedAgents, setSelectedAgents] = useState({});
+  const [assignmentLoading, setAssignmentLoading] = useState(true);
+  const [assigningTicketId, setAssigningTicketId] = useState(null);
+  const [assignmentMessage, setAssignmentMessage] = useState("");
+  const [assignmentError, setAssignmentError] = useState("");
 
   async function loadDashboard() {
     setError("");
@@ -100,10 +141,72 @@ function ManagerDashboard() {
       setError(requestError.message || "The dashboard could not be loaded.");
     }
   }
+  async function loadAssignmentOptions() {
+    setAssignmentLoading(true);
+    setAssignmentError("");
+
+    try {
+      const data = await getAssignmentOptions();
+      setAssignmentOptions(data);
+    } catch (requestError) {
+      setAssignmentError(
+        requestError.message || "The assignment options could not be loaded.",
+      );
+    } finally {
+      setAssignmentLoading(false);
+    }
+  }
 
   useEffect(() => {
     loadDashboard();
+    loadAssignmentOptions();
   }, []);
+
+  function handleAgentChange(ticketId, agentUserId) {
+    setSelectedAgents((currentSelections) => ({
+      ...currentSelections,
+      [ticketId]: agentUserId,
+    }));
+
+    setAssignmentError("");
+    setAssignmentMessage("");
+  }
+
+  async function handleAssignTicket(ticketId, recommendedAgentId = null) {
+    const agentUserId = recommendedAgentId || selectedAgents[ticketId];
+
+    if (!agentUserId) {
+      setAssignmentMessage("");
+      setAssignmentError("Please select an agent first.");
+      return;
+    }
+
+    setAssigningTicketId(ticketId);
+    setAssignmentMessage("");
+    setAssignmentError("");
+
+    try {
+      const result = await assignTicket(ticketId, agentUserId);
+
+      setAssignmentMessage(
+        result.message || "The ticket was assigned successfully.",
+      );
+
+      setSelectedAgents((currentSelections) => {
+        const updatedSelections = { ...currentSelections };
+        delete updatedSelections[ticketId];
+        return updatedSelections;
+      });
+
+      await Promise.all([loadDashboard(), loadAssignmentOptions()]);
+    } catch (requestError) {
+      setAssignmentError(
+        requestError.message || "The ticket could not be assigned.",
+      );
+    } finally {
+      setAssigningTicketId(null);
+    }
+  }
 
   if (error) {
     return (
@@ -130,9 +233,15 @@ function ManagerDashboard() {
   const statusData = dashboard.ticketsByStatus || [];
   const agents = dashboard.agentPerformance || [];
   const recentTickets = dashboard.recentTickets || [];
+  const assignmentAgents = [...(assignmentOptions.agents || [])].sort(
+    (firstAgent, secondAgent) =>
+      Number(firstAgent.activeTickets) - Number(secondAgent.activeTickets) ||
+      firstAgent.name.localeCompare(secondAgent.name),
+  );
+  const recommendedAgent = assignmentAgents[0] || null;
   const statusTotal = statusData.reduce(
     (total, status) => total + status.count,
-    0
+    0,
   );
 
   return (
@@ -187,12 +296,205 @@ function ManagerDashboard() {
         />
       </section>
 
+      <section className="manager-panel manager-assignment-panel">
+        <div className="manager-panel-heading">
+          <div>
+            <p>Needs your attention</p>
+            <h2>Tickets Waiting for an Agent</h2>
+            <p className="manager-panel-description">
+              Review each request and assign it to an agent with enough
+              capacity.
+            </p>
+          </div>
+          <span>{assignmentOptions.tickets.length} waiting</span>
+        </div>
+
+        {assignmentMessage && (
+          <p className="manager-assignment-message success">
+            {assignmentMessage}
+          </p>
+        )}
+
+        {assignmentError && (
+          <p className="manager-assignment-message error">{assignmentError}</p>
+        )}
+
+        {assignmentLoading ? (
+          <p className="manager-empty-state">Loading unassigned tickets...</p>
+        ) : assignmentOptions.tickets.length === 0 ? (
+          <div className="manager-clear-state">
+            <strong>Everything is assigned</strong>
+            <p>There are no tickets waiting for an agent right now.</p>
+          </div>
+        ) : (
+          <div className="manager-assignment-list">
+            {assignmentOptions.tickets.map((ticket) => {
+              const selectedAgent = assignmentAgents.find(
+                (agent) =>
+                  String(agent.id) === String(selectedAgents[ticket.id]),
+              );
+              const selectedWorkload = selectedAgent
+                ? getAgentWorkload(selectedAgent.activeTickets)
+                : null;
+              const recommendedWorkload = recommendedAgent
+                ? getAgentWorkload(recommendedAgent.activeTickets)
+                : null;
+
+              return (
+                <article className="manager-assignment-card" key={ticket.id}>
+                  <div className="manager-ticket-summary">
+                    <div className="manager-ticket-title-row">
+                      <span className="manager-ticket-number">
+                        {ticket.ticketNumber}
+                      </span>
+                      <div className="manager-ticket-badges">
+                        <span className="manager-ticket-badge priority">
+                          {ticket.priority}
+                        </span>
+                        <span className="manager-ticket-badge status">
+                          {ticket.status}
+                        </span>
+                      </div>
+                    </div>
+
+                    <h3>{ticket.subject}</h3>
+
+                    <div className="manager-ticket-meta">
+                      <div>
+                        <span>Category</span>
+                        <strong>{ticket.category}</strong>
+                      </div>
+                      <div>
+                        <span>Created</span>
+                        <strong>{formatDate(ticket.createdAt)}</strong>
+                      </div>
+                      <div>
+                        <span>Queue time</span>
+                        <strong>{formatTicketAge(ticket.createdAt)}</strong>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="manager-assignment-action">
+                    {recommendedAgent ? (
+                      <div className="manager-recommended-agent">
+                        <div>
+                          <span>Recommended · lightest workload</span>
+                          <strong>{recommendedAgent.name}</strong>
+                          <small>
+                            {recommendedAgent.activeTickets} active ticket
+                            {Number(recommendedAgent.activeTickets) === 1
+                              ? ""
+                              : "s"}
+                            {" · "}
+                            {recommendedWorkload.label}
+                          </small>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() =>
+                            handleAssignTicket(ticket.id, recommendedAgent.id)
+                          }
+                          disabled={assigningTicketId === ticket.id}
+                        >
+                          {assigningTicketId === ticket.id
+                            ? "Assigning..."
+                            : `Assign ${recommendedAgent.name}`}
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="manager-no-agent-note">
+                        No support agents are available for assignment.
+                      </div>
+                    )}
+
+                    <div className="manager-choice-divider">
+                      <span>or choose manually</span>
+                    </div>
+
+                    <label htmlFor={`agent-${ticket.id}`}>
+                      Choose another agent
+                    </label>
+                    <p>
+                      Agents are ordered from the lightest to heaviest workload.
+                    </p>
+                    <select
+                      id={`agent-${ticket.id}`}
+                      className="manager-agent-select"
+                      value={selectedAgents[ticket.id] || ""}
+                      onChange={(event) =>
+                        handleAgentChange(ticket.id, event.target.value)
+                      }
+                      disabled={
+                        assigningTicketId === ticket.id ||
+                        assignmentAgents.length === 0
+                      }
+                    >
+                      <option value="">Select an agent</option>
+                      {assignmentAgents.map((agent, index) => {
+                        const workload = getAgentWorkload(agent.activeTickets);
+
+                        return (
+                          <option key={agent.id} value={agent.id}>
+                            {agent.name} — {agent.activeTickets} active —{" "}
+                            {workload.label}
+                            {index === 0 ? " (Recommended)" : ""}
+                          </option>
+                        );
+                      })}
+                    </select>
+
+                    {selectedAgent && selectedWorkload && (
+                      <div
+                        className={`manager-workload-notice ${selectedWorkload.tone}`}
+                      >
+                        <strong>
+                          {selectedAgent.name}: {selectedWorkload.label}
+                        </strong>
+                        <span>
+                          {selectedWorkload.tone === "busy"
+                            ? `This agent already has ${selectedAgent.activeTickets} active tickets. You can still assign this ticket if needed.`
+                            : `${selectedAgent.activeTickets} active ticket${
+                                Number(selectedAgent.activeTickets) === 1
+                                  ? ""
+                                  : "s"
+                              } right now.`}
+                        </span>
+                      </div>
+                    )}
+
+                    <button
+                      type="button"
+                      className="manager-assign-button"
+                      onClick={() => handleAssignTicket(ticket.id)}
+                      disabled={
+                        assigningTicketId === ticket.id ||
+                        !selectedAgents[ticket.id]
+                      }
+                    >
+                      {assigningTicketId === ticket.id
+                        ? "Assigning ticket..."
+                        : selectedAgent
+                          ? `Assign to ${selectedAgent.name}`
+                          : "Select an agent to continue"}
+                    </button>
+                  </div>
+                </article>
+              );
+            })}
+          </div>
+        )}
+      </section>
+
       <section className="manager-overview-grid">
         <article className="manager-panel">
           <div className="manager-panel-heading">
             <div>
               <p>Workflow overview</p>
-              <h2>Tickets by Status</h2>
+              <h2>Where Tickets Stand</h2>
+              <p className="manager-panel-description">
+                A quick view of the team&apos;s current ticket pipeline.
+              </p>
             </div>
             <span>{dashboard.teamTickets} total</span>
           </div>
@@ -205,9 +507,7 @@ function ManagerDashboard() {
                   : 0;
                 const color =
                   statusColors[status.name] ||
-                  ["#8c78cb", "#5b8fd6", "#45a775", "#d4a744"][
-                    index % 4
-                  ];
+                  ["#8c78cb", "#5b8fd6", "#45a775", "#d4a744"][index % 4];
 
                 return (
                   <div className="manager-status-item" key={status.name}>
@@ -240,6 +540,9 @@ function ManagerDashboard() {
             <div>
               <p>Team capacity</p>
               <h2>Workload Health</h2>
+              <p className="manager-panel-description">
+                Numbers that may require a manager&apos;s attention.
+              </p>
             </div>
           </div>
 
@@ -282,80 +585,91 @@ function ManagerDashboard() {
       <section className="manager-panel manager-performance-panel">
         <div className="manager-panel-heading">
           <div>
-            <p>Support team</p>
-            <h2>Agent Performance</h2>
+            <p>Team workload</p>
+            <h2>Agent Capacity and Performance</h2>
+            <p className="manager-panel-description">
+              Compare active workload and completion before assigning more work.
+            </p>
           </div>
-          <span>{agents.length} agents</span>
+          <span>
+            {agents.length} agent{agents.length === 1 ? "" : "s"}
+          </span>
         </div>
 
-        <div className="manager-table-wrapper">
-          <table className="manager-table">
-            <thead>
-              <tr>
-                <th>Agent</th>
-                <th>Assigned</th>
-                <th>Resolved</th>
-                <th>Active</th>
-                <th>Average Resolution</th>
-                <th>Completion</th>
-                <th>Performance</th>
-              </tr>
-            </thead>
-            <tbody>
-              {agents.length > 0 ? (
-                agents.map((agent) => (
-                  <tr key={agent.agent}>
-                    <td>
+        {agents.length > 0 ? (
+          <div className="manager-agent-grid">
+            {agents.map((agent) => {
+              const resolutionRate = Number(agent.resolutionRate) || 0;
+
+              return (
+                <article className="manager-agent-card" key={agent.agent}>
+                  <div className="manager-agent-card-header">
+                    <div className="manager-agent-identity">
                       <span className="manager-agent-avatar">
                         {agent.agent.charAt(0).toUpperCase()}
                       </span>
-                      <strong>{agent.agent}</strong>
-                    </td>
-                    <td>{agent.assigned}</td>
-                    <td>{agent.resolved}</td>
-                    <td>{agent.open}</td>
-                    <td>
+                      <div>
+                        <strong>{agent.agent}</strong>
+                        <span>{agent.open} active tickets</span>
+                      </div>
+                    </div>
+                    <span
+                      className={`manager-performance-badge ${
+                        resolutionRate >= 75
+                          ? "excellent"
+                          : resolutionRate >= 50
+                            ? "good"
+                            : "attention"
+                      }`}
+                    >
+                      {performanceLabel(resolutionRate)}
+                    </span>
+                  </div>
+
+                  <div className="manager-agent-stats">
+                    <div>
+                      <span>Active now</span>
+                      <strong>{agent.open}</strong>
+                    </div>
+                    <div>
+                      <span>Resolved</span>
+                      <strong>{agent.resolved}</strong>
+                    </div>
+                    <div>
+                      <span>Total assigned</span>
+                      <strong>{agent.assigned}</strong>
+                    </div>
+                  </div>
+
+                  <div className="manager-agent-progress">
+                    <div>
+                      <span>Completion rate</span>
+                      <strong>{resolutionRate}%</strong>
+                    </div>
+                    <div className="manager-rate-track">
+                      <span
+                        style={{ width: `${Math.min(resolutionRate, 100)}%` }}
+                      />
+                    </div>
+                  </div>
+
+                  <p className="manager-agent-resolution">
+                    Average resolution:{" "}
+                    <strong>
                       {agent.averageResolutionTime > 0
                         ? `${agent.averageResolutionTime} hours`
-                        : "-"}
-                    </td>
-                    <td>
-                      <div className="manager-rate-cell">
-                        <div className="manager-rate-track">
-                          <span
-                            style={{
-                              width: `${Math.min(agent.resolutionRate, 100)}%`,
-                            }}
-                          />
-                        </div>
-                        <strong>{agent.resolutionRate}%</strong>
-                      </div>
-                    </td>
-                    <td>
-                      <span
-                        className={`manager-performance-badge ${
-                          agent.resolutionRate >= 75
-                            ? "excellent"
-                            : agent.resolutionRate >= 50
-                              ? "good"
-                              : "attention"
-                        }`}
-                      >
-                        {performanceLabel(agent.resolutionRate)}
-                      </span>
-                    </td>
-                  </tr>
-                ))
-              ) : (
-                <tr>
-                  <td className="manager-empty-table" colSpan="7">
-                    No support-agent performance data yet.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
+                        : "No completed tickets yet"}
+                    </strong>
+                  </p>
+                </article>
+              );
+            })}
+          </div>
+        ) : (
+          <p className="manager-empty-state">
+            No support-agent performance data yet.
+          </p>
+        )}
       </section>
 
       <section className="manager-panel manager-recent-panel">
@@ -363,59 +677,58 @@ function ManagerDashboard() {
           <div>
             <p>Latest requests</p>
             <h2>Recent Team Tickets</h2>
+            <p className="manager-panel-description">
+              The newest requests and who currently owns them.
+            </p>
           </div>
         </div>
 
-        <div className="manager-table-wrapper">
-          <table className="manager-table manager-recent-table">
-            <thead>
-              <tr>
-                <th>Ticket</th>
-                <th>Employee</th>
-                <th>Assigned To</th>
-                <th>Category</th>
-                <th>Status</th>
-                <th>Priority</th>
-                <th>Created</th>
-              </tr>
-            </thead>
-            <tbody>
-              {recentTickets.length > 0 ? (
-                recentTickets.map((ticket) => (
-                  <tr key={ticket.id}>
-                    <td>
-                      <strong>{ticket.ticketNumber}</strong>
-                      <span>{ticket.subject}</span>
-                    </td>
-                    <td>{ticket.employee}</td>
-                    <td>{ticket.assignedTo}</td>
-                    <td>{ticket.category}</td>
-                    <td>
-                      <span className="manager-ticket-badge status">
-                        {ticket.status}
-                      </span>
-                    </td>
-                    <td>
-                      <span className="manager-ticket-badge priority">
-                        {ticket.priority}
-                      </span>
-                    </td>
-                    <td>{formatDate(ticket.createdAt)}</td>
-                  </tr>
-                ))
-              ) : (
-                <tr>
-                  <td className="manager-empty-table" colSpan="7">
-                    No recent tickets yet.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
+        {recentTickets.length > 0 ? (
+          <div className="manager-recent-list">
+            {recentTickets.map((ticket) => (
+              <article className="manager-recent-item" key={ticket.id}>
+                <div className="manager-recent-ticket">
+                  <span>{ticket.ticketNumber}</span>
+                  <strong>{ticket.subject}</strong>
+                  <small>Requested by {ticket.employee}</small>
+                </div>
+
+                <div className="manager-recent-detail">
+                  <span>Current owner</span>
+                  <strong
+                    className={
+                      ticket.assignedTo === "Unassigned" ? "unassigned" : ""
+                    }
+                  >
+                    {ticket.assignedTo}
+                  </strong>
+                </div>
+
+                <div className="manager-recent-detail">
+                  <span>Ticket details</span>
+                  <div className="manager-recent-badges">
+                    <span className="manager-ticket-badge status">
+                      {ticket.status}
+                    </span>
+                    <span className="manager-ticket-badge priority">
+                      {ticket.priority}
+                    </span>
+                    <small>{ticket.category}</small>
+                  </div>
+                </div>
+
+                <div className="manager-recent-date">
+                  <span>Created</span>
+                  <strong>{formatDate(ticket.createdAt)}</strong>
+                </div>
+              </article>
+            ))}
+          </div>
+        ) : (
+          <p className="manager-empty-state">No recent tickets yet.</p>
+        )}
       </section>
     </DashboardLayout>
   );
 }
-
 export default ManagerDashboard;

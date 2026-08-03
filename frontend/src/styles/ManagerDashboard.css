@@ -74,7 +74,9 @@
   background: #ffffff;
   box-shadow: 0 12px 26px rgba(73, 55, 111, 0.13);
   animation: managerFadeUp 0.5s ease both;
-  transition: transform 0.24s ease, box-shadow 0.24s ease;
+  transition:
+    transform 0.24s ease,
+    box-shadow 0.24s ease;
 }
 
 .manager-metric:nth-child(2) {
@@ -526,5 +528,546 @@
   .manager-progress-track span,
   .manager-rate-track span {
     animation: none;
+  }
+}
+/* Assignment section */
+.manager-assignment-panel {
+  margin-top: 28px;
+}
+
+.manager-assignment-table {
+  min-width: 1050px;
+}
+
+.manager-assignment-table td:first-child strong {
+  display: block;
+  color: #2e2750;
+  font-size: 0.9rem;
+}
+
+.manager-assignment-table td:first-child span {
+  display: block;
+  max-width: 230px;
+  margin-top: 4px;
+  color: #77728a;
+  font-size: 0.84rem;
+  line-height: 1.4;
+}
+
+.manager-agent-select {
+  width: 100%;
+  min-width: 190px;
+  padding: 10px 34px 10px 12px;
+  border: 1px solid #ded9eb;
+  border-radius: 10px;
+  background-color: #ffffff;
+  color: #39324f;
+  font: inherit;
+  font-size: 0.87rem;
+  outline: none;
+  cursor: pointer;
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.manager-agent-select:hover {
+  border-color: #a99bd3;
+}
+
+.manager-agent-select:focus {
+  border-color: #7e68be;
+  box-shadow: 0 0 0 3px rgba(126, 104, 190, 0.14);
+}
+
+.manager-agent-select:disabled {
+  background-color: #f3f1f7;
+  cursor: not-allowed;
+}
+
+.manager-assign-button {
+  min-width: 90px;
+  padding: 10px 17px;
+  border: none;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #8068c5, #6851aa);
+  color: #ffffff;
+  font: inherit;
+  font-size: 0.86rem;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 6px 14px rgba(104, 81, 170, 0.22);
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease,
+    opacity 0.2s ease;
+}
+
+.manager-assign-button:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 8px 18px rgba(104, 81, 170, 0.3);
+}
+
+.manager-assign-button:disabled {
+  opacity: 0.5;
+  box-shadow: none;
+  cursor: not-allowed;
+}
+
+.manager-assignment-message {
+  margin: 0 0 18px;
+  padding: 12px 15px;
+  border-radius: 10px;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.manager-assignment-message.success {
+  border: 1px solid #b8e4cd;
+  background-color: #edf9f2;
+  color: #28784c;
+}
+
+.manager-assignment-message.error {
+  border: 1px solid #efc4c8;
+  background-color: #fff1f2;
+  color: #b33a46;
+}
+
+@media (max-width: 900px) {
+  .manager-assignment-panel {
+    margin-top: 20px;
+  }
+
+  .manager-assignment-table {
+    min-width: 950px;
+  }
+}
+
+/* Clear manager workflow */
+.manager-panel-heading .manager-panel-description {
+  max-width: 620px;
+  margin: 7px 0 0;
+  color: var(--normal-text);
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 1.5;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.manager-assignment-panel {
+  margin: 0 0 22px;
+  padding: 28px;
+  border-top: 4px solid #8c78cb;
+}
+
+.manager-assignment-list {
+  display: grid;
+  gap: 16px;
+}
+
+.manager-assignment-card {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(300px, 380px);
+  gap: 28px;
+  padding: 23px;
+  border: 1px solid #e6e0f0;
+  border-radius: 16px;
+  background: linear-gradient(135deg, #ffffff 0%, #faf8fd 100%);
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease,
+    transform 0.2s ease;
+}
+
+.manager-assignment-card:hover {
+  border-color: #cfc5e5;
+  box-shadow: 0 12px 25px rgba(72, 54, 112, 0.1);
+  transform: translateY(-2px);
+}
+
+.manager-ticket-title-row,
+.manager-ticket-badges {
+  display: flex;
+  align-items: center;
+}
+
+.manager-ticket-title-row {
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.manager-ticket-badges {
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 7px;
+}
+
+.manager-ticket-number {
+  color: #7562b2;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.045em;
+}
+
+.manager-ticket-summary h3 {
+  margin: 12px 0 20px;
+  color: var(--dark-text);
+  font-size: 20px;
+  line-height: 1.35;
+}
+
+.manager-ticket-meta {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.manager-ticket-meta > div {
+  min-width: 0;
+  padding: 11px 13px;
+  border-radius: 11px;
+  background: #f3f0f8;
+}
+
+.manager-ticket-meta span,
+.manager-ticket-meta strong {
+  display: block;
+}
+
+.manager-ticket-meta span {
+  margin-bottom: 4px;
+  color: var(--muted-text);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.manager-ticket-meta strong {
+  overflow: hidden;
+  color: var(--dark-text);
+  font-size: 13px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.manager-assignment-action {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding-left: 27px;
+  border-left: 1px solid #e2dced;
+}
+
+.manager-assignment-action label {
+  color: var(--dark-text);
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.manager-assignment-action p {
+  margin: 5px 0 13px;
+  color: var(--muted-text);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.manager-assignment-action .manager-agent-select {
+  min-width: 0;
+  min-height: 43px;
+}
+
+.manager-assignment-action .manager-assign-button {
+  width: 100%;
+  margin-top: 10px;
+  min-height: 42px;
+}
+
+.manager-clear-state {
+  padding: 27px;
+  border: 1px dashed #cfc5e4;
+  border-radius: 14px;
+  background: #faf8fd;
+  text-align: center;
+}
+
+.manager-clear-state strong {
+  color: var(--dark-text);
+  font-size: 15px;
+}
+
+.manager-clear-state p {
+  margin: 5px 0 0;
+  color: var(--muted-text);
+  font-size: 13px;
+}
+
+.manager-performance-panel,
+.manager-recent-panel {
+  margin-bottom: 22px;
+  padding: 28px;
+}
+
+.manager-agent-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(290px, 1fr));
+  gap: 16px;
+}
+
+.manager-agent-card {
+  padding: 20px;
+  border: 1px solid #e6e0ef;
+  border-radius: 15px;
+  background: #fcfbfe;
+}
+
+.manager-agent-card-header,
+.manager-agent-identity,
+.manager-agent-progress > div:first-child {
+  display: flex;
+  align-items: center;
+}
+
+.manager-agent-card-header {
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.manager-agent-identity {
+  min-width: 0;
+  gap: 11px;
+}
+
+.manager-agent-identity .manager-agent-avatar {
+  width: 44px;
+  height: 44px;
+  flex: 0 0 44px;
+  margin-right: 0;
+  border-radius: 13px;
+  font-size: 16px;
+}
+
+.manager-agent-identity strong,
+.manager-agent-identity span {
+  display: block;
+}
+
+.manager-agent-identity strong {
+  overflow: hidden;
+  color: var(--dark-text);
+  font-size: 15px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.manager-agent-identity span {
+  margin-top: 3px;
+  color: var(--muted-text);
+  font-size: 12px;
+}
+
+.manager-agent-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin: 19px 0;
+}
+
+.manager-agent-stats > div {
+  padding: 11px 8px;
+  border-radius: 10px;
+  background: #f1eef7;
+  text-align: center;
+}
+
+.manager-agent-stats span,
+.manager-agent-stats strong {
+  display: block;
+}
+
+.manager-agent-stats span {
+  color: var(--muted-text);
+  font-size: 10px;
+}
+
+.manager-agent-stats strong {
+  margin-top: 4px;
+  color: var(--dark-text);
+  font-size: 18px;
+}
+
+.manager-agent-progress > div:first-child {
+  justify-content: space-between;
+  margin-bottom: 8px;
+  color: var(--normal-text);
+  font-size: 12px;
+}
+
+.manager-agent-progress > div:first-child strong {
+  color: var(--dark-text);
+}
+
+.manager-agent-progress .manager-rate-track {
+  width: 100%;
+  height: 8px;
+}
+
+.manager-agent-resolution {
+  margin: 15px 0 0;
+  padding-top: 14px;
+  border-top: 1px solid #e9e4f0;
+  color: var(--muted-text);
+  font-size: 12px;
+}
+
+.manager-agent-resolution strong {
+  color: var(--normal-text);
+}
+
+.manager-recent-list {
+  display: grid;
+  gap: 11px;
+}
+
+.manager-recent-item {
+  display: grid;
+  grid-template-columns: minmax(240px, 1.25fr) minmax(150px, 0.65fr) minmax(
+      220px,
+      0.9fr
+    ) auto;
+  align-items: center;
+  gap: 24px;
+  padding: 17px 18px;
+  border: 1px solid #ebe6f2;
+  border-radius: 13px;
+  background: #ffffff;
+  transition:
+    background-color 0.2s ease,
+    border-color 0.2s ease;
+}
+
+.manager-recent-item:hover {
+  border-color: #d7cee7;
+  background: #fbf9fe;
+}
+
+.manager-recent-ticket > span,
+.manager-recent-ticket > strong,
+.manager-recent-ticket > small,
+.manager-recent-detail > span,
+.manager-recent-detail > strong,
+.manager-recent-date > span,
+.manager-recent-date > strong {
+  display: block;
+}
+
+.manager-recent-ticket > span {
+  color: #7866b4;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.manager-recent-ticket > strong {
+  margin-top: 4px;
+  overflow: hidden;
+  color: var(--dark-text);
+  font-size: 14px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.manager-recent-ticket > small {
+  margin-top: 4px;
+  color: var(--muted-text);
+  font-size: 11px;
+}
+
+.manager-recent-detail > span,
+.manager-recent-date > span {
+  margin-bottom: 6px;
+  color: var(--muted-text);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.045em;
+  text-transform: uppercase;
+}
+
+.manager-recent-detail > strong,
+.manager-recent-date > strong {
+  color: var(--dark-text);
+  font-size: 13px;
+}
+
+.manager-recent-detail > strong.unassigned {
+  color: #a3543e;
+}
+
+.manager-recent-badges {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+.manager-recent-badges small {
+  color: var(--normal-text);
+  font-size: 11px;
+}
+
+.manager-recent-date {
+  min-width: 92px;
+  text-align: right;
+}
+
+@media (max-width: 1100px) {
+  .manager-assignment-card {
+    grid-template-columns: 1fr;
+  }
+
+  .manager-assignment-action {
+    padding: 20px 0 0;
+    border-top: 1px solid #e2dced;
+    border-left: 0;
+  }
+
+  .manager-recent-item {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .manager-recent-date {
+    text-align: left;
+  }
+}
+
+@media (max-width: 700px) {
+  .manager-assignment-panel,
+  .manager-performance-panel,
+  .manager-recent-panel {
+    padding: 20px;
+  }
+
+  .manager-assignment-card {
+    padding: 18px;
+  }
+
+  .manager-ticket-title-row {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .manager-ticket-badges {
+    justify-content: flex-start;
+  }
+
+  .manager-ticket-meta,
+  .manager-agent-stats,
+  .manager-recent-item {
+    grid-template-columns: 1fr;
+  }
+
+  .manager-recent-item {
+    gap: 15px;
   }
 }
