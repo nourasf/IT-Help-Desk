@@ -2,10 +2,7 @@ import { useState } from "react";
 import Sidebar from "./Sidebar";
 import Topbar from "./Topbar";
 import "../styles/dashboard.css";
-import "../styles/DesignSystem.css";
-import "../styles/UnifiedDashboardV2.css";
-import "../styles/DashboardOrganization.css";
-import "../styles/DashboardSymmetry.css";
+import "../styles/FinalDashboard.css";
 
 function DashboardLayout({ children, activePage }) {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
