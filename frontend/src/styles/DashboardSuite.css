@@ -1,0 +1,357 @@
+/* Unified dashboard presentation — imported last by DashboardLayout */
+
+:root {
+  --dash-bg: #e8e0f2;
+  --dash-surface: rgba(255, 255, 255, 0.94);
+  --dash-surface-solid: #ffffff;
+  --dash-soft: #f5f1f9;
+  --dash-border: rgba(79, 59, 111, 0.14);
+  --dash-border-hover: rgba(111, 82, 157, 0.34);
+  --dash-text: #302843;
+  --dash-body: #696173;
+  --dash-muted: #948d9c;
+  --dash-purple: #8065b8;
+  --dash-purple-dark: #654a9d;
+  --dash-shadow: 0 12px 30px rgba(52, 38, 78, 0.11);
+  --dash-shadow-hover: 0 18px 40px rgba(52, 38, 78, 0.17);
+}
+
+/* One continuous, balanced workspace color everywhere. */
+html,
+body,
+#root,
+.dashboard-shell,
+.dashboard-main,
+.dashboard-content {
+  background: var(--dash-bg) !important;
+  background-image: none !important;
+}
+
+.dashboard-main,
+.dashboard-shell {
+  min-height: 100vh;
+}
+
+.dashboard-content {
+  min-height: calc(100vh - 76px) !important;
+  padding: 30px 40px 52px !important;
+}
+
+/* No page is allowed to paint a second rectangular background. */
+.admin-dashboard-page,
+.manager-dashboard-page,
+.agent-dashboard-page,
+.employee-dashboard-page,
+.dashboard-page {
+  min-height: auto !important;
+  padding: 0 !important;
+  background: transparent !important;
+  background-image: none !important;
+}
+
+/* Navigation belongs to the same visual system. */
+.topbar {
+  min-height: 76px !important;
+  height: 76px;
+  padding: 14px 38px !important;
+  background: var(--dash-bg) !important;
+  border-bottom: 1px solid rgba(73, 54, 103, 0.09) !important;
+  box-shadow: none !important;
+}
+
+.topbar-search {
+  width: min(340px, 40vw) !important;
+  height: 46px !important;
+  padding: 0 17px !important;
+  border: 1px solid rgba(88, 67, 125, 0.15) !important;
+  border-radius: 14px !important;
+  background: rgba(255, 255, 255, 0.66) !important;
+  box-shadow: inset 0 1px 2px rgba(45, 32, 68, 0.04) !important;
+}
+
+.topbar-search:focus-within {
+  border-color: rgba(128, 101, 184, 0.54) !important;
+  background: rgba(255, 255, 255, 0.88) !important;
+  box-shadow: 0 0 0 4px rgba(128, 101, 184, 0.11) !important;
+}
+
+.sidebar {
+  background: rgba(255, 255, 255, 0.97) !important;
+  border-color: rgba(83, 62, 116, 0.16) !important;
+  box-shadow: 8px 0 28px rgba(51, 37, 76, 0.08) !important;
+}
+
+/* Dashboard introductions are typography, not cards. */
+.agent-welcome-section,
+.employee-welcome-section,
+.manager-dashboard-header,
+.admin-dashboard-header {
+  position: relative;
+  min-height: 0 !important;
+  margin: 0 0 28px !important;
+  padding: 4px 0 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  background-image: none !important;
+  box-shadow: none !important;
+  overflow: visible !important;
+}
+
+.agent-welcome-section::before,
+.agent-welcome-section::after,
+.employee-welcome-section::before,
+.employee-welcome-section::after,
+.manager-dashboard-header::before,
+.manager-dashboard-header::after,
+.admin-dashboard-header::before,
+.admin-dashboard-header::after {
+  display: none !important;
+  content: none !important;
+}
+
+.agent-welcome-section h1,
+.employee-welcome-section h1,
+.manager-dashboard-header h1,
+.admin-dashboard-header h1 {
+  margin: 4px 0 7px !important;
+  color: var(--dash-text) !important;
+  font-size: clamp(29px, 2.4vw, 37px) !important;
+  font-weight: 760 !important;
+  line-height: 1.13 !important;
+  letter-spacing: -0.035em !important;
+}
+
+.agent-welcome-section p,
+.employee-welcome-section p,
+.manager-dashboard-header > div > p:last-child,
+.admin-dashboard-header > div > p:last-child {
+  max-width: 760px;
+  margin: 0 !important;
+  color: var(--dash-body) !important;
+  font-size: 14px !important;
+  line-height: 1.55 !important;
+}
+
+.agent-welcome-label,
+.welcome-label,
+.manager-eyebrow,
+.admin-eyebrow {
+  margin: 0 0 6px !important;
+  color: #765faa !important;
+  font-size: 10px !important;
+  font-weight: 820 !important;
+  letter-spacing: 0.12em !important;
+  text-transform: uppercase;
+}
+
+/* Shared premium surface treatment across every dashboard. */
+.admin-metric-card,
+.admin-panel,
+.admin-dashboard-state,
+.manager-metric,
+.manager-panel,
+.manager-dashboard-state,
+.manager-assignment-card,
+.manager-agent-card,
+.manager-recent-item,
+.agent-overview-card,
+.agent-priority-section,
+.agent-quick-action-card,
+.agent-assigned-section,
+.agent-dashboard-state,
+.quick-action-card,
+.employee-tickets-section,
+.employee-dashboard-state,
+.employee-ticket-card,
+.tickets-panel,
+.stat-card {
+  border: 1px solid var(--dash-border) !important;
+  background: var(--dash-surface) !important;
+  background-image: none !important;
+  box-shadow: var(--dash-shadow) !important;
+  backdrop-filter: blur(12px);
+}
+
+/* Large panels need slightly calmer depth than tiny cards. */
+.admin-panel,
+.manager-panel,
+.agent-priority-section,
+.agent-assigned-section,
+.employee-tickets-section,
+.tickets-panel {
+  box-shadow: 0 15px 36px rgba(52, 38, 78, 0.12) !important;
+}
+
+.admin-metric-card,
+.manager-metric,
+.manager-assignment-card,
+.manager-agent-card,
+.manager-recent-item,
+.agent-overview-card,
+.agent-quick-action-card,
+.quick-action-card,
+.employee-ticket-card,
+.stat-card {
+  transition:
+    transform 0.2s ease,
+    border-color 0.2s ease,
+    box-shadow 0.2s ease !important;
+}
+
+.admin-metric-card:hover,
+.manager-metric:hover,
+.manager-assignment-card:hover,
+.manager-agent-card:hover,
+.manager-recent-item:hover,
+.agent-overview-card:hover,
+.agent-quick-action-card:hover:not(:disabled),
+.quick-action-card:hover,
+.employee-ticket-card:hover,
+.stat-card:hover {
+  transform: translateY(-3px) !important;
+  border-color: var(--dash-border-hover) !important;
+  box-shadow: var(--dash-shadow-hover) !important;
+}
+
+/* Inner blocks remain visibly separate without becoming new cards. */
+.admin-role-card,
+.admin-health-grid > div,
+.manager-health-grid > div,
+.manager-ticket-meta > div,
+.manager-agent-stats > div,
+.agent-ticket-search,
+.agent-ticket-filters select,
+.employee-ticket-search,
+.employee-ticket-filters select {
+  background: var(--dash-soft) !important;
+  border-color: rgba(83, 62, 116, 0.12) !important;
+}
+
+/* Titles and labels are consistent across all dashboard roles. */
+.dashboard-content h1,
+.dashboard-content h2,
+.dashboard-content h3 {
+  color: var(--dash-text) !important;
+}
+
+.dashboard-content p,
+.dashboard-content small {
+  color: var(--dash-body);
+}
+
+.agent-section-title-row,
+.section-title-row,
+.manager-panel-heading,
+.admin-panel-heading {
+  margin-bottom: 17px !important;
+}
+
+.agent-section-title-row h2,
+.section-title-row h2,
+.manager-panel-heading h2,
+.admin-panel-heading h2 {
+  font-size: 20px !important;
+  letter-spacing: -0.02em;
+}
+
+/* Buttons use the same hierarchy everywhere. */
+.main-create-ticket-button,
+.agent-take-ticket-main-button,
+.admin-create-user-button,
+.manager-assign-button,
+.primary-pill-button {
+  border: 0 !important;
+  background: linear-gradient(135deg, var(--dash-purple), var(--dash-purple-dark)) !important;
+  color: #ffffff !important;
+  box-shadow: 0 9px 20px rgba(82, 58, 132, 0.22) !important;
+}
+
+.main-create-ticket-button:hover,
+.agent-take-ticket-main-button:hover:not(:disabled),
+.admin-create-user-button:hover,
+.manager-assign-button:hover:not(:disabled),
+.primary-pill-button:hover {
+  transform: translateY(-2px) !important;
+  box-shadow: 0 13px 27px rgba(82, 58, 132, 0.29) !important;
+}
+
+.manager-view-ticket-button,
+.manager-refresh-button,
+.secondary-pill-button {
+  border: 1px solid rgba(92, 69, 132, 0.22) !important;
+  background: rgba(255, 255, 255, 0.86) !important;
+  color: #5d4f70 !important;
+  box-shadow: 0 5px 13px rgba(52, 38, 78, 0.06) !important;
+}
+
+/* Preserve semantic alert styling while making it less sugary. */
+.agent-priority-section {
+  border-color: rgba(184, 75, 95, 0.23) !important;
+  background: rgba(255, 248, 249, 0.94) !important;
+}
+
+/* Clean, deliberate spacing across the dashboard family. */
+.admin-metrics-grid,
+.manager-metrics-grid,
+.agent-overview-grid,
+.quick-actions-grid,
+.agent-quick-actions-grid {
+  gap: 18px !important;
+}
+
+.admin-metrics-grid,
+.manager-metrics-grid,
+.agent-overview-section,
+.quick-actions-section,
+.agent-quick-actions-section,
+.admin-analytics-grid,
+.manager-overview-grid {
+  margin-bottom: 22px !important;
+}
+
+@media (max-width: 900px) {
+  .dashboard-content {
+    padding: 24px !important;
+  }
+
+  .agent-welcome-section,
+  .employee-welcome-section,
+  .manager-dashboard-header,
+  .admin-dashboard-header {
+    align-items: flex-start !important;
+    flex-direction: column !important;
+    gap: 17px !important;
+  }
+}
+
+@media (max-width: 650px) {
+  .dashboard-content {
+    padding: 18px 14px 34px !important;
+  }
+
+  .topbar {
+    height: auto;
+    min-height: 70px !important;
+    padding: 12px 16px !important;
+  }
+
+  .topbar-search {
+    width: min(260px, 55vw) !important;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .admin-metric-card,
+  .manager-metric,
+  .manager-assignment-card,
+  .manager-agent-card,
+  .manager-recent-item,
+  .agent-overview-card,
+  .agent-quick-action-card,
+  .quick-action-card,
+  .employee-ticket-card,
+  .stat-card {
+    transition: none !important;
+  }
+}
