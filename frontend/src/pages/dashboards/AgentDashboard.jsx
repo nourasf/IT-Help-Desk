@@ -4,6 +4,7 @@ import DashboardLayout from "../../components/DashboardLayout";
 import { getAgentDashboard } from "../../api/dashboard";
 import { takeTicket } from "../../api/ticket";
 import "../../styles/AgentDashboard.css";
+import "../../styles/AgentDashboardFix.css";
 
 function formatDate(value) {
   if (!value) return "—";
