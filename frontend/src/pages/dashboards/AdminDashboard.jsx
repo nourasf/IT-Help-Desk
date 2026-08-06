@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import DashboardLayout from "../../components/DashboardLayout";
+import AdminActionsModal from "../../components/AdminActionsModal";
 import { getAdminDashboard } from "../../api/dashboard";
 import "../../styles/AdminDashboard.css";
 
@@ -13,7 +14,6 @@ function AdminIcon({ name }) {
     resolved: <><circle cx="12" cy="12" r="9" /><path d="m8 12 2.5 2.5L16.5 9" /></>,
     clock: <><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" /></>,
     activity: <path d="M3 12h4l2-6 4 12 2-6h6" />,
-    settings: <><circle cx="12" cy="12" r="3" /><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1-2.8 2.8-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.6V21h-4v-.1a1.7 1.7 0 0 0-1-1.6 1.7 1.7 0 0 0-1.9.3l-.1.1L4.2 17l.1-.1a1.7 1.7 0 0 0 .3-1.9A1.7 1.7 0 0 0 3 14H3v-4h.1a1.7 1.7 0 0 0 1.6-1 1.7 1.7 0 0 0-.3-1.9L4.2 7 7 4.2l.1.1A1.7 1.7 0 0 0 9 4.6a1.7 1.7 0 0 0 1-1.6V3h4v.1a1.7 1.7 0 0 0 1 1.6 1.7 1.7 0 0 0 1.9-.3l.1-.1L19.8 7l-.1.1a1.7 1.7 0 0 0-.3 1.9 1.7 1.7 0 0 0 1.6 1h.1v4H21a1.7 1.7 0 0 0-1.6 1Z" /></>,
   };
 
   return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">{icons[name]}</svg>;
@@ -34,12 +34,18 @@ function MetricCard({ icon, label, value, detail, tone }) {
 
 function formatActivityDate(value) {
   if (!value) return "—";
-  return new Date(value).toLocaleString([], { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" });
+  return new Date(value).toLocaleString([], {
+    month: "short",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
 }
 
 function AdminDashboard() {
   const [dashboard, setDashboard] = useState(null);
   const [error, setError] = useState("");
+  const [actionsOpen, setActionsOpen] = useState(false);
 
   async function loadDashboard() {
     setError("");
@@ -50,7 +56,9 @@ function AdminDashboard() {
     }
   }
 
-  useEffect(() => { loadDashboard(); }, []);
+  useEffect(() => {
+    loadDashboard();
+  }, []);
 
   const roleChart = useMemo(() => {
     const roles = dashboard?.usersByRole || [];
@@ -65,11 +73,23 @@ function AdminDashboard() {
   }, [dashboard]);
 
   if (error) {
-    return <DashboardLayout activePage="dashboard"><div className="admin-dashboard-state"><h1>Dashboard unavailable</h1><p>{error}</p><button type="button" onClick={loadDashboard}>Try Again</button></div></DashboardLayout>;
+    return (
+      <DashboardLayout activePage="dashboard">
+        <div className="admin-dashboard-state">
+          <h1>Dashboard unavailable</h1>
+          <p>{error}</p>
+          <button type="button" onClick={loadDashboard}>Try Again</button>
+        </div>
+      </DashboardLayout>
+    );
   }
 
   if (!dashboard) {
-    return <DashboardLayout activePage="dashboard"><div className="admin-dashboard-state">Loading dashboard...</div></DashboardLayout>;
+    return (
+      <DashboardLayout activePage="dashboard">
+        <div className="admin-dashboard-state">Loading dashboard...</div>
+      </DashboardLayout>
+    );
   }
 
   const roles = dashboard.usersByRole || [];
@@ -84,7 +104,9 @@ function AdminDashboard() {
             <h1>Good morning, Admin <span aria-hidden="true">👋</span></h1>
             <p>Here&apos;s what&apos;s happening across your help desk today.</p>
           </div>
-          <Link className="admin-create-user-button" to="/admin/users/create"><span>+</span>Create New User</Link>
+          <Link className="admin-create-user-button" to="/admin/users/create">
+            <span>+</span>Create New User
+          </Link>
         </header>
 
         <section className="admin-metrics-grid" aria-label="System metrics">
@@ -113,7 +135,12 @@ function AdminDashboard() {
             <div className="admin-role-chart-wrap">
               <div className="admin-role-donut" style={{ background: roleChart }}><div><strong>{dashboard.totalUsers}</strong><span>Total Users</span></div></div>
               <div className="admin-role-legend">
-                {roles.map((role, index) => <div key={role.name}><span><i style={{ background: roleColors[index % roleColors.length] }} />{role.name}</span><strong>{role.count}</strong></div>)}
+                {roles.map((role, index) => (
+                  <div key={role.name}>
+                    <span><i style={{ background: roleColors[index % roleColors.length] }} />{role.name}</span>
+                    <strong>{role.count}</strong>
+                  </div>
+                ))}
               </div>
             </div>
           </article>
@@ -135,22 +162,38 @@ function AdminDashboard() {
             <div className="admin-table-wrapper">
               <table className="admin-activity-table">
                 <thead><tr><th>Ticket</th><th>Requester</th><th>Status</th><th>Priority</th><th>Updated</th></tr></thead>
-                <tbody>{activity.length ? activity.slice(0, 7).map((item, index) => <tr key={`${item.target}-${index}`}><td><strong>{item.target}</strong><span>{item.subject}</span></td><td><strong>{item.user}</strong><span>{item.role}</span></td><td><span className="admin-table-badge status">{item.status}</span></td><td><span className="admin-table-badge priority">{item.priority}</span></td><td>{formatActivityDate(item.date)}</td></tr>) : <tr><td className="admin-empty-table" colSpan="5">No recent tickets yet.</td></tr>}</tbody>
+                <tbody>
+                  {activity.length ? activity.slice(0, 7).map((item, index) => (
+                    <tr key={`${item.target}-${index}`}>
+                      <td><strong>{item.target}</strong><span>{item.subject}</span></td>
+                      <td><strong>{item.user}</strong><span>{item.role}</span></td>
+                      <td><span className="admin-table-badge status">{item.status}</span></td>
+                      <td><span className="admin-table-badge priority">{item.priority}</span></td>
+                      <td>{formatActivityDate(item.date)}</td>
+                    </tr>
+                  )) : <tr><td className="admin-empty-table" colSpan="5">No recent tickets yet.</td></tr>}
+                </tbody>
               </table>
             </div>
           </article>
 
           <aside className="admin-panel admin-quick-actions">
             <div className="admin-panel-heading"><div><p>Shortcuts</p><h2>Quick Actions</h2></div></div>
-            <div className="admin-action-grid">
-              <Link to="/admin/users/create"><span>+</span><strong>Create User</strong><small>Add a new account</small></Link>
-              <button type="button" disabled><span>↗</span><strong>Assign Tickets</strong><small>Manager workflow</small></button>
-              <button type="button" disabled><span>▥</span><strong>View Reports</strong><small>Analytics coming soon</small></button>
-              <button type="button" disabled><span>⚙</span><strong>System Settings</strong><small>Configuration</small></button>
+            <div className="admin-actions-launch">
+              <div className="admin-actions-launch-copy">
+                <span>Action center</span>
+                <strong>Manage the help desk</strong>
+                <small>Open one clean action menu instead of showing every shortcut at once.</small>
+              </div>
+              <button type="button" className="admin-actions-open-button" onClick={() => setActionsOpen(true)}>
+                Open Actions
+              </button>
             </div>
           </aside>
         </section>
       </main>
+
+      <AdminActionsModal open={actionsOpen} onClose={() => setActionsOpen(false)} />
     </DashboardLayout>
   );
 }
