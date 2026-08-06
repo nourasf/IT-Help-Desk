@@ -3,10 +3,8 @@ import Sidebar from "./Sidebar";
 import Topbar from "./Topbar";
 import "../styles/dashboard.css";
 import "../styles/DesignSystem.css";
-import "../styles/DashboardSuite.css";
-import "../styles/ProductDashboard.css";
-import "../styles/ReferenceDashboard.css";
 import "../styles/UnifiedDashboardV2.css";
+import "../styles/DashboardOrganization.css";
 
 function DashboardLayout({ children, activePage }) {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
