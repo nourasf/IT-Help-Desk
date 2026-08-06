@@ -1,0 +1,278 @@
+:root {
+  --app-bg: #e8e1f3;
+  --app-bg-deep: #ddd2ee;
+  --surface: rgba(255, 255, 255, 0.94);
+  --surface-solid: #ffffff;
+  --surface-soft: #f6f2fa;
+  --surface-muted: #eee8f7;
+  --border-soft: rgba(91, 70, 128, 0.13);
+  --border-medium: rgba(91, 70, 128, 0.21);
+  --text-strong: #2f2943;
+  --text-body: #655d70;
+  --text-muted: #91899b;
+  --purple: #8067b8;
+  --purple-dark: #654d9d;
+  --purple-soft: #ece5f7;
+  --shadow-card: 0 12px 28px rgba(59, 42, 91, 0.11);
+  --shadow-card-hover: 0 18px 38px rgba(59, 42, 91, 0.16);
+  --shadow-panel: 0 20px 48px rgba(59, 42, 91, 0.13);
+}
+
+html,
+body,
+#root {
+  min-height: 100%;
+  margin: 0;
+  background: var(--app-bg);
+}
+
+body {
+  color: var(--text-strong);
+  background: var(--app-bg);
+}
+
+/* One continuous workspace color on every authenticated page. */
+.dashboard-shell,
+.dashboard-main,
+.dashboard-content {
+  background: var(--app-bg) !important;
+  background-image: none !important;
+}
+
+.dashboard-shell,
+.dashboard-main {
+  min-height: 100vh;
+}
+
+.dashboard-content {
+  min-height: calc(100vh - 92px);
+}
+
+/* Page wrappers must never paint a separate colored rectangle. */
+.admin-dashboard-page,
+.manager-dashboard-page,
+.agent-dashboard-page,
+.employee-dashboard-page,
+.ticket-details-page,
+.create-ticket-page,
+.my-tickets-page,
+.create-user-page,
+.ticket-page,
+.dashboard-page {
+  background: transparent !important;
+  background-image: none !important;
+}
+
+/* Keep the navigation clean and separate from the workspace. */
+.sidebar {
+  background: rgba(255, 255, 255, 0.97) !important;
+  border-color: rgba(104, 84, 139, 0.2) !important;
+  box-shadow: 10px 0 30px rgba(55, 40, 84, 0.08);
+}
+
+.topbar {
+  background: rgba(255, 255, 255, 0.82) !important;
+  border-bottom: 1px solid rgba(95, 73, 132, 0.09);
+  box-shadow: 0 6px 22px rgba(55, 40, 84, 0.055);
+  backdrop-filter: blur(14px);
+}
+
+.topbar-search {
+  background: rgba(255, 255, 255, 0.78) !important;
+  border: 1px solid rgba(104, 84, 139, 0.14);
+  box-shadow: inset 0 1px 2px rgba(55, 40, 84, 0.04);
+}
+
+/* Shared premium card treatment. */
+.admin-metric-card,
+.admin-panel,
+.admin-dashboard-state,
+.manager-dashboard-header,
+.manager-stat-card,
+.manager-attention-panel,
+.manager-main-panel,
+.manager-dashboard-state,
+.agent-overview-card,
+.agent-priority-section,
+.agent-quick-action-card,
+.agent-assigned-section,
+.agent-dashboard-state,
+.employee-dashboard-card,
+.employee-ticket-card,
+.ticket-details-header,
+.ticket-details-main-card,
+.ticket-person-card,
+.ticket-work-card,
+.ticket-comments-card,
+.ticket-activity-card,
+.ticket-details-placeholder-card,
+.ticket-details-state,
+.create-ticket-card,
+.create-user-card,
+.tickets-panel {
+  border: 1px solid var(--border-soft) !important;
+  background: var(--surface) !important;
+  box-shadow: var(--shadow-card) !important;
+  backdrop-filter: blur(12px);
+}
+
+/* Main content panels get slightly stronger depth. */
+.manager-main-panel,
+.agent-assigned-section,
+.ticket-details-main-card,
+.ticket-comments-card,
+.ticket-activity-card,
+.create-ticket-card,
+.admin-panel {
+  box-shadow: var(--shadow-panel) !important;
+}
+
+/* Cards retain visible effects without looking heavy. */
+.admin-metric-card,
+.manager-stat-card,
+.agent-overview-card,
+.agent-quick-action-card,
+.employee-ticket-card,
+.ticket-person-card {
+  transition:
+    transform 0.2s ease,
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.admin-metric-card:hover,
+.manager-stat-card:hover,
+.agent-overview-card:hover,
+.agent-quick-action-card:hover:not(:disabled),
+.employee-ticket-card:hover,
+.ticket-person-card:hover {
+  transform: translateY(-3px);
+  border-color: var(--border-medium) !important;
+  box-shadow: var(--shadow-card-hover) !important;
+}
+
+/* Inner fields should be distinct from the page, but softer than cards. */
+.ticket-information-grid > div,
+.ticket-description,
+.ticket-work-empty,
+.ticket-total-work-time,
+.manager-assignment-toolbar,
+.manager-recommendation,
+.manager-ticket-meta > span,
+.admin-role-card,
+.admin-health-grid > div,
+.agent-ticket-search,
+.ticket-comment-form textarea,
+.ticket-action-modal-field textarea,
+.ticket-resolution-notes,
+.ticket-form-column input,
+.ticket-form-column select,
+.ticket-form-column textarea,
+.attachment-box {
+  background: var(--surface-soft) !important;
+  border-color: rgba(95, 73, 132, 0.12) !important;
+}
+
+/* Stronger and consistent text hierarchy. */
+.dashboard-content h1,
+.dashboard-content h2,
+.dashboard-content h3 {
+  color: var(--text-strong);
+}
+
+.dashboard-content p,
+.dashboard-content small {
+  color: var(--text-body);
+}
+
+/* Primary actions. */
+.primary-pill-button,
+.admin-create-user-button,
+.manager-primary-header-action,
+.manager-assign-button,
+.ticket-start-work-button,
+.ticket-history-button,
+.ticket-action-confirm-button,
+.ticket-comment-form button[type="submit"] {
+  border: 0 !important;
+  background: linear-gradient(135deg, var(--purple), var(--purple-dark)) !important;
+  color: #ffffff !important;
+  box-shadow: 0 9px 20px rgba(87, 62, 137, 0.22) !important;
+}
+
+.primary-pill-button:hover,
+.admin-create-user-button:hover,
+.manager-primary-header-action:hover,
+.manager-assign-button:hover:not(:disabled),
+.ticket-start-work-button:hover:not(:disabled),
+.ticket-history-button:hover,
+.ticket-action-confirm-button:hover:not(:disabled),
+.ticket-comment-form button[type="submit"]:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 13px 27px rgba(87, 62, 137, 0.29) !important;
+}
+
+/* Secondary actions stay visible instead of looking like browser defaults. */
+.ticket-secondary-action,
+.ticket-manager-assign-button,
+.manager-view-ticket-button,
+.manager-refresh-button,
+.ticket-action-cancel-button {
+  border: 1px solid rgba(102, 79, 145, 0.22) !important;
+  background: rgba(255, 255, 255, 0.9) !important;
+  color: #5f5370 !important;
+  box-shadow: 0 6px 15px rgba(59, 42, 91, 0.07);
+}
+
+.ticket-secondary-action:hover:not(:disabled),
+.ticket-manager-assign-button:hover:not(:disabled),
+.manager-view-ticket-button:hover,
+.manager-refresh-button:hover:not(:disabled),
+.ticket-action-cancel-button:hover:not(:disabled) {
+  border-color: rgba(102, 79, 145, 0.42) !important;
+  color: var(--purple-dark) !important;
+  background: #ffffff !important;
+}
+
+button:disabled {
+  cursor: not-allowed;
+  opacity: 0.52;
+}
+
+/* Keep the escalation/cancellation popup polished and centered. */
+.ticket-action-modal-overlay {
+  background: rgba(36, 27, 51, 0.43) !important;
+  backdrop-filter: blur(6px);
+}
+
+.ticket-action-modal {
+  border: 1px solid rgba(255, 255, 255, 0.9) !important;
+  background: var(--surface-solid) !important;
+  box-shadow: 0 30px 75px rgba(32, 23, 47, 0.3) !important;
+}
+
+/* Responsive spacing remains comfortable. */
+@media (max-width: 900px) {
+  .dashboard-content {
+    padding-left: 24px !important;
+    padding-right: 24px !important;
+  }
+}
+
+@media (max-width: 650px) {
+  .dashboard-content {
+    padding-left: 14px !important;
+    padding-right: 14px !important;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+  }
+}
