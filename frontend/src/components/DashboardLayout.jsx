@@ -5,6 +5,7 @@ import "../styles/dashboard.css";
 import "../styles/DesignSystem.css";
 import "../styles/DashboardSuite.css";
 import "../styles/ProductDashboard.css";
+import "../styles/ReferenceDashboard.css";
 
 function DashboardLayout({ children, activePage }) {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
