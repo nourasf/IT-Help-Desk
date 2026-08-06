@@ -1,0 +1,369 @@
+/* =========================================================
+   DASHBOARD SYMMETRY PASS
+   Clear boundaries, aligned rows, equal card heights, and
+   consistent rhythm across Admin, Manager, Agent, Employee.
+========================================================= */
+
+:root {
+  --sym-gap: 20px;
+  --sym-radius: 16px;
+  --sym-border: #ddd7e9;
+  --sym-surface: #ffffff;
+  --sym-surface-soft: #f8f6fb;
+  --sym-shadow: 0 10px 24px rgba(45, 32, 79, 0.09);
+}
+
+.dashboard-content {
+  padding: 28px 34px 48px !important;
+}
+
+.product-dashboard,
+.admin-dashboard-header,
+.admin-metrics-grid,
+.admin-analytics-grid,
+.admin-lower-grid {
+  width: min(1440px, 100%);
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.product-dashboard {
+  display: grid;
+  gap: var(--sym-gap);
+}
+
+.product-page-header,
+.admin-dashboard-header {
+  margin-bottom: 0 !important;
+  padding-bottom: 2px;
+}
+
+.product-page-header h1,
+.admin-dashboard-header h1 {
+  max-width: 760px;
+}
+
+.product-kpi-grid,
+.admin-metrics-grid {
+  display: grid !important;
+  grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+  gap: var(--sym-gap) !important;
+  margin-bottom: 0 !important;
+  align-items: stretch;
+}
+
+.product-kpi-grid > article,
+.admin-metric-card {
+  min-height: 118px !important;
+  height: 100%;
+  padding: 20px !important;
+  border: 1px solid var(--sym-border) !important;
+  border-radius: var(--sym-radius) !important;
+  background: var(--sym-surface) !important;
+  box-shadow: var(--sym-shadow) !important;
+}
+
+.product-two-column,
+.admin-analytics-grid,
+.admin-lower-grid,
+.product-agent-top-grid,
+.employee-main-grid {
+  gap: var(--sym-gap) !important;
+  margin-bottom: 0 !important;
+  align-items: stretch;
+}
+
+.product-two-column,
+.manager-focus-grid,
+.manager-bottom-grid {
+  grid-template-columns: minmax(0, 2fr) minmax(320px, 1fr) !important;
+}
+
+.product-agent-top-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+}
+
+.employee-main-grid {
+  grid-template-columns: minmax(0, 2fr) minmax(320px, 1fr) !important;
+}
+
+.admin-analytics-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+}
+
+.admin-lower-grid {
+  grid-template-columns: minmax(0, 2fr) minmax(320px, 1fr) !important;
+}
+
+.product-panel,
+.admin-panel,
+.agent-overview-card,
+.quick-action-card,
+.recent-tickets-section,
+.action-required-section,
+.agent-priority-section,
+.agent-assigned-section,
+.employee-info-card {
+  height: 100%;
+  border: 1px solid var(--sym-border) !important;
+  border-radius: var(--sym-radius) !important;
+  background: var(--sym-surface) !important;
+  box-shadow: var(--sym-shadow) !important;
+  box-sizing: border-box;
+}
+
+.product-panel,
+.admin-panel {
+  padding: 22px !important;
+}
+
+.product-panel-heading,
+.admin-panel-heading {
+  min-height: 52px;
+  margin-bottom: 18px !important;
+  padding-bottom: 14px;
+  border-bottom: 1px solid #ebe7f2;
+}
+
+.product-panel-heading h2,
+.admin-panel-heading h2 {
+  font-size: 18px !important;
+}
+
+.manager-focus-grid > *,
+.manager-bottom-grid > *,
+.product-agent-top-grid > *,
+.employee-main-grid > *,
+.admin-analytics-grid > *,
+.admin-lower-grid > * {
+  min-width: 0;
+}
+
+.manager-focus-grid > .product-panel,
+.manager-bottom-grid > .product-panel,
+.product-agent-top-grid > .product-panel,
+.employee-main-grid > .product-panel,
+.admin-analytics-grid > .admin-panel,
+.admin-lower-grid > .admin-panel {
+  align-self: stretch;
+}
+
+.manager-needs-attention,
+.agent-workload-panel,
+.product-table-panel,
+.manager-quick-actions {
+  min-height: 260px;
+}
+
+.manager-bottom-grid .product-table-panel,
+.manager-bottom-grid .manager-quick-actions {
+  min-height: 300px;
+}
+
+.manager-quick-actions {
+  display: grid !important;
+  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  grid-auto-rows: minmax(72px, auto);
+  gap: 12px !important;
+  align-content: start;
+}
+
+.manager-quick-actions .product-panel-heading {
+  grid-column: 1 / -1;
+}
+
+.manager-quick-actions > button {
+  width: 100%;
+  min-height: 72px !important;
+  justify-content: flex-start;
+}
+
+.manager-assignment-row {
+  grid-template-columns: minmax(220px, 1fr) auto minmax(190px, 0.75fr) 92px !important;
+  min-height: 76px;
+}
+
+.agent-workload-list > div {
+  min-height: 54px;
+  padding: 8px 0;
+  border-bottom: 1px solid #efebf4;
+}
+
+.agent-workload-list > div:last-child {
+  border-bottom: 0;
+}
+
+.product-table-wrap,
+.admin-table-wrapper,
+.employee-ticket-table-wrapper,
+.agent-ticket-table-wrapper {
+  border: 1px solid #e6e1ee;
+  border-radius: 12px;
+  overflow: hidden;
+  background: #fff;
+}
+
+.product-table,
+.admin-activity-table,
+.employee-ticket-table,
+.agent-ticket-table {
+  table-layout: fixed;
+}
+
+.product-table th,
+.product-table td,
+.admin-activity-table th,
+.admin-activity-table td,
+.employee-ticket-table th,
+.employee-ticket-table td,
+.agent-ticket-table th,
+.agent-ticket-table td {
+  padding: 13px 12px !important;
+}
+
+.product-table thead,
+.admin-activity-table thead,
+.employee-ticket-table thead,
+.agent-ticket-table thead {
+  background: #f6f3fa;
+}
+
+.product-table tbody tr:last-child td,
+.admin-activity-table tbody tr:last-child td,
+.employee-ticket-table tbody tr:last-child td,
+.agent-ticket-table tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.product-empty,
+.agent-no-priority-tickets,
+.no-action-required,
+.employee-empty-tickets {
+  min-height: 112px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  text-align: center;
+  border: 1px dashed #d8d1e4;
+  border-radius: 12px;
+  background: var(--sym-surface-soft);
+}
+
+/* Admin dashboard symmetry */
+.admin-dashboard-header {
+  margin-bottom: var(--sym-gap) !important;
+}
+
+.admin-metrics-grid,
+.admin-analytics-grid {
+  margin-bottom: var(--sym-gap) !important;
+}
+
+.admin-panel {
+  min-height: 300px;
+}
+
+.admin-lower-grid .admin-panel {
+  min-height: 360px;
+}
+
+/* Agent dashboard symmetry */
+.agent-dashboard-page,
+.employee-dashboard-page {
+  display: grid !important;
+  gap: var(--sym-gap) !important;
+  width: min(1440px, 100%);
+  margin: 0 auto;
+  padding: 0 !important;
+  background: transparent !important;
+}
+
+.agent-welcome-section,
+.employee-welcome-section,
+.agent-overview-section,
+.quick-actions-section,
+.action-required-section,
+.recent-tickets-section,
+.agent-priority-section,
+.agent-quick-actions-section,
+.agent-assigned-section,
+.employee-bottom-grid {
+  margin: 0 !important;
+}
+
+.agent-overview-grid {
+  grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+  gap: var(--sym-gap) !important;
+}
+
+.agent-overview-card {
+  min-height: 118px !important;
+}
+
+.agent-quick-actions-grid,
+.quick-actions-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  gap: var(--sym-gap) !important;
+}
+
+.agent-quick-action-card,
+.quick-action-card {
+  min-height: 96px !important;
+}
+
+.employee-bottom-grid {
+  display: grid !important;
+  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  gap: var(--sym-gap) !important;
+}
+
+.employee-info-card {
+  min-height: 310px;
+}
+
+/* Prevent visually merged cards */
+.product-panel + .product-panel,
+.admin-panel + .admin-panel,
+.agent-overview-card + .agent-overview-card,
+.quick-action-card + .quick-action-card {
+  margin-left: 0 !important;
+}
+
+@media (max-width: 1180px) {
+  .product-kpi-grid,
+  .admin-metrics-grid,
+  .agent-overview-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+
+  .product-two-column,
+  .manager-focus-grid,
+  .manager-bottom-grid,
+  .employee-main-grid,
+  .admin-lower-grid,
+  .admin-analytics-grid,
+  .product-agent-top-grid {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+@media (max-width: 760px) {
+  .dashboard-content {
+    padding: 22px 18px 36px !important;
+  }
+
+  .product-kpi-grid,
+  .admin-metrics-grid,
+  .agent-overview-grid,
+  .agent-quick-actions-grid,
+  .quick-actions-grid,
+  .employee-bottom-grid,
+  .manager-quick-actions {
+    grid-template-columns: 1fr !important;
+  }
+
+  .manager-assignment-row {
+    grid-template-columns: 1fr !important;
+  }
+}
