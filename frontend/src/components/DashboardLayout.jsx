@@ -3,6 +3,7 @@ import Sidebar from "./Sidebar";
 import Topbar from "./Topbar";
 import "../styles/dashboard.css";
 import "../styles/FinalDashboard.css";
+import "../styles/DashboardAtmosphere.css";
 
 function DashboardLayout({ children, activePage }) {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
