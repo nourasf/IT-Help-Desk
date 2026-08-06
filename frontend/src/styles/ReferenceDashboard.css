@@ -1,0 +1,241 @@
+/* Reference-matched SaaS dashboard layer */
+:root {
+  --ref-bg: #f7f6fb;
+  --ref-surface: #ffffff;
+  --ref-border: #ebe7f4;
+  --ref-text: #24203b;
+  --ref-muted: #7d768e;
+  --ref-purple: #7449db;
+  --ref-purple-2: #9a63ef;
+  --ref-shadow: 0 14px 34px rgba(57, 39, 92, 0.08);
+}
+
+.dashboard-shell,
+.dashboard-main,
+.dashboard-content {
+  background: var(--ref-bg) !important;
+}
+
+.dashboard-content {
+  padding: 30px 36px 44px !important;
+}
+
+.topbar {
+  min-height: 76px !important;
+  padding: 14px 34px !important;
+  background: rgba(255,255,255,.96) !important;
+  border-bottom: 1px solid var(--ref-border) !important;
+  box-shadow: 0 4px 18px rgba(54,38,86,.04) !important;
+}
+
+.topbar-search {
+  width: min(360px, 42vw) !important;
+  height: 44px !important;
+  border: 1px solid #e5e0ef !important;
+  border-radius: 12px !important;
+  background: #fff !important;
+  box-shadow: 0 4px 14px rgba(57,39,92,.04) !important;
+}
+
+.sidebar {
+  background: #fff !important;
+  border: 0 !important;
+  border-right: 1px solid var(--ref-border) !important;
+  border-radius: 0 !important;
+  box-shadow: 8px 0 28px rgba(57,39,92,.035) !important;
+}
+
+.nav-item {
+  min-height: 46px !important;
+  border-left: 0 !important;
+  border-radius: 11px !important;
+  color: #524b67 !important;
+}
+
+.nav-item.active {
+  background: linear-gradient(135deg,var(--ref-purple),var(--ref-purple-2)) !important;
+  color: #fff !important;
+  box-shadow: 0 10px 24px rgba(116,73,219,.22);
+}
+
+.nav-item.active .nav-icon { color: #fff !important; }
+
+.admin-product-dashboard,
+.agent-dashboard-page,
+.employee-dashboard-page {
+  max-width: 1480px;
+  margin: 0 auto;
+}
+
+.admin-dashboard-header,
+.manager-dashboard-header,
+.agent-welcome-section,
+.employee-welcome-section {
+  margin: 0 0 24px !important;
+  padding: 0 !important;
+  border: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+.admin-dashboard-header h1,
+.manager-dashboard-header h1,
+.agent-welcome-section h1,
+.employee-welcome-section h1 {
+  margin: 5px 0 7px !important;
+  color: var(--ref-text) !important;
+  font-size: clamp(30px, 2.5vw, 39px) !important;
+  letter-spacing: -.04em;
+}
+
+.admin-dashboard-header > div > p:last-child,
+.manager-dashboard-header > div > p:last-child,
+.agent-welcome-section p,
+.employee-welcome-section p {
+  color: var(--ref-muted) !important;
+  font-size: 14px !important;
+}
+
+.admin-eyebrow,
+.manager-eyebrow,
+.agent-welcome-label,
+.welcome-label {
+  color: #7f67bd !important;
+  font-size: 10px !important;
+  font-weight: 800 !important;
+  letter-spacing: .12em !important;
+  text-transform: uppercase;
+}
+
+.admin-create-user-button,
+.main-create-ticket-button {
+  min-height: 42px !important;
+  padding: 0 18px !important;
+  border-radius: 10px !important;
+  background: linear-gradient(135deg,var(--ref-purple),var(--ref-purple-2)) !important;
+  box-shadow: 0 10px 24px rgba(116,73,219,.22) !important;
+}
+
+.admin-metrics-grid,
+.manager-metrics-grid,
+.agent-overview-grid {
+  gap: 16px !important;
+  margin-bottom: 20px !important;
+}
+
+.admin-metric-card,
+.manager-metric,
+.agent-overview-card {
+  min-height: 116px !important;
+  padding: 18px !important;
+  border: 1px solid var(--ref-border) !important;
+  border-radius: 14px !important;
+  background: var(--ref-surface) !important;
+  box-shadow: var(--ref-shadow) !important;
+}
+
+.admin-metric-copy { display:flex; flex-direction:column; }
+.admin-metric-copy > span { color:#5e576f; font-size:12px; font-weight:700; }
+.admin-metric-copy strong { margin-top:5px; color:var(--ref-text); font-size:28px; line-height:1; }
+.admin-metric-copy small { margin-top:8px; color:#938ca0; font-size:11px; }
+
+.admin-metric-icon {
+  width: 46px !important;
+  height: 46px !important;
+  flex: 0 0 46px !important;
+  border-radius: 13px !important;
+}
+
+.admin-command-grid {
+  display:grid;
+  grid-template-columns: 1.05fr 1fr 1fr;
+  gap:18px;
+  margin-bottom:18px;
+}
+
+.admin-bottom-grid {
+  display:grid;
+  grid-template-columns: minmax(0,1.8fr) minmax(300px,.8fr);
+  gap:18px;
+}
+
+.admin-panel,
+.manager-panel,
+.agent-priority-section,
+.agent-assigned-section,
+.quick-action-card,
+.employee-tickets-section {
+  border:1px solid var(--ref-border) !important;
+  border-radius:14px !important;
+  background:#fff !important;
+  box-shadow:var(--ref-shadow) !important;
+}
+
+.admin-panel { padding:20px !important; }
+.admin-panel-heading { margin-bottom:16px !important; }
+.admin-panel-heading p { color:#8a76bb !important; font-size:9px !important; letter-spacing:.1em !important; }
+.admin-panel-heading h2 { font-size:17px !important; color:var(--ref-text) !important; }
+
+.admin-feed-list { display:grid; gap:4px; }
+.admin-feed-item { display:grid; grid-template-columns:38px minmax(0,1fr) auto; align-items:center; gap:10px; padding:10px 0; border-bottom:1px solid #f0edf5; }
+.admin-feed-item:last-child { border-bottom:0; }
+.admin-feed-icon { display:grid; width:34px; height:34px; place-items:center; border-radius:10px; background:#eee7fb; color:#7652c8; }
+.admin-feed-icon svg { width:17px; height:17px; }
+.admin-feed-item strong,.admin-feed-item small { display:block; }
+.admin-feed-item strong { color:#383147; font-size:12px; }
+.admin-feed-item small,.admin-feed-item time { color:#9a93a4; font-size:10px; }
+
+.admin-role-chart-wrap { display:flex; align-items:center; justify-content:center; gap:28px; min-height:230px; }
+.admin-role-donut { display:grid; width:170px; height:170px; place-items:center; border-radius:50%; }
+.admin-role-donut::before { content:""; position:absolute; }
+.admin-role-donut > div { display:grid; width:104px; height:104px; place-items:center; align-content:center; border-radius:50%; background:#fff; box-shadow:inset 0 0 0 1px #eeeaf5; }
+.admin-role-donut strong { font-size:27px; color:var(--ref-text); }
+.admin-role-donut span { font-size:10px; color:var(--ref-muted); }
+.admin-role-legend { display:grid; gap:13px; min-width:130px; }
+.admin-role-legend > div { display:flex; align-items:center; justify-content:space-between; gap:18px; font-size:11px; }
+.admin-role-legend span { display:flex; align-items:center; gap:8px; color:#655d73; }
+.admin-role-legend i { width:9px; height:9px; border-radius:50%; }
+
+.admin-health-pill { background:#e9f7ee !important; color:#30865a !important; }
+.admin-system-list { display:grid; }
+.admin-system-list > div { display:flex; align-items:center; justify-content:space-between; padding:14px 0; border-bottom:1px solid #f0edf5; }
+.admin-system-list > div:last-child { border-bottom:0; }
+.admin-system-list span { display:flex; align-items:center; gap:10px; color:#5f576f; font-size:12px; }
+.admin-system-list svg { width:17px; height:17px; color:#8064c9; }
+.admin-system-list strong { color:#2f2943; font-size:13px; }
+
+.admin-action-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+.admin-action-grid a,.admin-action-grid button { display:flex; min-height:86px; flex-direction:column; align-items:flex-start; justify-content:center; gap:4px; padding:14px; border:1px solid #e9e4f2; border-radius:11px; background:#fff; color:#514763; text-decoration:none; text-align:left; }
+.admin-action-grid a:hover,.admin-action-grid button:hover:not(:disabled) { border-color:#bca9e7; transform:translateY(-2px); box-shadow:0 10px 22px rgba(75,53,116,.08); }
+.admin-action-grid span { color:#754fd0; font-size:18px; }
+.admin-action-grid strong { font-size:12px; }
+.admin-action-grid small { color:#97909f; font-size:9px; }
+
+.admin-activity-table th { color:#9b94a4 !important; font-size:9px !important; }
+.admin-activity-table td { font-size:11px !important; }
+.admin-table-badge { padding:4px 8px !important; font-size:9px !important; }
+
+.manager-overview-grid { grid-template-columns:1fr 1fr !important; }
+.manager-agent-grid { grid-template-columns:repeat(2,minmax(280px,1fr)) !important; }
+.manager-recent-item { border-radius:11px !important; }
+
+.agent-priority-section { background:#fff9fa !important; border-color:#f3d9de !important; }
+.agent-quick-action-card,.quick-action-card { border-radius:13px !important; }
+.agent-assigned-section { padding:22px !important; }
+
+@media (max-width:1200px){
+  .admin-command-grid{grid-template-columns:1fr 1fr;}
+  .admin-system-snapshot{grid-column:1/-1;}
+  .admin-bottom-grid{grid-template-columns:1fr;}
+}
+
+@media (max-width:900px){
+  .dashboard-content{padding:22px 20px 36px !important;}
+  .admin-command-grid,.admin-bottom-grid,.manager-overview-grid{grid-template-columns:1fr !important;}
+  .admin-role-chart-wrap{flex-direction:column;}
+}
+
+@media (max-width:650px){
+  .admin-action-grid{grid-template-columns:1fr;}
+  .admin-dashboard-header,.manager-dashboard-header,.agent-welcome-section,.employee-welcome-section{align-items:flex-start !important;flex-direction:column !important;}
+}
