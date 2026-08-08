@@ -9,6 +9,7 @@ import {
   startWork,
 } from "../../api/ticket";
 import "../../styles/TicketDetails.css";
+import "../../styles/TicketDetailsManager.css";
 
 function formatDate(value) {
   if (!value) return "—";
