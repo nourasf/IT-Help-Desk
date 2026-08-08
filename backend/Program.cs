@@ -52,6 +52,7 @@ builder.Services.AddAuthorization();
 
 builder.Services.AddScoped<JwtService>();
 builder.Services.AddScoped<NotificationService>();
+builder.Services.AddScoped<AttachmentService>();
 
 builder.Services.AddCors(options =>
 {
