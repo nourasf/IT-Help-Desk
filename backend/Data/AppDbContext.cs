@@ -22,6 +22,7 @@ namespace backend.Data
         public DbSet<TicketWorkSession> TicketWorkSessions { get; set; }
         public DbSet<TicketActivityLog> TicketActivityLogs { get; set; }
         public DbSet<Notification> Notifications { get; set; }
+        public DbSet<FileAttachment> FileAttachments { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -129,6 +130,27 @@ namespace backend.Data
 
             modelBuilder.Entity<Notification>()
                 .HasIndex(n => new { n.UserId, n.IsRead, n.CreatedAt });
+
+            modelBuilder.Entity<FileAttachment>()
+                .HasOne(a => a.Ticket)
+                .WithMany()
+                .HasForeignKey(a => a.TicketId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<FileAttachment>()
+                .HasOne(a => a.TicketComment)
+                .WithMany()
+                .HasForeignKey(a => a.TicketCommentId)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            modelBuilder.Entity<FileAttachment>()
+                .HasOne(a => a.UploadedByUser)
+                .WithMany()
+                .HasForeignKey(a => a.UploadedByUserId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<FileAttachment>()
+                .HasIndex(a => new { a.TicketId, a.UploadedAt });
         }
     }
 }
