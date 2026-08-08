@@ -1,9 +1,11 @@
 import "./styles/App.css";
+import "./styles/Unauthorized.css";
 import {
   BrowserRouter,
   Navigate,
   Route,
   Routes,
+  useNavigate,
 } from "react-router-dom";
 
 import Login from "./pages/auth/Login";
@@ -16,55 +18,99 @@ import CreateTicket from "./pages/tickets/CreateTicket";
 import MyTickets from "./pages/tickets/MyTickets";
 import TicketDetails from "./pages/tickets/TicketDetails";
 
-
 function normalizeRole(role) {
-  return role
-    ?.trim()
+  return String(role || "")
+    .trim()
     .toLowerCase()
     .replaceAll("_", " ")
     .replaceAll("-", " ");
 }
 
-function ProtectedRoute({ children, allowedRole }) {
+function getStoredAuth() {
   const localToken = localStorage.getItem("token");
   const localRole = localStorage.getItem("role");
-
   const sessionToken = sessionStorage.getItem("token");
   const sessionRole = sessionStorage.getItem("role");
 
-  let token = null;
-  let role = null;
-
   if (localToken && localRole) {
-    token = localToken;
-    role = localRole;
-  } else if (sessionToken && sessionRole) {
-    token = sessionToken;
-    role = sessionRole;
+    return { token: localToken, role: localRole };
   }
+
+  if (sessionToken && sessionRole) {
+    return { token: sessionToken, role: sessionRole };
+  }
+
+  return { token: null, role: null };
+}
+
+function ProtectedRoute({ children, allowedRole, allowedRoles }) {
+  const { token, role } = getStoredAuth();
 
   if (!token) {
     return <Navigate to="/login" replace />;
   }
 
   const normalizedRole = normalizeRole(role);
-  const normalizedAllowedRole = normalizeRole(allowedRole);
+  const roles = allowedRoles || (allowedRole ? [allowedRole] : []);
+  const normalizedAllowedRoles = roles.map(normalizeRole);
 
-  console.log("Stored role:", normalizedRole);
-  console.log("Allowed role:", normalizedAllowedRole);
-
-  if (normalizedRole !== normalizedAllowedRole) {
+  if (
+    normalizedAllowedRoles.length > 0 &&
+    !normalizedAllowedRoles.includes(normalizedRole)
+  ) {
     return <Navigate to="/unauthorized" replace />;
   }
 
   return children;
 }
 
+function getDashboardForRole(role) {
+  switch (normalizeRole(role)) {
+    case "admin":
+      return "/admin-dashboard";
+    case "manager":
+      return "/manager-dashboard";
+    case "it support agent":
+    case "agent":
+      return "/agent-dashboard";
+    case "employee":
+      return "/employee-dashboard";
+    default:
+      return "/login";
+  }
+}
+
 function Unauthorized() {
+  const navigate = useNavigate();
+  const { role } = getStoredAuth();
+
   return (
-    <main>
-      <h1>Unauthorized</h1>
-      <p>You do not have permission to access this page.</p>
+    <main className="unauthorized-page">
+      <section className="unauthorized-card">
+        <div className="unauthorized-icon" aria-hidden="true">!</div>
+        <span className="unauthorized-eyebrow">Access restricted</span>
+        <h1>This page isn&apos;t available for your role.</h1>
+        <p>
+          Your account is signed in correctly, but this area belongs to a
+          different workspace.
+        </p>
+        <div className="unauthorized-actions">
+          <button
+            type="button"
+            className="unauthorized-primary"
+            onClick={() => navigate(getDashboardForRole(role), { replace: true })}
+          >
+            Back to my dashboard
+          </button>
+          <button
+            type="button"
+            className="unauthorized-secondary"
+            onClick={() => navigate(-1)}
+          >
+            Go back
+          </button>
+        </div>
+      </section>
     </main>
   );
 }
@@ -75,8 +121,6 @@ function App() {
       <Routes>
         <Route path="/login" element={<Login />} />
 
-   
-
         <Route
           path="/admin/users/create"
           element={
@@ -86,34 +130,41 @@ function App() {
           }
         />
 
-  <Route
-  path="/create-ticket"
-  element={
-    <ProtectedRoute allowedRole="Employee">
-      <CreateTicket />
-    </ProtectedRoute>
-  }
-/>
+        <Route
+          path="/create-ticket"
+          element={
+            <ProtectedRoute allowedRole="Employee">
+              <CreateTicket />
+            </ProtectedRoute>
+          }
+        />
 
+        <Route
+          path="/my-tickets"
+          element={
+            <ProtectedRoute allowedRole="Employee">
+              <MyTickets />
+            </ProtectedRoute>
+          }
+        />
 
-     <Route
-  path="/my-tickets"
-  element={
-    <ProtectedRoute allowedRole="Employee">
-      <MyTickets />
-    </ProtectedRoute>
-  }
-/>
+        <Route
+          path="/tickets/:id"
+          element={
+            <ProtectedRoute
+              allowedRoles={[
+                "Employee",
+                "Manager",
+                "Admin",
+                "IT Support Agent",
+                "Agent",
+              ]}
+            >
+              <TicketDetails />
+            </ProtectedRoute>
+          }
+        />
 
-  <Route
-  path="/tickets/:id"
-  element={
-    <ProtectedRoute allowedRole="Employee">
-      <TicketDetails />
-    </ProtectedRoute>
-  }
-/>
-   
         <Route
           path="/admin-dashboard"
           element={
@@ -135,7 +186,7 @@ function App() {
         <Route
           path="/agent-dashboard"
           element={
-            <ProtectedRoute allowedRole="IT Support Agent">
+            <ProtectedRoute allowedRoles={["IT Support Agent", "Agent"]}>
               <AgentDashboard />
             </ProtectedRoute>
           }
@@ -150,20 +201,9 @@ function App() {
           }
         />
 
-        <Route
-          path="/unauthorized"
-          element={<Unauthorized />}
-        />
-
-        <Route
-          path="/"
-          element={<Navigate to="/login" replace />}
-        />
-
-        <Route
-          path="*"
-          element={<Navigate to="/login" replace />}
-        />
+        <Route path="/unauthorized" element={<Unauthorized />} />
+        <Route path="/" element={<Navigate to="/login" replace />} />
+        <Route path="*" element={<Navigate to="/login" replace />} />
       </Routes>
     </BrowserRouter>
   );
