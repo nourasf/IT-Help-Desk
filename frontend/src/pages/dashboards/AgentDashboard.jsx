@@ -43,6 +43,7 @@ function AgentDashboard() {
   }, []);
 
   const tickets = dashboard?.recentTickets || dashboard?.tickets || [];
+  const availableTickets = dashboard?.availableTickets || [];
   const assignedTickets = tickets.filter((ticket) => ticket.assignedToMe !== false);
   const currentTicket = assignedTickets.find((ticket) => String(ticket.status).toLowerCase() === "in progress") || assignedTickets[0] || null;
   const criticalTickets = assignedTickets.filter((ticket) => String(ticket.priority).toLowerCase() === "critical" && !["resolved", "closed"].includes(String(ticket.status).toLowerCase()));
@@ -101,7 +102,7 @@ function AgentDashboard() {
             <div className="product-mini-metrics">
               <div><span>Assigned</span><strong>{dashboard?.assignedToMe || 0}</strong></div>
               <div><span>In progress</span><strong>{assignedTickets.filter((t) => String(t.status).toLowerCase() === "in progress").length}</strong></div>
-              <div><span>Critical</span><strong>{dashboard?.criticalTickets || 0}</strong></div>
+              <div><span>Available</span><strong>{dashboard?.unassignedTickets || 0}</strong></div>
               <div><span>Resolved today</span><strong>{dashboard?.resolvedToday || 0}</strong></div>
             </div>
           </article>
@@ -126,6 +127,48 @@ function AgentDashboard() {
           </article>
         </section>
 
+        <section className="product-panel agent-incoming-panel">
+          <div className="product-panel-heading">
+            <div>
+              <span>Incoming queue</span>
+              <h2>Available Tickets</h2>
+              <p className="agent-incoming-description">Unassigned requests are visible to the support team. Take one when you are ready to work on it.</p>
+            </div>
+            <span className="product-count">{availableTickets.length}</span>
+          </div>
+
+          {availableTickets.length > 0 ? (
+            <div className="agent-incoming-list">
+              {availableTickets.map((ticket) => (
+                <article className="agent-incoming-card" key={ticket.id}>
+                  <div className="agent-incoming-main">
+                    <span className="agent-incoming-number">{ticket.ticketNumber}</span>
+                    <strong>{ticket.subject}</strong>
+                    <small>Requested by {ticket.employee || "Employee"}</small>
+                  </div>
+                  <div className="agent-incoming-meta">
+                    <span>{ticket.category}</span>
+                    <span>{formatDate(ticket.createdAt)}</span>
+                    <span className={`product-badge priority-${normalize(ticket.priority)}`}>{ticket.priority}</span>
+                  </div>
+                  <button
+                    type="button"
+                    className="agent-take-ticket-button"
+                    disabled={takingTicketId === ticket.id}
+                    onClick={() => handleTakeTicket(ticket.id)}
+                  >
+                    {takingTicketId === ticket.id ? "Taking..." : "Take Ticket"}
+                  </button>
+                </article>
+              ))}
+            </div>
+          ) : (
+            <div className="product-empty"><strong>No incoming tickets</strong><p>All current requests have already been assigned.</p></div>
+          )}
+
+          {message && <p className="product-inline-message agent-take-message">{message}</p>}
+        </section>
+
         {criticalTickets.length > 0 && (
           <section className="product-panel product-alert-panel">
             <div className="product-panel-heading"><div><span>Priority</span><h2>Needs Attention</h2></div><span className="product-count">{criticalTickets.length}</span></div>
@@ -145,7 +188,7 @@ function AgentDashboard() {
             <div className="product-table-toolbar"><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search tickets..." /></div>
             <div className="product-table-wrap">
               <table className="product-table">
-                <thead><tr><th>Ticket</th><th>Requester</th><th>Priority</th><th>Status</th><th>Updated</th><th></th></tr></thead>
+                <thead><tr><th>Ticket</th><th>Requester</th><th>Priority</th><th>Status</th><th>Updated</th></tr></thead>
                 <tbody>
                   {filteredTickets.slice(0, 6).map((ticket) => (
                     <tr key={ticket.id}>
@@ -154,13 +197,11 @@ function AgentDashboard() {
                       <td><span className={`product-badge priority-${normalize(ticket.priority)}`}>{ticket.priority}</span></td>
                       <td><span className={`product-badge status-${normalize(ticket.status)}`}>{ticket.status}</span></td>
                       <td>{formatDate(ticket.updatedAt || ticket.createdAt)}</td>
-                      <td>{ticket.assignedToMe === false && <button disabled={takingTicketId === ticket.id} onClick={() => handleTakeTicket(ticket.id)}>Take</button>}</td>
                     </tr>
                   ))}
                 </tbody>
               </table>
             </div>
-            {message && <p className="product-inline-message">{message}</p>}
           </article>
 
           <aside className="product-panel recent-activity-panel">
