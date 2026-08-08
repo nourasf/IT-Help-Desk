@@ -85,7 +85,7 @@ public class AttachmentService
                 {
                     OriginalFileName = Path.GetFileName(file.FileName),
                     StoredFileName = storedFileName,
-                    RelativePath = Path.Combine(relativeDirectory, storedFileName).Replace('\\', '/'),
+                    FilePath = Path.Combine(relativeDirectory, storedFileName).Replace('\\', '/'),
                     ContentType = string.IsNullOrWhiteSpace(file.ContentType)
                         ? "application/octet-stream"
                         : file.ContentType,
@@ -120,7 +120,7 @@ public class AttachmentService
     public string GetAbsolutePath(FileAttachment attachment)
     {
         var uploadsRoot = Path.GetFullPath(Path.Combine(_environment.ContentRootPath, "uploads"));
-        var absolutePath = Path.GetFullPath(Path.Combine(uploadsRoot, attachment.RelativePath));
+        var absolutePath = Path.GetFullPath(Path.Combine(uploadsRoot, attachment.FilePath));
 
         if (!absolutePath.StartsWith(uploadsRoot, StringComparison.OrdinalIgnoreCase))
         {
