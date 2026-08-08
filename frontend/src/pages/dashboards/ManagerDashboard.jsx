@@ -51,8 +51,7 @@ function ManagerDashboard() {
     ), [assignmentOptions.agents]
   );
 
-  async function handleAssign(ticketId) {
-    const agentUserId = selectedAgents[ticketId] || agents[0]?.id;
+  async function assignToAgent(ticketId, agentUserId, automatic = false) {
     if (!agentUserId) {
       setMessage("No support agent is available.");
       return;
@@ -62,13 +61,27 @@ function ManagerDashboard() {
       setAssigningTicketId(ticketId);
       setMessage("");
       const result = await assignTicket(ticketId, agentUserId);
-      setMessage(result.message || "Ticket assigned successfully.");
+      const agent = agents.find((item) => Number(item.id) === Number(agentUserId));
+      setMessage(
+        automatic
+          ? `Auto-assigned to ${agent?.name || "the least busy agent"}.`
+          : result.message || `Ticket assigned to ${agent?.name || "agent"}.`
+      );
       await loadData();
     } catch (requestError) {
       setMessage(requestError.message || "The ticket could not be assigned.");
     } finally {
       setAssigningTicketId(null);
     }
+  }
+
+  async function handleAssign(ticketId) {
+    const agentUserId = selectedAgents[ticketId] || agents[0]?.id;
+    await assignToAgent(ticketId, agentUserId, false);
+  }
+
+  async function handleAutoAssign(ticketId) {
+    await assignToAgent(ticketId, agents[0]?.id, true);
   }
 
   if (loading) return <DashboardLayout activePage="dashboard"><div className="product-state">Loading team operations...</div></DashboardLayout>;
@@ -99,22 +112,80 @@ function ManagerDashboard() {
 
         <section className="product-two-column manager-focus-grid">
           <article className="product-panel product-alert-panel manager-needs-attention">
-            <div className="product-panel-heading"><div><span>Priority queue</span><h2>Needs Attention</h2></div><span className="product-count">{waitingTickets.length}</span></div>
+            <div className="product-panel-heading">
+              <div><span>Priority queue</span><h2>Needs Attention</h2></div>
+              <span className="product-count">{waitingTickets.length}</span>
+            </div>
+
             {waitingTickets.length > 0 ? (
               <div className="manager-assignment-rows">
-                {waitingTickets.slice(0, 4).map((ticket) => (
-                  <div key={ticket.id} className="manager-assignment-row">
-                    <div><span>{ticket.ticketNumber}</span><strong>{ticket.subject}</strong><small>{ticket.category} · {formatDate(ticket.createdAt)}</small></div>
-                    <span className={`product-badge priority-${normalize(ticket.priority)}`}>{ticket.priority}</span>
-                    <select value={selectedAgents[ticket.id] || agents[0]?.id || ""} onChange={(event) => setSelectedAgents((current) => ({ ...current, [ticket.id]: event.target.value }))}>
-                      {agents.map((agent) => <option key={agent.id} value={agent.id}>{agent.name} · {agent.activeTickets} active</option>)}
-                    </select>
-                    <button disabled={assigningTicketId === ticket.id || agents.length === 0} onClick={() => handleAssign(ticket.id)}>{assigningTicketId === ticket.id ? "Assigning..." : "Assign"}</button>
-                  </div>
-                ))}
+                {waitingTickets.slice(0, 4).map((ticket) => {
+                  const leastBusyAgent = agents[0];
+                  return (
+                    <div key={ticket.id} className="manager-assignment-row">
+                      <div className="manager-queue-ticket">
+                        <div className="manager-queue-title">
+                          <span>{ticket.ticketNumber}</span>
+                          <strong>{ticket.subject}</strong>
+                        </div>
+                        <div className="manager-queue-meta">
+                          <span>{ticket.category}</span>
+                          <span>{formatDate(ticket.createdAt)}</span>
+                          <span className={`product-badge priority-${normalize(ticket.priority)}`}>{ticket.priority}</span>
+                        </div>
+                      </div>
+
+                      <div className="manager-queue-actions">
+                        <div className="manager-manual-assignment">
+                          <span className="manager-action-label">Manual assignment</span>
+                          <div className="manager-manual-controls">
+                            <select
+                              aria-label={`Choose agent for ${ticket.ticketNumber}`}
+                              value={selectedAgents[ticket.id] || leastBusyAgent?.id || ""}
+                              onChange={(event) => setSelectedAgents((current) => ({ ...current, [ticket.id]: event.target.value }))}
+                              disabled={agents.length === 0 || assigningTicketId === ticket.id}
+                            >
+                              {agents.map((agent) => (
+                                <option key={agent.id} value={agent.id}>
+                                  {agent.name} · {agent.activeTickets} active
+                                </option>
+                              ))}
+                            </select>
+                            <button
+                              className="manager-manual-button"
+                              disabled={assigningTicketId === ticket.id || agents.length === 0}
+                              onClick={() => handleAssign(ticket.id)}
+                            >
+                              {assigningTicketId === ticket.id ? "Working..." : "Assign"}
+                            </button>
+                          </div>
+                        </div>
+
+                        <div className="manager-auto-assignment">
+                          <div>
+                            <span className="manager-action-label">Smart assignment</span>
+                            <small>
+                              {leastBusyAgent
+                                ? `${leastBusyAgent.name} has the lightest workload (${leastBusyAgent.activeTickets} active).`
+                                : "No agent is currently available."}
+                            </small>
+                          </div>
+                          <button
+                            className="manager-auto-button"
+                            disabled={assigningTicketId === ticket.id || agents.length === 0}
+                            onClick={() => handleAutoAssign(ticket.id)}
+                          >
+                            <span>✦</span>
+                            {assigningTicketId === ticket.id ? "Assigning..." : "Auto Assign"}
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             ) : <div className="product-empty"><strong>Everything is assigned</strong><p>No tickets are waiting for an agent.</p></div>}
-            {message && <p className="product-inline-message">{message}</p>}
+            {message && <p className="product-inline-message manager-assignment-feedback">{message}</p>}
           </article>
 
           <article className="product-panel agent-workload-panel">
