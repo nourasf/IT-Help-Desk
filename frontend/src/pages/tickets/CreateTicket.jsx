@@ -10,7 +10,30 @@ import {
   createTicket,
   getTicketFormOptions,
 } from "../../api/ticket";
+import { uploadTicketAttachments } from "../../api/attachments";
 import "../../styles/CreateTicket.css";
+import "../../styles/CreateTicketAttachments.css";
+
+const MAX_FILES = 5;
+const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
+const MAX_DOCUMENT_BYTES = 10 * 1024 * 1024;
+const MAX_TOTAL_BYTES = 20 * 1024 * 1024;
+const IMAGE_EXTENSIONS = ["jpg", "jpeg", "png", "webp"];
+const DOCUMENT_EXTENSIONS = ["pdf", "doc", "docx", "xls", "xlsx", "txt"];
+const ALLOWED_EXTENSIONS = [...IMAGE_EXTENSIONS, ...DOCUMENT_EXTENSIONS];
+
+function getExtension(fileName) {
+  return String(fileName || "")
+    .split(".")
+    .pop()
+    .toLowerCase();
+}
+
+function formatFileSize(bytes) {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
 
 function TicketDropdown({
   ariaLabel,
@@ -220,6 +243,7 @@ function TicketDropdown({
 
 function CreateTicket() {
   const navigate = useNavigate();
+  const attachmentInputRef = useRef(null);
 
   const [form, setForm] = useState({
     subject: "",
@@ -237,6 +261,9 @@ function CreateTicket() {
   const [isLoadingOptions, setIsLoadingOptions] = useState(true);
   const [optionsError, setOptionsError] = useState("");
   const [optionsReloadKey, setOptionsReloadKey] = useState(0);
+  const [selectedFiles, setSelectedFiles] = useState([]);
+  const [attachmentError, setAttachmentError] = useState("");
+  const [isDraggingFiles, setIsDraggingFiles] = useState(false);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -312,6 +339,85 @@ function CreateTicket() {
     setErrorMessage("");
   };
 
+  function addFiles(fileList) {
+    const incomingFiles = Array.from(fileList || []);
+
+    if (incomingFiles.length === 0) {
+      return;
+    }
+
+    setAttachmentError("");
+
+    const combined = [...selectedFiles];
+
+    for (const file of incomingFiles) {
+      const extension = getExtension(file.name);
+
+      if (!ALLOWED_EXTENSIONS.includes(extension)) {
+        setAttachmentError(
+          `${file.name} is not allowed. Use JPG, JPEG, PNG, WEBP, PDF, DOC, DOCX, XLS, XLSX or TXT.`
+        );
+        continue;
+      }
+
+      const isImage = IMAGE_EXTENSIONS.includes(extension);
+      const maxBytes = isImage ? MAX_IMAGE_BYTES : MAX_DOCUMENT_BYTES;
+
+      if (file.size > maxBytes) {
+        setAttachmentError(
+          `${file.name} is too large. ${isImage ? "Images" : "Documents"} can be up to ${isImage ? "5" : "10"} MB.`
+        );
+        continue;
+      }
+
+      const duplicate = combined.some(
+        (existingFile) =>
+          existingFile.name === file.name &&
+          existingFile.size === file.size &&
+          existingFile.lastModified === file.lastModified
+      );
+
+      if (!duplicate) {
+        combined.push(file);
+      }
+    }
+
+    if (combined.length > MAX_FILES) {
+      setAttachmentError(`You can attach at most ${MAX_FILES} files.`);
+      return;
+    }
+
+    const totalBytes = combined.reduce(
+      (total, file) => total + file.size,
+      0
+    );
+
+    if (totalBytes > MAX_TOTAL_BYTES) {
+      setAttachmentError("All attachments together cannot exceed 20 MB.");
+      return;
+    }
+
+    setSelectedFiles(combined);
+  }
+
+  function handleAttachmentChange(event) {
+    addFiles(event.target.files);
+    event.target.value = "";
+  }
+
+  function removeAttachment(indexToRemove) {
+    setSelectedFiles((current) =>
+      current.filter((_, index) => index !== indexToRemove)
+    );
+    setAttachmentError("");
+  }
+
+  function handleDrop(event) {
+    event.preventDefault();
+    setIsDraggingFiles(false);
+    addFiles(event.dataTransfer.files);
+  }
+
   const handleSubmit = async (event) => {
     event.preventDefault();
 
@@ -325,13 +431,28 @@ function CreateTicket() {
       return;
     }
 
+    if (attachmentError) {
+      setErrorMessage("Please fix the attachment problem before sending the ticket.");
+      return;
+    }
+
     setIsSubmitting(true);
 
     try {
       const result = await createTicket(form);
+      let uploadWarning = "";
+
+      if (selectedFiles.length > 0) {
+        try {
+          await uploadTicketAttachments(result.ticketId, selectedFiles);
+        } catch (uploadError) {
+          console.error("Attachment upload error:", uploadError);
+          uploadWarning = ` The ticket was created, but the attachments could not be uploaded: ${uploadError.message}`;
+        }
+      }
 
       setSuccessMessage(
-        `Ticket ${result.ticketNumber} created successfully.`
+        `Ticket ${result.ticketNumber} created successfully.${uploadWarning}`
       );
 
       setForm({
@@ -340,6 +461,11 @@ function CreateTicket() {
         priority: "",
         description: "",
       });
+
+      if (!uploadWarning) {
+        setSelectedFiles([]);
+        setAttachmentError("");
+      }
 
       window.scrollTo({
         top: 0,
@@ -544,30 +670,124 @@ function CreateTicket() {
                 </small>
               </label>
 
-              <label className="ticket-field full-width-field">
-                <span>Attachments</span>
+              <div className="ticket-field full-width-field attachment-field">
+                <div className="attachment-label-row">
+                  <span>Attachments</span>
+                  <small>{selectedFiles.length}/{MAX_FILES} files</small>
+                </div>
 
                 <input
+                  ref={attachmentInputRef}
                   id="ticket-attachment"
                   className="attachment-input"
                   type="file"
                   multiple
+                  accept=".jpg,.jpeg,.png,.webp,.pdf,.doc,.docx,.xls,.xlsx,.txt"
+                  onChange={handleAttachmentChange}
                 />
 
                 <div
-                  className="attachment-drop-zone"
-                  onClick={() =>
-                    document.getElementById("ticket-attachment")?.click()
-                  }
+                  className={`attachment-drop-zone ${
+                    isDraggingFiles ? "dragging" : ""
+                  } ${selectedFiles.length > 0 ? "has-files" : ""}`}
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => attachmentInputRef.current?.click()}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter" || event.key === " ") {
+                      event.preventDefault();
+                      attachmentInputRef.current?.click();
+                    }
+                  }}
+                  onDragEnter={(event) => {
+                    event.preventDefault();
+                    setIsDraggingFiles(true);
+                  }}
+                  onDragOver={(event) => {
+                    event.preventDefault();
+                    setIsDraggingFiles(true);
+                  }}
+                  onDragLeave={(event) => {
+                    event.preventDefault();
+                    if (!event.currentTarget.contains(event.relatedTarget)) {
+                      setIsDraggingFiles(false);
+                    }
+                  }}
+                  onDrop={handleDrop}
                 >
                   <div className="attachment-icon">↥</div>
 
                   <div>
-                    <strong>Drag files here or click to browse</strong>
-                    <p>PNG, JPG or PDF up to 10 MB</p>
+                    <strong>
+                      {isDraggingFiles
+                        ? "Drop your files here"
+                        : selectedFiles.length > 0
+                          ? "Add more attachments"
+                          : "Drag files here or click to browse"}
+                    </strong>
+                    <p>
+                      Images up to 5 MB · Documents up to 10 MB · 20 MB total
+                    </p>
                   </div>
                 </div>
-              </label>
+
+                {attachmentError && (
+                  <div className="attachment-error" role="alert">
+                    {attachmentError}
+                  </div>
+                )}
+
+                {selectedFiles.length > 0 && (
+                  <div className="selected-attachments" aria-live="polite">
+                    {selectedFiles.map((file, index) => {
+                      const extension = getExtension(file.name);
+                      const isImage = IMAGE_EXTENSIONS.includes(extension);
+
+                      return (
+                        <div
+                          className="selected-attachment-card"
+                          key={`${file.name}-${file.size}-${file.lastModified}`}
+                        >
+                          <div className={`selected-attachment-icon ${isImage ? "image" : "document"}`}>
+                            {isImage ? "▧" : "▤"}
+                          </div>
+
+                          <div className="selected-attachment-info">
+                            <strong title={file.name}>{file.name}</strong>
+                            <span>
+                              {extension.toUpperCase()} · {formatFileSize(file.size)}
+                            </span>
+                          </div>
+
+                          <span className="selected-attachment-ready">Ready</span>
+
+                          <button
+                            type="button"
+                            className="remove-attachment-button"
+                            aria-label={`Remove ${file.name}`}
+                            title="Remove attachment"
+                            onClick={() => removeAttachment(index)}
+                          >
+                            ×
+                          </button>
+                        </div>
+                      );
+                    })}
+
+                    <div className="attachment-summary">
+                      <span>Selected files</span>
+                      <strong>
+                        {formatFileSize(
+                          selectedFiles.reduce(
+                            (total, file) => total + file.size,
+                            0
+                          )
+                        )} / 20 MB
+                      </strong>
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
           </section>
 
@@ -663,7 +883,11 @@ function CreateTicket() {
                   Boolean(optionsError)
                 }
               >
-                {isSubmitting ? "Sending..." : "Send Ticket"}
+                {isSubmitting
+                  ? selectedFiles.length > 0
+                    ? "Creating & uploading..."
+                    : "Sending..."
+                  : "Send Ticket"}
               </button>
             </div>
           </footer>
