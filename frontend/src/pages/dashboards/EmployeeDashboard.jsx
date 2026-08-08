@@ -3,7 +3,6 @@ import { useNavigate } from "react-router-dom";
 import DashboardLayout from "../../components/DashboardLayout";
 import { getEmployeeDashboard } from "../../api/dashboard";
 import "../../styles/EmployeeDashboard.css";
-import "../../styles/EmployeeDashboardFix.css";
 
 function normalize(value) {
   return String(value || "").trim().toLowerCase().replaceAll(" ", "-");
