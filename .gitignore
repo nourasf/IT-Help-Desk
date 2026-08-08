@@ -1,6 +1,7 @@
 # ASP.NET Core
 backend/bin/
 backend/obj/
+backend/uploads/
 
 # React
 frontend/node_modules/
