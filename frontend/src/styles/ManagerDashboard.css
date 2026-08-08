@@ -16,1058 +16,123 @@
   letter-spacing: -0.035em;
 }
 
-.manager-dashboard-header > div > p:last-child {
-  margin: 0;
-  color: var(--normal-text);
-  font-size: 15px;
+.manager-dashboard-header > div > p:last-child { margin: 0; color: var(--normal-text); font-size: 15px; }
+.manager-eyebrow { margin: 0; color: #7765ba; font-size: 12px; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; }
+.manager-header-summary { min-width: 180px; padding: 14px 18px; border: 1px solid rgba(255,255,255,.8); border-radius: 15px; background: rgba(255,255,255,.7); box-shadow: 0 10px 24px rgba(73,55,111,.11); }
+.manager-header-summary span,.manager-header-summary strong { display:block; }
+.manager-header-summary span { color:var(--muted-text);font-size:12px; }
+.manager-header-summary strong { margin-top:3px;color:var(--dark-text);font-size:21px; }
+
+/* Manager priority queue: keep ticket information and assignment controls visually separate. */
+.manager-needs-attention { overflow: visible; }
+.manager-needs-attention .product-panel-heading { margin-bottom: 15px; }
+
+.manager-assignment-rows { display: grid; gap: 14px; }
+
+.manager-assignment-row {
+  display: grid !important;
+  grid-template-columns: minmax(220px, 0.9fr) minmax(390px, 1.35fr) !important;
+  align-items: stretch !important;
+  gap: 18px !important;
+  padding: 16px !important;
+  border: 1px solid #ead6dc !important;
+  border-radius: 14px !important;
+  background: #fff !important;
 }
 
-.manager-eyebrow {
-  margin: 0;
-  color: #7765ba;
-  font-size: 12px;
-  font-weight: 800;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-}
-
-.manager-header-summary {
-  min-width: 180px;
-  padding: 14px 18px;
-  border: 1px solid rgba(255, 255, 255, 0.8);
-  border-radius: 15px;
-  background: rgba(255, 255, 255, 0.7);
-  box-shadow: 0 10px 24px rgba(73, 55, 111, 0.11);
-}
-
-.manager-header-summary span,
-.manager-header-summary strong {
-  display: block;
-}
-
-.manager-header-summary span {
-  color: var(--muted-text);
-  font-size: 12px;
-}
-
-.manager-header-summary strong {
-  margin-top: 3px;
-  color: var(--dark-text);
-  font-size: 21px;
-}
-
-.manager-metrics-grid {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(180px, 1fr));
-  gap: 18px;
-  margin-bottom: 20px;
-}
-
-.manager-metric {
+.manager-queue-ticket {
   display: flex;
-  min-height: 125px;
-  align-items: flex-start;
-  gap: 15px;
-  padding: 19px;
-  border: 1px solid rgba(255, 255, 255, 0.82);
-  border-radius: 17px;
-  background: #ffffff;
-  box-shadow: 0 12px 26px rgba(73, 55, 111, 0.13);
-  animation: managerFadeUp 0.5s ease both;
-  transition:
-    transform 0.24s ease,
-    box-shadow 0.24s ease;
+  min-width: 0;
+  flex-direction: column;
+  justify-content: center;
+  padding: 4px 2px;
 }
 
-.manager-metric:nth-child(2) {
-  animation-delay: 0.06s;
-}
+.manager-queue-title { min-width: 0; }
+.manager-queue-title > span { display: block; margin-bottom: 5px; color: #7558bd; font-size: 11px; font-weight: 850; letter-spacing: .035em; }
+.manager-queue-title > strong { display: block; overflow: hidden; color: #281f40; font-size: 15px; line-height: 1.35; text-overflow: ellipsis; white-space: nowrap; }
 
-.manager-metric:nth-child(3) {
-  animation-delay: 0.12s;
-}
+.manager-queue-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 7px; margin-top: 11px; }
+.manager-queue-meta > span:not(.product-badge) { display: inline-flex; min-height: 24px; align-items: center; padding: 0 8px; border-radius: 999px; background: #f4f1f7; color: #746d7e; font-size: 10px; }
 
-.manager-metric:nth-child(4) {
-  animation-delay: 0.18s;
-}
-
-.manager-metric:hover {
-  transform: translateY(-5px);
-  box-shadow: 0 18px 34px rgba(73, 55, 111, 0.18);
-}
-
-.manager-metric-icon {
+.manager-queue-actions {
   display: grid;
-  width: 43px;
-  height: 43px;
-  flex: 0 0 43px;
-  place-items: center;
-  border-radius: 12px;
-}
-
-.manager-metric-icon svg {
-  width: 23px;
-  height: 23px;
-}
-
-.manager-metric.purple .manager-metric-icon {
-  color: #806bc1;
-  background: #eee9fa;
-}
-
-.manager-metric.blue .manager-metric-icon {
-  color: #4d81c6;
-  background: #e9f2fc;
-}
-
-.manager-metric.red .manager-metric-icon {
-  color: #c64e5d;
-  background: #fdebed;
-}
-
-.manager-metric.green .manager-metric-icon {
-  color: #338d61;
-  background: #e6f6ed;
-}
-
-.manager-metric p {
-  margin: 0 0 5px;
-  color: var(--normal-text);
-  font-size: 13px;
-  font-weight: 700;
-}
-
-.manager-metric strong {
-  display: block;
-  color: var(--dark-text);
-  font-size: 29px;
-  line-height: 1;
-}
-
-.manager-metric span {
-  display: block;
-  margin-top: 8px;
-  color: var(--muted-text);
-  font-size: 12px;
-}
-
-.manager-overview-grid {
-  display: grid;
-  grid-template-columns: minmax(0, 1.25fr) minmax(300px, 0.75fr);
-  gap: 18px;
-  margin-bottom: 20px;
-}
-
-.manager-panel {
-  padding: 22px 24px;
-  border: 1px solid rgba(255, 255, 255, 0.8);
-  border-radius: 17px;
-  background: #ffffff;
-  box-shadow: 0 12px 26px rgba(73, 55, 111, 0.13);
-  animation: managerFadeUp 0.55s ease both;
-}
-
-.manager-panel-heading {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 18px;
-  margin-bottom: 18px;
-}
-
-.manager-panel-heading p {
-  margin: 0 0 3px;
-  color: #8473bb;
-  font-size: 12px;
-  font-weight: 800;
-  letter-spacing: 0.065em;
-  text-transform: uppercase;
-}
-
-.manager-panel-heading h2 {
-  margin: 0;
-  color: var(--dark-text);
-  font-size: 20px;
-  line-height: 1.3;
-  letter-spacing: -0.02em;
-}
-
-.manager-panel-heading > span {
-  padding: 5px 10px;
-  border-radius: 13px;
-  background: #f0ecf8;
-  color: #75699a;
-  font-size: 12px;
-  font-weight: 700;
-}
-
-.manager-status-list {
-  display: grid;
-  gap: 14px;
-}
-
-.manager-status-item > div:first-child {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 6px;
-  color: var(--normal-text);
-  font-size: 14px;
-}
-
-.manager-status-item > div:first-child span {
-  display: inline-flex;
-  align-items: center;
-  gap: 9px;
-}
-
-.manager-status-item i {
-  width: 9px;
-  height: 9px;
-  border-radius: 50%;
-}
-
-.manager-status-item strong {
-  color: var(--dark-text);
-}
-
-.manager-progress-track,
-.manager-rate-track {
-  height: 7px;
-  overflow: hidden;
-  border-radius: 8px;
-  background: #eeeaf4;
-}
-
-.manager-progress-track span,
-.manager-rate-track span {
-  display: block;
-  min-width: 3px;
-  height: 100%;
-  border-radius: inherit;
-  animation: managerGrowBar 0.85s ease both;
-}
-
-.manager-health-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: minmax(210px, 1fr) minmax(190px, .8fr);
   gap: 10px;
+  padding-left: 18px;
+  border-left: 1px solid #eee4e8;
 }
 
-.manager-health-grid > div {
-  min-height: 67px;
-  padding: 12px 14px;
-  border-radius: 12px;
-  background: #f7f4fb;
-}
-
-.manager-health-grid span,
-.manager-health-grid strong {
-  display: block;
-}
-
-.manager-health-grid span {
-  color: var(--normal-text);
-  font-size: 12px;
-}
-
-.manager-health-grid strong {
-  margin-top: 3px;
-  color: var(--dark-text);
-  font-size: 22px;
-}
-
-.manager-health-message {
-  margin-top: 13px;
-  padding: 14px;
-  border-radius: 12px;
-  background: linear-gradient(135deg, #eee9fa, #f8f6fc);
-}
-
-.manager-health-message strong {
-  color: var(--dark-text);
-  font-size: 13px;
-}
-
-.manager-health-message p {
-  margin: 4px 0 0;
-  color: var(--normal-text);
-  font-size: 12px;
-  line-height: 1.45;
-}
-
-.manager-performance-panel {
-  margin-bottom: 20px;
-}
-
-.manager-table-wrapper {
-  width: 100%;
-  overflow-x: auto;
-}
-
-.manager-table {
-  width: 100%;
-  border-collapse: collapse;
-}
-
-.manager-table th,
-.manager-table td {
+.manager-manual-assignment,
+.manager-auto-assignment {
+  min-width: 0;
   padding: 12px;
-  border-bottom: 1px solid #ece8f2;
-  color: var(--normal-text);
-  font-size: 13px;
-  text-align: left;
-  vertical-align: middle;
-  white-space: nowrap;
-}
-
-.manager-table th {
-  color: #898397;
-  font-size: 11px;
-  font-weight: 800;
-  letter-spacing: 0.045em;
-  text-transform: uppercase;
-}
-
-.manager-table tbody tr {
-  transition: background-color 0.2s ease;
-}
-
-.manager-table tbody tr:hover {
-  background: #faf8ff;
-}
-
-.manager-table td:first-child {
-  color: var(--dark-text);
-}
-
-.manager-agent-avatar {
-  display: inline-grid;
-  width: 32px;
-  height: 32px;
-  margin-right: 9px;
-  place-items: center;
-  border-radius: 10px;
-  background: #eee9f8;
-  color: #7966b6;
-  font-weight: 800;
-}
-
-.manager-rate-cell {
-  display: flex;
-  min-width: 130px;
-  align-items: center;
-  gap: 9px;
-}
-
-.manager-rate-track {
-  width: 82px;
-}
-
-.manager-rate-track span {
-  background: linear-gradient(90deg, #8c78cb, #b46fc7);
-}
-
-.manager-rate-cell strong {
-  min-width: 34px;
-  color: var(--dark-text);
-  font-size: 12px;
-}
-
-.manager-performance-badge,
-.manager-ticket-badge {
-  display: inline-block;
-  padding: 5px 9px;
+  border: 1px solid #e6dff0;
   border-radius: 12px;
+  background: #faf8fd;
+}
+
+.manager-action-label { display: block; margin-bottom: 7px; color: #70647e; font-size: 9px; font-weight: 850; letter-spacing: .07em; text-transform: uppercase; }
+.manager-manual-controls { display: grid; grid-template-columns: minmax(0,1fr) auto; gap: 8px; }
+
+.manager-manual-controls select {
+  width: 100%;
+  min-width: 0;
+  min-height: 38px;
+  padding: 0 32px 0 10px;
+  border: 1px solid #d9d0e6;
+  border-radius: 9px;
+  background: #fff;
+  color: #332b45;
+  font: inherit;
   font-size: 11px;
-  font-weight: 700;
+  outline: none;
+}
+.manager-manual-controls select:focus { border-color:#9277d5; box-shadow:0 0 0 3px rgba(146,119,213,.12); }
+
+.manager-manual-button,
+.manager-auto-button {
+  min-height: 38px;
+  border: 0;
+  border-radius: 9px;
+  font: inherit;
+  font-size: 11px;
+  font-weight: 800;
+  cursor: pointer;
+}
+.manager-manual-button { padding: 0 13px; background: #7452d6; color: #fff; }
+.manager-manual-button:hover:not(:disabled) { background:#6544c1; }
+
+.manager-auto-assignment {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  background: linear-gradient(145deg,#f2ecff,#faf7ff);
+  border-color: #d9ccef;
+}
+.manager-auto-assignment small { display:block; min-height: 30px; color:#766b82; font-size:10px; line-height:1.45; }
+.manager-auto-button { display:flex; width:100%; align-items:center; justify-content:center; gap:7px; margin-top:8px; padding:0 12px; color:#6241bd; background:#fff; border:1px solid #cdbce9; }
+.manager-auto-button span { color:#8a62e1; font-size:13px; }
+.manager-auto-button:hover:not(:disabled) { border-color:#9e82d8; background:#fdfcff; box-shadow:0 5px 13px rgba(104,72,172,.12); }
+.manager-manual-button:disabled,.manager-auto-button:disabled,.manager-manual-controls select:disabled { opacity:.55; cursor:not-allowed; }
+
+.manager-assignment-feedback { margin: 12px 0 0; padding: 9px 11px; border-radius: 9px; background:#f1ecfa; color:#685494; font-size:11px; font-weight:700; }
+
+@keyframes managerFadeUp { from { opacity:0; transform:translateY(18px); } to { opacity:1; transform:translateY(0); } }
+@keyframes managerFadeDown { from { opacity:0; transform:translateY(-12px); } to { opacity:1; transform:translateY(0); } }
+@keyframes managerGrowBar { from { transform:scaleX(0);transform-origin:left; } to { transform:scaleX(1);transform-origin:left; } }
+
+@media (max-width: 1250px) {
+  .manager-assignment-row { grid-template-columns: 1fr !important; }
+  .manager-queue-actions { padding-left:0; padding-top:14px; border-left:0; border-top:1px solid #eee4e8; }
 }
 
-.manager-performance-badge.excellent {
-  color: #28734c;
-  background: #e5f5eb;
-}
-
-.manager-performance-badge.good {
-  color: #806321;
-  background: #faf2dc;
-}
-
-.manager-performance-badge.attention {
-  color: #a1434d;
-  background: #fbe8eb;
-}
-
-.manager-recent-table td:first-child strong,
-.manager-recent-table td:first-child span {
-  display: block;
-}
-
-.manager-recent-table td:first-child span {
-  max-width: 160px;
-  margin-top: 3px;
-  overflow: hidden;
-  color: var(--muted-text);
-  text-overflow: ellipsis;
-}
-
-.manager-ticket-badge.status {
-  color: #665693;
-  background: #eee9f8;
-}
-
-.manager-ticket-badge.priority {
-  color: #a3543e;
-  background: #fbece5;
-}
-
-.manager-empty-state,
-.manager-empty-table {
-  color: var(--muted-text);
-  font-size: 13px;
-}
-
-.manager-empty-table {
-  padding: 30px 12px !important;
-  text-align: center !important;
-}
-
-.manager-dashboard-state {
-  padding: 32px;
-  border-radius: 17px;
-  background: #ffffff;
-  box-shadow: 0 12px 26px rgba(73, 55, 111, 0.13);
-  color: var(--normal-text);
-}
-
-.manager-dashboard-state h1 {
-  margin-top: 0;
-  color: var(--dark-text);
-}
-
-.manager-dashboard-state button {
-  padding: 10px 18px;
-  border: none;
-  border-radius: 20px;
-  background: #8c78cb;
-  color: #ffffff;
-  font-weight: 700;
-}
-
-@keyframes managerFadeUp {
-  from {
-    opacity: 0;
-    transform: translateY(18px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-@keyframes managerFadeDown {
-  from {
-    opacity: 0;
-    transform: translateY(-12px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-@keyframes managerGrowBar {
-  from {
-    transform: scaleX(0);
-    transform-origin: left;
-  }
-  to {
-    transform: scaleX(1);
-    transform-origin: left;
-  }
-}
-
-@media (max-width: 1200px) {
-  .manager-metrics-grid {
-    grid-template-columns: repeat(2, minmax(200px, 1fr));
-  }
-
-  .manager-overview-grid {
-    grid-template-columns: 1fr;
-  }
-}
-
-@media (max-width: 700px) {
-  .manager-dashboard-header {
-    align-items: flex-start;
-    flex-direction: column;
-  }
-
-  .manager-header-summary {
-    width: 100%;
-  }
-
-  .manager-metrics-grid,
-  .manager-health-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .manager-dashboard-header h1 {
-    font-size: 29px;
-  }
-
-  .manager-panel {
-    padding: 19px;
-  }
+@media (max-width: 760px) {
+  .manager-queue-actions { grid-template-columns:1fr; }
+  .manager-manual-controls { grid-template-columns:1fr; }
+  .manager-manual-button { width:100%; }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .manager-dashboard-header,
-  .manager-metric,
-  .manager-panel,
-  .manager-progress-track span,
-  .manager-rate-track span {
-    animation: none;
-  }
-}
-/* Assignment section */
-.manager-assignment-panel {
-  margin-top: 28px;
-}
-
-.manager-assignment-table {
-  min-width: 1050px;
-}
-
-.manager-assignment-table td:first-child strong {
-  display: block;
-  color: #2e2750;
-  font-size: 0.9rem;
-}
-
-.manager-assignment-table td:first-child span {
-  display: block;
-  max-width: 230px;
-  margin-top: 4px;
-  color: #77728a;
-  font-size: 0.84rem;
-  line-height: 1.4;
-}
-
-.manager-agent-select {
-  width: 100%;
-  min-width: 190px;
-  padding: 10px 34px 10px 12px;
-  border: 1px solid #ded9eb;
-  border-radius: 10px;
-  background-color: #ffffff;
-  color: #39324f;
-  font: inherit;
-  font-size: 0.87rem;
-  outline: none;
-  cursor: pointer;
-  transition:
-    border-color 0.2s ease,
-    box-shadow 0.2s ease;
-}
-
-.manager-agent-select:hover {
-  border-color: #a99bd3;
-}
-
-.manager-agent-select:focus {
-  border-color: #7e68be;
-  box-shadow: 0 0 0 3px rgba(126, 104, 190, 0.14);
-}
-
-.manager-agent-select:disabled {
-  background-color: #f3f1f7;
-  cursor: not-allowed;
-}
-
-.manager-assign-button {
-  min-width: 90px;
-  padding: 10px 17px;
-  border: none;
-  border-radius: 10px;
-  background: linear-gradient(135deg, #8068c5, #6851aa);
-  color: #ffffff;
-  font: inherit;
-  font-size: 0.86rem;
-  font-weight: 700;
-  cursor: pointer;
-  box-shadow: 0 6px 14px rgba(104, 81, 170, 0.22);
-  transition:
-    transform 0.2s ease,
-    box-shadow 0.2s ease,
-    opacity 0.2s ease;
-}
-
-.manager-assign-button:hover:not(:disabled) {
-  transform: translateY(-1px);
-  box-shadow: 0 8px 18px rgba(104, 81, 170, 0.3);
-}
-
-.manager-assign-button:disabled {
-  opacity: 0.5;
-  box-shadow: none;
-  cursor: not-allowed;
-}
-
-.manager-assignment-message {
-  margin: 0 0 18px;
-  padding: 12px 15px;
-  border-radius: 10px;
-  font-size: 0.9rem;
-  font-weight: 600;
-}
-
-.manager-assignment-message.success {
-  border: 1px solid #b8e4cd;
-  background-color: #edf9f2;
-  color: #28784c;
-}
-
-.manager-assignment-message.error {
-  border: 1px solid #efc4c8;
-  background-color: #fff1f2;
-  color: #b33a46;
-}
-
-@media (max-width: 900px) {
-  .manager-assignment-panel {
-    margin-top: 20px;
-  }
-
-  .manager-assignment-table {
-    min-width: 950px;
-  }
-}
-
-/* Clear manager workflow */
-.manager-panel-heading .manager-panel-description {
-  max-width: 620px;
-  margin: 7px 0 0;
-  color: var(--normal-text);
-  font-size: 13px;
-  font-weight: 400;
-  line-height: 1.5;
-  letter-spacing: 0;
-  text-transform: none;
-}
-
-.manager-assignment-panel {
-  margin: 0 0 22px;
-  padding: 28px;
-  border-top: 4px solid #8c78cb;
-}
-
-.manager-assignment-list {
-  display: grid;
-  gap: 16px;
-}
-
-.manager-assignment-card {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(300px, 380px);
-  gap: 28px;
-  padding: 23px;
-  border: 1px solid #e6e0f0;
-  border-radius: 16px;
-  background: linear-gradient(135deg, #ffffff 0%, #faf8fd 100%);
-  transition:
-    border-color 0.2s ease,
-    box-shadow 0.2s ease,
-    transform 0.2s ease;
-}
-
-.manager-assignment-card:hover {
-  border-color: #cfc5e5;
-  box-shadow: 0 12px 25px rgba(72, 54, 112, 0.1);
-  transform: translateY(-2px);
-}
-
-.manager-ticket-title-row,
-.manager-ticket-badges {
-  display: flex;
-  align-items: center;
-}
-
-.manager-ticket-title-row {
-  justify-content: space-between;
-  gap: 16px;
-}
-
-.manager-ticket-badges {
-  flex-wrap: wrap;
-  justify-content: flex-end;
-  gap: 7px;
-}
-
-.manager-ticket-number {
-  color: #7562b2;
-  font-size: 12px;
-  font-weight: 800;
-  letter-spacing: 0.045em;
-}
-
-.manager-ticket-summary h3 {
-  margin: 12px 0 20px;
-  color: var(--dark-text);
-  font-size: 20px;
-  line-height: 1.35;
-}
-
-.manager-ticket-meta {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 12px;
-}
-
-.manager-ticket-meta > div {
-  min-width: 0;
-  padding: 11px 13px;
-  border-radius: 11px;
-  background: #f3f0f8;
-}
-
-.manager-ticket-meta span,
-.manager-ticket-meta strong {
-  display: block;
-}
-
-.manager-ticket-meta span {
-  margin-bottom: 4px;
-  color: var(--muted-text);
-  font-size: 10px;
-  font-weight: 800;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
-}
-
-.manager-ticket-meta strong {
-  overflow: hidden;
-  color: var(--dark-text);
-  font-size: 13px;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.manager-assignment-action {
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  padding-left: 27px;
-  border-left: 1px solid #e2dced;
-}
-
-.manager-assignment-action label {
-  color: var(--dark-text);
-  font-size: 14px;
-  font-weight: 800;
-}
-
-.manager-assignment-action p {
-  margin: 5px 0 13px;
-  color: var(--muted-text);
-  font-size: 12px;
-  line-height: 1.45;
-}
-
-.manager-assignment-action .manager-agent-select {
-  min-width: 0;
-  min-height: 43px;
-}
-
-.manager-assignment-action .manager-assign-button {
-  width: 100%;
-  margin-top: 10px;
-  min-height: 42px;
-}
-
-.manager-clear-state {
-  padding: 27px;
-  border: 1px dashed #cfc5e4;
-  border-radius: 14px;
-  background: #faf8fd;
-  text-align: center;
-}
-
-.manager-clear-state strong {
-  color: var(--dark-text);
-  font-size: 15px;
-}
-
-.manager-clear-state p {
-  margin: 5px 0 0;
-  color: var(--muted-text);
-  font-size: 13px;
-}
-
-.manager-performance-panel,
-.manager-recent-panel {
-  margin-bottom: 22px;
-  padding: 28px;
-}
-
-.manager-agent-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(290px, 1fr));
-  gap: 16px;
-}
-
-.manager-agent-card {
-  padding: 20px;
-  border: 1px solid #e6e0ef;
-  border-radius: 15px;
-  background: #fcfbfe;
-}
-
-.manager-agent-card-header,
-.manager-agent-identity,
-.manager-agent-progress > div:first-child {
-  display: flex;
-  align-items: center;
-}
-
-.manager-agent-card-header {
-  justify-content: space-between;
-  gap: 14px;
-}
-
-.manager-agent-identity {
-  min-width: 0;
-  gap: 11px;
-}
-
-.manager-agent-identity .manager-agent-avatar {
-  width: 44px;
-  height: 44px;
-  flex: 0 0 44px;
-  margin-right: 0;
-  border-radius: 13px;
-  font-size: 16px;
-}
-
-.manager-agent-identity strong,
-.manager-agent-identity span {
-  display: block;
-}
-
-.manager-agent-identity strong {
-  overflow: hidden;
-  color: var(--dark-text);
-  font-size: 15px;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.manager-agent-identity span {
-  margin-top: 3px;
-  color: var(--muted-text);
-  font-size: 12px;
-}
-
-.manager-agent-stats {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 8px;
-  margin: 19px 0;
-}
-
-.manager-agent-stats > div {
-  padding: 11px 8px;
-  border-radius: 10px;
-  background: #f1eef7;
-  text-align: center;
-}
-
-.manager-agent-stats span,
-.manager-agent-stats strong {
-  display: block;
-}
-
-.manager-agent-stats span {
-  color: var(--muted-text);
-  font-size: 10px;
-}
-
-.manager-agent-stats strong {
-  margin-top: 4px;
-  color: var(--dark-text);
-  font-size: 18px;
-}
-
-.manager-agent-progress > div:first-child {
-  justify-content: space-between;
-  margin-bottom: 8px;
-  color: var(--normal-text);
-  font-size: 12px;
-}
-
-.manager-agent-progress > div:first-child strong {
-  color: var(--dark-text);
-}
-
-.manager-agent-progress .manager-rate-track {
-  width: 100%;
-  height: 8px;
-}
-
-.manager-agent-resolution {
-  margin: 15px 0 0;
-  padding-top: 14px;
-  border-top: 1px solid #e9e4f0;
-  color: var(--muted-text);
-  font-size: 12px;
-}
-
-.manager-agent-resolution strong {
-  color: var(--normal-text);
-}
-
-.manager-recent-list {
-  display: grid;
-  gap: 11px;
-}
-
-.manager-recent-item {
-  display: grid;
-  grid-template-columns: minmax(240px, 1.25fr) minmax(150px, 0.65fr) minmax(
-      220px,
-      0.9fr
-    ) auto;
-  align-items: center;
-  gap: 24px;
-  padding: 17px 18px;
-  border: 1px solid #ebe6f2;
-  border-radius: 13px;
-  background: #ffffff;
-  transition:
-    background-color 0.2s ease,
-    border-color 0.2s ease;
-}
-
-.manager-recent-item:hover {
-  border-color: #d7cee7;
-  background: #fbf9fe;
-}
-
-.manager-recent-ticket > span,
-.manager-recent-ticket > strong,
-.manager-recent-ticket > small,
-.manager-recent-detail > span,
-.manager-recent-detail > strong,
-.manager-recent-date > span,
-.manager-recent-date > strong {
-  display: block;
-}
-
-.manager-recent-ticket > span {
-  color: #7866b4;
-  font-size: 11px;
-  font-weight: 800;
-}
-
-.manager-recent-ticket > strong {
-  margin-top: 4px;
-  overflow: hidden;
-  color: var(--dark-text);
-  font-size: 14px;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.manager-recent-ticket > small {
-  margin-top: 4px;
-  color: var(--muted-text);
-  font-size: 11px;
-}
-
-.manager-recent-detail > span,
-.manager-recent-date > span {
-  margin-bottom: 6px;
-  color: var(--muted-text);
-  font-size: 10px;
-  font-weight: 800;
-  letter-spacing: 0.045em;
-  text-transform: uppercase;
-}
-
-.manager-recent-detail > strong,
-.manager-recent-date > strong {
-  color: var(--dark-text);
-  font-size: 13px;
-}
-
-.manager-recent-detail > strong.unassigned {
-  color: #a3543e;
-}
-
-.manager-recent-badges {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 6px;
-}
-
-.manager-recent-badges small {
-  color: var(--normal-text);
-  font-size: 11px;
-}
-
-.manager-recent-date {
-  min-width: 92px;
-  text-align: right;
-}
-
-@media (max-width: 1100px) {
-  .manager-assignment-card {
-    grid-template-columns: 1fr;
-  }
-
-  .manager-assignment-action {
-    padding: 20px 0 0;
-    border-top: 1px solid #e2dced;
-    border-left: 0;
-  }
-
-  .manager-recent-item {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .manager-recent-date {
-    text-align: left;
-  }
-}
-
-@media (max-width: 700px) {
-  .manager-assignment-panel,
-  .manager-performance-panel,
-  .manager-recent-panel {
-    padding: 20px;
-  }
-
-  .manager-assignment-card {
-    padding: 18px;
-  }
-
-  .manager-ticket-title-row {
-    align-items: flex-start;
-    flex-direction: column;
-  }
-
-  .manager-ticket-badges {
-    justify-content: flex-start;
-  }
-
-  .manager-ticket-meta,
-  .manager-agent-stats,
-  .manager-recent-item {
-    grid-template-columns: 1fr;
-  }
-
-  .manager-recent-item {
-    gap: 15px;
-  }
+  .manager-dashboard-header { animation:none; }
 }
