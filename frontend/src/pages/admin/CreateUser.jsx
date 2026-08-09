@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import DashboardLayout from "../../components/DashboardLayout";
 import { getStoredToken } from "../../utils/authStorage";
-import "../../styles/CreateUser.css";
+import "../../styles/Admin.css";
 
 const roles = ["Employee", "IT Support Agent", "Manager", "Admin"];
 
@@ -101,111 +101,44 @@ function CreateUser() {
 
           <div className="create-user-field full-width">
             <label htmlFor="fullName">Full Name</label>
-            <input
-              id="fullName"
-              name="fullName"
-              type="text"
-              value={form.fullName}
-              onChange={handleChange}
-              placeholder="Enter the user's full name"
-              autoComplete="off"
-              required
-            />
+            <input id="fullName" name="fullName" type="text" value={form.fullName} onChange={handleChange} placeholder="Enter the user's full name" autoComplete="off" required />
           </div>
 
           <div className="create-user-field full-width">
             <label htmlFor="email">Email Address</label>
-            <input
-              id="email"
-              name="email"
-              type="email"
-              value={form.email}
-              onChange={handleChange}
-              placeholder="user@company.com"
-              autoComplete="off"
-              required
-            />
+            <input id="email" name="email" type="email" value={form.email} onChange={handleChange} placeholder="user@company.com" autoComplete="off" required />
           </div>
 
           <div className="create-user-field full-width">
             <label htmlFor="role">Role</label>
-            <select
-              id="role"
-              name="role"
-              value={form.role}
-              onChange={handleChange}
-              required
-            >
+            <select id="role" name="role" value={form.role} onChange={handleChange} required>
               {roles.map((role) => (
-                <option key={role} value={role}>
-                  {role}
-                </option>
+                <option key={role} value={role}>{role}</option>
               ))}
             </select>
           </div>
 
           <div className="create-user-field">
             <label htmlFor="password">Temporary Password</label>
-            <input
-              id="password"
-              name="password"
-              type="password"
-              value={form.password}
-              onChange={handleChange}
-              placeholder="At least 8 characters"
-              minLength="8"
-              autoComplete="new-password"
-              required
-            />
+            <input id="password" name="password" type="password" value={form.password} onChange={handleChange} placeholder="At least 8 characters" minLength="8" autoComplete="new-password" required />
           </div>
 
           <div className="create-user-field">
             <label htmlFor="confirmPassword">Confirm Password</label>
-            <input
-              id="confirmPassword"
-              name="confirmPassword"
-              type="password"
-              value={form.confirmPassword}
-              onChange={handleChange}
-              placeholder="Repeat the password"
-              minLength="8"
-              autoComplete="new-password"
-              required
-            />
+            <input id="confirmPassword" name="confirmPassword" type="password" value={form.confirmPassword} onChange={handleChange} placeholder="Repeat the password" minLength="8" autoComplete="new-password" required />
           </div>
 
           <div className="create-user-actions full-width">
-            <button
-              type="button"
-              className="create-user-cancel"
-              onClick={() => navigate("/admin-dashboard")}
-            >
-              Cancel
-            </button>
-
-            <button
-              type="submit"
-              className="create-user-submit"
-              disabled={isLoading}
-            >
-              {isLoading ? "Creating User..." : "Create User"}
-            </button>
+            <button type="button" className="create-user-cancel" onClick={() => navigate("/admin-dashboard")}>Cancel</button>
+            <button type="submit" className="create-user-submit" disabled={isLoading}>{isLoading ? "Creating User..." : "Create User"}</button>
           </div>
         </form>
 
         <aside className="create-user-note">
-          <span className="create-user-note-icon" aria-hidden="true">
-            +
-          </span>
+          <span className="create-user-note-icon" aria-hidden="true">+</span>
           <h2>Account access</h2>
-          <p>
-            The new user can sign in immediately with the email and temporary
-            password you provide.
-          </p>
-          <p>
-            Choose roles carefully. Managers and administrators receive
-            additional system permissions.
-          </p>
+          <p>The new user can sign in immediately with the email and temporary password you provide.</p>
+          <p>Choose roles carefully. Managers and administrators receive additional system permissions.</p>
         </aside>
       </section>
     </DashboardLayout>
