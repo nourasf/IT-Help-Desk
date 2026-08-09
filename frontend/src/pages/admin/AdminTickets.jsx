@@ -4,6 +4,16 @@ import DashboardLayout from "../../components/DashboardLayout";
 import { getAllTickets } from "../../api/ticket";
 import "../../styles/AdminDashboard.css";
 
+const inputStyle = {
+  minHeight: 44,
+  padding: "0 14px",
+  border: "1px solid #ddd4e9",
+  borderRadius: 11,
+  outline: "none",
+  background: "#fff",
+  color: "#4d4659",
+};
+
 function AdminTickets() {
   const navigate = useNavigate();
   const [tickets, setTickets] = useState([]);
@@ -35,25 +45,25 @@ function AdminTickets() {
 
   return (
     <DashboardLayout activePage="admin-tickets">
-      <main className="admin-tickets-page">
-        <header className="admin-tickets-header">
+      <main className="admin-product-dashboard">
+        <header className="admin-dashboard-header">
           <div>
             <p className="admin-eyebrow">Ticket oversight</p>
             <h1>All Tickets</h1>
-            <p>Open any ticket to review its history, activity and leave a comment.</p>
+            <p>Open any ticket to review its history, activity, internal notes and leave a comment.</p>
           </div>
-          <span className="admin-ticket-count">{filteredTickets.length} tickets</span>
+          <span style={{ padding: "8px 13px", borderRadius: 999, background: "#eee9f8", color: "#6e5a9d", fontSize: 12, fontWeight: 800 }}>{filteredTickets.length} tickets</span>
         </header>
 
-        <section className="admin-ticket-filters">
-          <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search ticket number, subject, category..." />
-          <select value={status} onChange={(event) => setStatus(event.target.value)}>
+        <section style={{ display: "grid", gridTemplateColumns: "minmax(240px,1fr) 190px", gap: 12, marginBottom: 18 }}>
+          <input style={inputStyle} value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search ticket number, subject, category..." />
+          <select style={inputStyle} value={status} onChange={(event) => setStatus(event.target.value)}>
             <option value="all">All statuses</option>
             {statuses.map((item) => <option key={item} value={item}>{item}</option>)}
           </select>
         </section>
 
-        <section className="admin-panel admin-all-tickets-panel">
+        <section className="admin-panel">
           {loading ? <p className="admin-empty-state">Loading tickets...</p> : error ? (
             <div className="admin-empty-state"><p>{error}</p><button type="button" onClick={loadTickets}>Try again</button></div>
           ) : (
@@ -68,7 +78,7 @@ function AdminTickets() {
                       <td><span className="admin-table-badge priority">{ticket.priority}</span></td>
                       <td><span className="admin-table-badge status">{ticket.status}</span></td>
                       <td>{ticket.createdAt ? new Date(ticket.createdAt).toLocaleDateString() : "—"}</td>
-                      <td><button className="admin-view-ticket-button" type="button" onClick={() => navigate(`/tickets/${ticket.id}`)}>View Ticket</button></td>
+                      <td><button style={{ minHeight: 34, padding: "0 13px", border: 0, borderRadius: 9, background: "#eee8fa", color: "#6f54ad", fontWeight: 800, fontSize: 11 }} type="button" onClick={() => navigate(`/tickets/${ticket.id}`)}>View Ticket</button></td>
                     </tr>
                   ))}
                   {!filteredTickets.length && <tr><td colSpan="6" className="admin-empty-table">No tickets match these filters.</td></tr>}
