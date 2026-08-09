@@ -15,6 +15,7 @@ import ManagerDashboard from "./pages/dashboards/ManagerDashboard";
 import EmployeeDashboard from "./pages/dashboards/EmployeeDashboard";
 import AgentDashboard from "./pages/dashboards/AgentDashboard";
 import CreateUser from "./pages/admin/CreateUser";
+import AdminTickets from "./pages/admin/AdminTickets";
 import CreateTicket from "./pages/tickets/CreateTicket";
 import MyTickets from "./pages/tickets/MyTickets";
 import TicketDetails from "./pages/tickets/TicketDetails";
@@ -80,23 +81,9 @@ function App() {
     <BrowserRouter>
       <Routes>
         <Route path="/login" element={<Login />} />
-        <Route
-  path="/notifications"
-  element={
-    <ProtectedRoute
-      allowedRoles={[
-        "Admin",
-        "Manager",
-        "Employee",
-        "IT Support Agent",
-        "Agent",
-      ]}
-    >
-      <Notifications />
-    </ProtectedRoute>
-  }
-/>
+        <Route path="/notifications" element={<ProtectedRoute allowedRoles={["Admin","Manager","Employee","IT Support Agent","Agent"]}><Notifications /></ProtectedRoute>} />
         <Route path="/admin/users/create" element={<ProtectedRoute allowedRole="Admin"><CreateUser /></ProtectedRoute>} />
+        <Route path="/admin/tickets" element={<ProtectedRoute allowedRole="Admin"><AdminTickets /></ProtectedRoute>} />
         <Route path="/create-ticket" element={<ProtectedRoute allowedRole="Employee"><CreateTicket /></ProtectedRoute>} />
         <Route path="/my-tickets" element={<ProtectedRoute allowedRole="Employee"><MyTickets /></ProtectedRoute>} />
         <Route path="/tickets/:id" element={<ProtectedRoute allowedRoles={["Employee","Manager","Admin","IT Support Agent","Agent"]}><TicketDetails /></ProtectedRoute>} />
