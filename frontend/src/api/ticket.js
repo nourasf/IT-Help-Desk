@@ -101,5 +101,5 @@ export async function escalateTicket(ticketId, reason) { return ticketAction(tic
 export async function cancelTicket(ticketId, reason) { return ticketAction(ticketId, "cancel", reason); }
 export async function returnTicketToManager(ticketId, reason) { return ticketAction(ticketId, "return-to-manager", reason); }
 export async function reopenTicket(ticketId, reason) { return ticketAction(ticketId, "reopen", reason); }
-export async function managerReopenTicket(ticketId, reason) { return ticketAction(ticketId, "manager-reopen", reason); }
+export async function managerReopenTicket(ticketId, reason) { return reopenTicket(ticketId, reason); }
 export async function closeTicket(ticketId) { return request(`${API_URL}/${ticketId}/close`, { method: "POST" }); }
