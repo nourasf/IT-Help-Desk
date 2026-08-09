@@ -81,7 +81,7 @@ function Topbar() {
     setNotificationsLoading(true);
     setNotificationError("");
     try {
-      const data = await getNotifications(20);
+      const data = await getNotifications(5, 7);
       const items = Array.isArray(data.notifications) ? data.notifications : [];
       setNotifications(items);
       setUnreadCount(Number(data.unreadCount || 0));
@@ -98,7 +98,7 @@ function Topbar() {
 
     async function initializeNotifications() {
       try {
-        const data = await getNotifications(20);
+        const data = await getNotifications(5, 7);
         if (cancelled) return;
         const items = Array.isArray(data.notifications) ? data.notifications : [];
         setNotifications(items);
@@ -208,10 +208,34 @@ function Topbar() {
                   <div><span className="notification-kicker">Your activity</span><h2>Notifications</h2><p>{unreadCount > 0 ? `${unreadCount} update${unreadCount === 1 ? "" : "s"} waiting for you` : "You’re all caught up"}</p></div>
                   <div className="notification-header-orb" aria-hidden="true"><span>✦</span></div>
                 </header>
-                <div className="notification-toolbar">
-                  <span>{recentUnread > 0 ? `${recentUnread} unread in this list` : "Latest activity"}</span>
-                  <button type="button" onClick={handleMarkAllRead} disabled={unreadCount === 0}>Mark all read</button>
-                </div>
+               <div className="notification-toolbar">
+  <span>
+    {recentUnread > 0
+      ? `${recentUnread} unread in this list`
+      : "Latest activity"}
+  </span>
+
+  <div className="notification-toolbar-actions">
+    <button
+      type="button"
+      className="notification-see-all"
+      onClick={() => {
+        setNotificationsOpen(false);
+        navigate("/notifications");
+      }}
+    >
+      See all
+    </button>
+
+    <button
+      type="button"
+      onClick={handleMarkAllRead}
+      disabled={unreadCount === 0}
+    >
+      Mark all read
+    </button>
+  </div>
+</div>
                 <div className="notification-list">
                   {notificationsLoading ? (
                     <div className="notification-loading"><span /><span /><span /></div>
@@ -243,7 +267,21 @@ function Topbar() {
 
           <div className="user-avatar">{initials}</div>
           <span className="user-name">{currentUser?.name || "User"}</span>
-          <button className="topbar-arrow" type="button">⌄</button>
+          <button
+  className="topbar-arrow"
+  type="button"
+  aria-label="Open user menu"
+>
+  <svg viewBox="0 0 20 20" fill="none" aria-hidden="true">
+    <path
+      d="M6 8L10 12L14 8"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+  </svg>
+</button>
         </div>
       </header>
 

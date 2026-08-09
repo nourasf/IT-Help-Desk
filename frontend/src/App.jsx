@@ -7,6 +7,7 @@ import {
   Routes,
   useNavigate,
 } from "react-router-dom";
+import Notifications from "./pages/notifications/Notifications";
 
 import Login from "./pages/auth/Login";
 import AdminDashboard from "./pages/dashboards/AdminDashboard";
@@ -79,6 +80,22 @@ function App() {
     <BrowserRouter>
       <Routes>
         <Route path="/login" element={<Login />} />
+        <Route
+  path="/notifications"
+  element={
+    <ProtectedRoute
+      allowedRoles={[
+        "Admin",
+        "Manager",
+        "Employee",
+        "IT Support Agent",
+        "Agent",
+      ]}
+    >
+      <Notifications />
+    </ProtectedRoute>
+  }
+/>
         <Route path="/admin/users/create" element={<ProtectedRoute allowedRole="Admin"><CreateUser /></ProtectedRoute>} />
         <Route path="/create-ticket" element={<ProtectedRoute allowedRole="Employee"><CreateTicket /></ProtectedRoute>} />
         <Route path="/my-tickets" element={<ProtectedRoute allowedRole="Employee"><MyTickets /></ProtectedRoute>} />

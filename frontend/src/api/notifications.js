@@ -39,13 +39,14 @@ async function request(url, options = {}) {
   return data;
 }
 
-export function getNotifications(take = 20) {
-  return request(`${API_URL}?take=${take}`, { method: "GET" });
+export function getNotifications(take = 20, days=7) {
+  return request(`${API_URL}?take=${take}&days=${days}`, { method: "GET" });
 }
 
 export function getUnreadNotificationCount() {
   return request(`${API_URL}/unread-count`, { method: "GET" });
 }
+
 
 export function markNotificationAsRead(notificationId) {
   return request(`${API_URL}/${notificationId}/read`, { method: "POST" });

@@ -24,7 +24,7 @@ public class NotificationsController : ControllerBase
     }
 
     [HttpGet]
-    public async Task<IActionResult> GetNotifications([FromQuery] int take = 20)
+    public async Task<IActionResult> GetNotifications([FromQuery] int take = 20, [FromQuery] int days=7)
     {
         if (!TryGetUserId(out var userId))
         {
@@ -32,10 +32,12 @@ public class NotificationsController : ControllerBase
         }
 
         take = Math.Clamp(take, 1, 100);
+        days=Math.Clamp(days, 1, 30);
+        var cutoffDate = DateTime.UtcNow.AddDays(-days);
 
         var notifications = await _context.Notifications
             .AsNoTracking()
-            .Where(n => n.UserId == userId)
+            .Where(n => n.UserId == userId && n.CreatedAt >= cutoffDate)
             .OrderByDescending(n => n.CreatedAt)
             .Take(take)
             .Select(n => new
