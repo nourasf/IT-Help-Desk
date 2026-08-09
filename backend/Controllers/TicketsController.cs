@@ -16,56 +16,83 @@ public class TicketsController : ControllerBase
     private readonly AppDbContext _context;
     private readonly NotificationService _notificationService;
 
-    public TicketsController(
-        AppDbContext context,
-        NotificationService notificationService)
+    public TicketsController(AppDbContext context, NotificationService notificationService)
     {
         _context = context;
         _notificationService = notificationService;
     }
 
     private bool TryGetCurrentUserId(out int userId)
-    {
-        return int.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out userId);
-    }
+        => int.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out userId);
+
+    private string CurrentRole()
+        => (User.FindFirstValue(ClaimTypes.Role) ?? string.Empty).Trim();
+
+    private static bool IsAgentRole(string role)
+        => role.Equals("IT Support Agent", StringComparison.OrdinalIgnoreCase) ||
+           role.Equals("Agent", StringComparison.OrdinalIgnoreCase) ||
+           role.Equals("IT", StringComparison.OrdinalIgnoreCase);
 
     private static bool IsStatus(Ticket ticket, string statusName)
-    {
-        return ticket.Status.StatusName.Equals(statusName, StringComparison.OrdinalIgnoreCase);
-    }
+        => ticket.Status.StatusName.Equals(statusName, StringComparison.OrdinalIgnoreCase);
 
     private async Task EndActiveWorkSessionsAsync(int ticketId, DateTime now, string reason)
     {
-        var activeSessions = await _context.TicketWorkSessions
+        var sessions = await _context.TicketWorkSessions
             .Where(session => session.TicketID == ticketId && session.EndedAt == null)
             .ToListAsync();
 
-        foreach (var session in activeSessions)
+        foreach (var session in sessions)
         {
             session.EndedAt = now;
-            session.DurationMinutes = Math.Max(
-                1,
-                (int)Math.Ceiling((now - session.StartAt).TotalMinutes)
-            );
+            session.DurationMinutes = Math.Max(1, (int)Math.Ceiling((now - session.StartAt).TotalMinutes));
             session.StopReason = reason;
         }
     }
 
     private async Task EndCurrentAssignmentAsync(int ticketId, DateTime now, string reason)
     {
-        var currentAssignment = await _context.TicketAssignments
-            .FirstOrDefaultAsync(a => a.TicketID == ticketId && a.UnassignedAt == null);
+        var assignment = await _context.TicketAssignments
+            .FirstOrDefaultAsync(item => item.TicketID == ticketId && item.UnassignedAt == null);
 
-        if (currentAssignment != null)
+        if (assignment != null)
         {
-            currentAssignment.UnassignedAt = now;
-            currentAssignment.UnassignmentReason = reason;
+            assignment.UnassignedAt = now;
+            assignment.UnassignmentReason = reason;
         }
     }
 
     private async Task<List<int>> GetManagersAndAdminsAsync()
+        => await _notificationService.GetUserIdsByRoleAsync("Manager", "Admin");
+
+    private async Task<bool> CanAccessTicketAsync(int ticketId, int userId, bool allowEmployee = true)
     {
-        return await _notificationService.GetUserIdsByRoleAsync("Manager", "Admin");
+        var role = CurrentRole();
+
+        if (role.Equals("Manager", StringComparison.OrdinalIgnoreCase) ||
+            role.Equals("Admin", StringComparison.OrdinalIgnoreCase))
+        {
+            return await _context.Tickets.AnyAsync(t => t.Id == ticketId && !t.IsDeleted);
+        }
+
+        if (IsAgentRole(role))
+        {
+            return await _context.Tickets.AnyAsync(t =>
+                t.Id == ticketId && !t.IsDeleted && t.AssignedToUserId == userId);
+        }
+
+        if (allowEmployee && role.Equals("Employee", StringComparison.OrdinalIgnoreCase))
+        {
+            return await _context.Tickets.AnyAsync(t =>
+                t.Id == ticketId && !t.IsDeleted && t.CreatedByUserId == userId);
+        }
+
+        return false;
+    }
+
+    public sealed class InternalNoteRequest
+    {
+        public string Note { get; set; } = string.Empty;
     }
 
     [HttpGet("form-options")]
@@ -105,19 +132,14 @@ public class TicketsController : ControllerBase
     {
         if (request == null)
             return BadRequest(new { message = "Ticket information is required." });
-
         if (string.IsNullOrWhiteSpace(request.Subject))
             return BadRequest(new { message = "Subject is required." });
-
         if (string.IsNullOrWhiteSpace(request.Description))
             return BadRequest(new { message = "Description is required." });
-
         if (string.IsNullOrWhiteSpace(request.Category))
             return BadRequest(new { message = "Category is required." });
-
         if (string.IsNullOrWhiteSpace(request.Priority))
             return BadRequest(new { message = "Priority is required." });
-
         if (!TryGetCurrentUserId(out var userId))
             return Unauthorized(new { message = "Invalid or missing user ID in token." });
 
@@ -126,19 +148,16 @@ public class TicketsController : ControllerBase
 
         var category = await _context.Categories.FirstOrDefaultAsync(c =>
             c.IsActive && c.Name.ToLower() == categoryName.ToLower());
-
         if (category == null)
             return BadRequest(new { message = "Invalid ticket category." });
 
         var priority = await _context.Priorities.FirstOrDefaultAsync(p =>
             p.Name.ToLower() == priorityName.ToLower());
-
         if (priority == null)
             return BadRequest(new { message = "Invalid ticket priority." });
 
         var openStatus = await _context.Statuses.FirstOrDefaultAsync(s =>
             s.StatusName.ToLower() == "open");
-
         if (openStatus == null)
             return BadRequest(new { message = "The Open ticket status was not found." });
 
@@ -164,9 +183,9 @@ public class TicketsController : ControllerBase
         _context.Tickets.Add(ticket);
         await _context.SaveChangesAsync();
 
-        var managerIds = await _notificationService.GetUserIdsByRoleAsync("Manager");
+        var managerAndAdminIds = await GetManagersAndAdminsAsync();
         await _notificationService.CreateNotificationsAsync(
-            managerIds,
+            managerAndAdminIds,
             "New Ticket Created",
             $"{ticket.TicketNumber} - {ticket.Subject} was created by {employee.FullName} and needs review.",
             "TicketCreated",
@@ -175,16 +194,12 @@ public class TicketsController : ControllerBase
 
         await _context.SaveChangesAsync();
 
-        return CreatedAtAction(
-            nameof(GetTicketById),
-            new { id = ticket.Id },
-            new
-            {
-                message = "Ticket created successfully.",
-                ticketId = ticket.Id,
-                ticketNumber = ticket.TicketNumber
-            }
-        );
+        return CreatedAtAction(nameof(GetTicketById), new { id = ticket.Id }, new
+        {
+            message = "Ticket created successfully.",
+            ticketId = ticket.Id,
+            ticketNumber = ticket.TicketNumber
+        });
     }
 
     [HttpGet("{id:int}")]
@@ -194,85 +209,60 @@ public class TicketsController : ControllerBase
         if (!TryGetCurrentUserId(out var userId))
             return Unauthorized(new { message = "Invalid or missing user ID in token." });
 
-        var userRole = (User.FindFirstValue(ClaimTypes.Role) ?? string.Empty).Trim();
+        var role = CurrentRole();
+        var query = _context.Tickets.AsNoTracking().Where(t => t.Id == id && !t.IsDeleted);
 
-        var ticketQuery = _context.Tickets
-            .AsNoTracking()
-            .Where(t => t.Id == id && !t.IsDeleted);
-
-        if (userRole.Equals("Employee", StringComparison.OrdinalIgnoreCase))
-        {
-            ticketQuery = ticketQuery.Where(t => t.CreatedByUserId == userId);
-        }
-        else if (
-            userRole.Equals("IT Support Agent", StringComparison.OrdinalIgnoreCase) ||
-            userRole.Equals("Agent", StringComparison.OrdinalIgnoreCase))
-        {
-            ticketQuery = ticketQuery.Where(t => t.AssignedToUserId == userId);
-        }
-        else if (
-            !userRole.Equals("Manager", StringComparison.OrdinalIgnoreCase) &&
-            !userRole.Equals("Admin", StringComparison.OrdinalIgnoreCase))
-        {
+        if (role.Equals("Employee", StringComparison.OrdinalIgnoreCase))
+            query = query.Where(t => t.CreatedByUserId == userId);
+        else if (IsAgentRole(role))
+            query = query.Where(t => t.AssignedToUserId == userId);
+        else if (!role.Equals("Manager", StringComparison.OrdinalIgnoreCase) &&
+                 !role.Equals("Admin", StringComparison.OrdinalIgnoreCase))
             return Forbid();
-        }
 
-        var ticket = await ticketQuery
-            .Select(t => new
+        var ticket = await query.Select(t => new
+        {
+            id = t.Id,
+            ticketNumber = t.TicketNumber,
+            subject = t.Subject,
+            description = t.Description,
+            resolutionNotes = t.ResolutionNotes,
+            category = t.Category.Name,
+            priority = t.Priority.Name,
+            status = t.Status.StatusName,
+            progressPercentage = t.ProgressPercentage,
+            createdAt = t.CreatedAt,
+            updatedAt = t.UpdatedAt,
+            resolvedAt = t.ResolvedAt,
+            closedAt = t.ClosedAt,
+            employee = new
             {
-                id = t.Id,
-                ticketNumber = t.TicketNumber,
-                subject = t.Subject,
-                description = t.Description,
-                resolutionNotes = t.ResolutionNotes,
-                category = t.Category.Name,
-                priority = t.Priority.Name,
-                status = t.Status.StatusName,
-                progressPercentage = t.ProgressPercentage,
-                createdAt = t.CreatedAt,
-                updatedAt = t.UpdatedAt,
-                resolvedAt = t.ResolvedAt,
-                closedAt = t.ClosedAt,
-                employee = new
-                {
-                    id = t.CreatedByUser.ID,
-                    name = t.CreatedByUser.FullName,
-                    email = t.CreatedByUser.Email
-                },
-                assignedAgent = t.AssignedToUserId == null
-                    ? null
-                    : new
-                    {
-                        id = t.AssignedToUser!.ID,
-                        name = t.AssignedToUser.FullName,
-                        email = t.AssignedToUser.Email
-                    },
-                activeWorkSession = _context.TicketWorkSessions
-                    .Where(session =>
-                        session.TicketID == t.Id &&
-                        session.AgentUserID == userId &&
-                        session.EndedAt == null)
-                    .Select(session => new
-                    {
-                        id = session.ID,
-                        startedAt = session.StartAt
-                    })
-                    .FirstOrDefault(),
-                totalWorkMinutes = _context.TicketWorkSessions
-                    .Where(session => session.TicketID == t.Id && session.EndedAt != null)
-                    .Sum(session => session.DurationMinutes ?? 0),
-                isClosed = t.Status.StatusName.ToLower() == "closed",
-                canEdit = t.Status.StatusName.ToLower() != "closed"
-            })
-            .FirstOrDefaultAsync();
+                id = t.CreatedByUser.ID,
+                name = t.CreatedByUser.FullName,
+                email = t.CreatedByUser.Email
+            },
+            assignedAgent = t.AssignedToUserId == null ? null : new
+            {
+                id = t.AssignedToUser!.ID,
+                name = t.AssignedToUser.FullName,
+                email = t.AssignedToUser.Email
+            },
+            activeWorkSession = _context.TicketWorkSessions
+                .Where(session =>
+                    session.TicketID == t.Id &&
+                    session.AgentUserID == userId &&
+                    session.EndedAt == null)
+                .Select(session => new { id = session.ID, startedAt = session.StartAt })
+                .FirstOrDefault(),
+            totalWorkMinutes = _context.TicketWorkSessions
+                .Where(session => session.TicketID == t.Id && session.EndedAt != null)
+                .Sum(session => session.DurationMinutes ?? 0),
+            isClosed = t.Status.StatusName.ToLower() == "closed",
+            canEdit = t.Status.StatusName.ToLower() != "closed"
+        }).FirstOrDefaultAsync();
 
         if (ticket == null)
-        {
-            return NotFound(new
-            {
-                message = "Ticket not found or you do not have access."
-            });
-        }
+            return NotFound(new { message = "Ticket not found or you do not have access." });
 
         return Ok(ticket);
     }
@@ -314,27 +304,19 @@ public class TicketsController : ControllerBase
 
         if (ticket == null)
             return NotFound(new { message = "Ticket not found." });
-
         if (IsStatus(ticket, "Closed"))
             return BadRequest(new { message = "Closed tickets are read-only." });
-
         if (!await _context.Categories.AnyAsync(c => c.ID == request.CategoryId))
             return BadRequest(new { message = "Invalid category." });
-
         if (!await _context.Priorities.AnyAsync(p => p.ID == request.PriorityId))
             return BadRequest(new { message = "Invalid priority." });
-
         if (!await _context.Statuses.AnyAsync(s => s.ID == request.StatusId))
             return BadRequest(new { message = "Invalid status." });
-
         if (request.AssignedToUserId.HasValue &&
             !await _context.Users.AnyAsync(u => u.ID == request.AssignedToUserId.Value))
-        {
             return BadRequest(new { message = "Assigned user not found." });
-        }
 
         var oldSummary = $"{ticket.Subject} | Status {ticket.Status.StatusName}";
-
         ticket.Subject = request.Subject;
         ticket.Description = request.Description;
         ticket.CategoryId = request.CategoryId;
@@ -355,7 +337,6 @@ public class TicketsController : ControllerBase
         });
 
         await _context.SaveChangesAsync();
-
         return Ok(new { message = "Ticket updated successfully." });
     }
 
@@ -366,9 +347,7 @@ public class TicketsController : ControllerBase
         if (!TryGetCurrentUserId(out var userId))
             return Unauthorized(new { message = "Invalid or missing user ID in token." });
 
-        var ticket = await _context.Tickets
-            .FirstOrDefaultAsync(t => t.Id == id && !t.IsDeleted);
-
+        var ticket = await _context.Tickets.FirstOrDefaultAsync(t => t.Id == id && !t.IsDeleted);
         if (ticket == null)
             return NotFound(new { message = "Ticket not found." });
 
@@ -422,21 +401,7 @@ public class TicketsController : ControllerBase
     {
         if (!TryGetCurrentUserId(out var userId))
             return Unauthorized(new { message = "Invalid or missing user ID in token." });
-
-        var role = (User.FindFirstValue(ClaimTypes.Role) ?? string.Empty).Trim();
-        var ticket = await _context.Tickets
-            .AsNoTracking()
-            .FirstOrDefaultAsync(t => t.Id == id && !t.IsDeleted);
-
-        if (ticket == null)
-            return NotFound(new { message = "Ticket not found." });
-
-        if (role.Equals("Employee", StringComparison.OrdinalIgnoreCase) && ticket.CreatedByUserId != userId)
-            return Forbid();
-
-        if ((role.Equals("IT Support Agent", StringComparison.OrdinalIgnoreCase) ||
-             role.Equals("Agent", StringComparison.OrdinalIgnoreCase)) &&
-            ticket.AssignedToUserId != userId)
+        if (!await CanAccessTicketAsync(id, userId))
             return Forbid();
 
         var comments = await _context.TicketComments
@@ -466,29 +431,18 @@ public class TicketsController : ControllerBase
     {
         if (!TryGetCurrentUserId(out var userId))
             return Unauthorized(new { message = "Invalid or missing user ID in token." });
-
-        var userRole = (User.FindFirstValue(ClaimTypes.Role) ?? string.Empty).Trim();
-
-        if (string.IsNullOrWhiteSpace(request.Comment))
+        if (!await CanAccessTicketAsync(id, userId))
+            return Forbid();
+        if (request == null || string.IsNullOrWhiteSpace(request.Comment))
             return BadRequest(new { message = "Comment cannot be empty." });
 
         var ticket = await _context.Tickets
             .Include(t => t.Status)
             .FirstOrDefaultAsync(t => t.Id == id && !t.IsDeleted);
-
         if (ticket == null)
             return NotFound(new { message = "Ticket not found." });
-
         if (IsStatus(ticket, "Closed"))
             return BadRequest(new { message = "Closed tickets are read-only." });
-
-        if (userRole.Equals("Employee", StringComparison.OrdinalIgnoreCase) && ticket.CreatedByUserId != userId)
-            return Forbid();
-
-        if ((userRole.Equals("IT Support Agent", StringComparison.OrdinalIgnoreCase) ||
-             userRole.Equals("Agent", StringComparison.OrdinalIgnoreCase)) &&
-            ticket.AssignedToUserId != userId)
-            return Forbid();
 
         var author = await _context.Users.FirstAsync(u => u.ID == userId);
         var now = DateTime.UtcNow;
@@ -503,7 +457,6 @@ public class TicketsController : ControllerBase
 
         _context.TicketComments.Add(comment);
         ticket.UpdatedAt = now;
-
         _context.TicketActivityLogs.Add(new TicketActivityLog
         {
             TicketID = ticket.Id,
@@ -513,8 +466,8 @@ public class TicketsController : ControllerBase
             CreatedAt = now
         });
 
-        var managerIds = await _notificationService.GetUserIdsByRoleAsync("Manager");
-        var recipientIds = managerIds
+        var managerAndAdminIds = await GetManagersAndAdminsAsync();
+        var recipientIds = managerAndAdminIds
             .Append(ticket.CreatedByUserId)
             .Concat(ticket.AssignedToUserId.HasValue ? new[] { ticket.AssignedToUserId.Value } : Array.Empty<int>())
             .Where(recipientId => recipientId != userId)
@@ -530,7 +483,6 @@ public class TicketsController : ControllerBase
         );
 
         await _context.SaveChangesAsync();
-
         return Ok(new
         {
             message = "Comment added successfully.",
@@ -544,13 +496,89 @@ public class TicketsController : ControllerBase
         });
     }
 
+    [HttpGet("{id:int}/internal-notes")]
+    [Authorize(Roles = "IT Support Agent,Agent,Manager,Admin")]
+    public async Task<IActionResult> GetInternalNotes(int id)
+    {
+        if (!TryGetCurrentUserId(out var userId))
+            return Unauthorized(new { message = "Invalid or missing user ID in token." });
+        if (!await CanAccessTicketAsync(id, userId, allowEmployee: false))
+            return Forbid();
+
+        var notes = await _context.TicketActivityLogs
+            .AsNoTracking()
+            .Where(log => log.TicketID == id && log.ActivityType == "Internal Note")
+            .OrderBy(log => log.CreatedAt)
+            .Select(log => new
+            {
+                id = log.ID,
+                note = log.Description,
+                createdAt = log.CreatedAt,
+                author = new
+                {
+                    id = log.PerformedByUser.ID,
+                    name = log.PerformedByUser.FullName
+                }
+            })
+            .ToListAsync();
+
+        return Ok(notes);
+    }
+
+    [HttpPost("{id:int}/internal-notes")]
+    [Authorize(Roles = "IT Support Agent,Agent,Manager,Admin")]
+    public async Task<IActionResult> AddInternalNote(int id, InternalNoteRequest request)
+    {
+        if (!TryGetCurrentUserId(out var userId))
+            return Unauthorized(new { message = "Invalid or missing user ID in token." });
+        if (!await CanAccessTicketAsync(id, userId, allowEmployee: false))
+            return Forbid();
+        if (request == null || string.IsNullOrWhiteSpace(request.Note))
+            return BadRequest(new { message = "Internal note cannot be empty." });
+
+        var ticket = await _context.Tickets
+            .Include(t => t.Status)
+            .FirstOrDefaultAsync(t => t.Id == id && !t.IsDeleted);
+        if (ticket == null)
+            return NotFound(new { message = "Ticket not found." });
+        if (IsStatus(ticket, "Closed"))
+            return BadRequest(new { message = "Closed tickets are read-only." });
+
+        var now = DateTime.UtcNow;
+        var note = new TicketActivityLog
+        {
+            TicketID = id,
+            PerformedByUserID = userId,
+            ActivityType = "Internal Note",
+            Description = request.Note.Trim(),
+            CreatedAt = now
+        };
+
+        _context.TicketActivityLogs.Add(note);
+        ticket.UpdatedAt = now;
+        await _context.SaveChangesAsync();
+
+        return Ok(new { message = "Internal note added.", id = note.ID, createdAt = note.CreatedAt });
+    }
+
     [HttpGet("{id:int}/activity")]
     [Authorize]
     public async Task<IActionResult> GetActivity(int id)
     {
-        var activity = await _context.TicketActivityLogs
+        if (!TryGetCurrentUserId(out var userId))
+            return Unauthorized(new { message = "Invalid or missing user ID in token." });
+        if (!await CanAccessTicketAsync(id, userId))
+            return Forbid();
+
+        var role = CurrentRole();
+        var logs = _context.TicketActivityLogs
             .AsNoTracking()
-            .Where(log => log.TicketID == id)
+            .Where(log => log.TicketID == id);
+
+        if (role.Equals("Employee", StringComparison.OrdinalIgnoreCase))
+            logs = logs.Where(log => log.ActivityType != "Internal Note");
+
+        var activity = await logs
             .OrderByDescending(log => log.CreatedAt)
             .Select(log => new
             {
@@ -571,9 +599,18 @@ public class TicketsController : ControllerBase
     }
 
     [HttpGet("{id:int}/history")]
-    [Authorize(Roles = "Manager,Admin")]
+    [Authorize]
     public async Task<IActionResult> GetHistory(int id)
     {
+        if (!TryGetCurrentUserId(out var userId))
+            return Unauthorized(new { message = "Invalid or missing user ID in token." });
+
+        var role = CurrentRole();
+        if (role.Equals("Employee", StringComparison.OrdinalIgnoreCase))
+            return Forbid();
+        if (!await CanAccessTicketAsync(id, userId, allowEmployee: false))
+            return Forbid();
+
         var history = await _context.TicketHistories
             .AsNoTracking()
             .Where(item => item.TicketID == id)
@@ -608,36 +645,26 @@ public class TicketsController : ControllerBase
             .Include(t => t.Status)
             .Include(t => t.AssignedToUser)
             .FirstOrDefaultAsync(t => t.Id == id && !t.IsDeleted);
-
         if (ticket == null)
             return NotFound(new { message = "Ticket not found." });
-
         if (IsStatus(ticket, "Closed") || IsStatus(ticket, "Cancelled"))
             return BadRequest(new { message = "Cannot assign a closed or cancelled ticket." });
 
         var agent = await _context.Users
             .Include(u => u.Role)
             .FirstOrDefaultAsync(u => u.ID == request.AgentUserId);
-
         if (agent == null)
             return BadRequest(new { message = "Agent user not found." });
-
-        var agentRole = agent.Role?.Name?.Trim().ToLower() ?? string.Empty;
-        if (agentRole != "it support agent" && agentRole != "agent" && agentRole != "it")
+        if (!IsAgentRole(agent.Role?.Name ?? string.Empty))
             return BadRequest(new { message = "The assigned user is not an agent." });
-
         if (ticket.AssignedToUserId == agent.ID)
             return BadRequest(new { message = "This ticket is already assigned to that agent." });
 
         var now = DateTime.UtcNow;
         var previousAgentName = ticket.AssignedToUser?.FullName;
 
-        await EndCurrentAssignmentAsync(
-            ticket.Id,
-            now,
-            previousAgentName == null ? "Assignment replaced." : $"Reassigned to {agent.FullName}."
-        );
-
+        await EndCurrentAssignmentAsync(ticket.Id, now,
+            previousAgentName == null ? "Assignment replaced." : $"Reassigned to {agent.FullName}.");
         await EndActiveWorkSessionsAsync(ticket.Id, now, "Ticket reassigned");
 
         _context.TicketAssignments.Add(new TicketAssignment
@@ -697,10 +724,7 @@ public class TicketsController : ControllerBase
         }
         catch (DbUpdateException)
         {
-            return Conflict(new
-            {
-                message = "The ticket assignment changed. Refresh and try again."
-            });
+            return Conflict(new { message = "The ticket assignment changed. Refresh and try again." });
         }
 
         return Ok(new
@@ -738,7 +762,7 @@ public class TicketsController : ControllerBase
         var agents = await _context.Users
             .AsNoTracking()
             .Where(u => u.Role != null &&
-                (u.Role.Name.ToLower() == "it support agent" || u.Role.Name.ToLower() == "agent"))
+                (u.Role.Name.ToLower() == "it support agent" || u.Role.Name.ToLower() == "agent" || u.Role.Name.ToLower() == "it"))
             .Select(u => new
             {
                 id = u.ID,
@@ -767,26 +791,17 @@ public class TicketsController : ControllerBase
         var ticket = await _context.Tickets
             .Include(t => t.Status)
             .FirstOrDefaultAsync(t => t.Id == id && !t.IsDeleted);
-
         if (ticket == null)
             return NotFound(new { message = "Ticket not found." });
-
         if (ticket.AssignedToUserId != null)
             return Conflict(new { message = "Ticket is already assigned." });
-
         if (IsStatus(ticket, "Closed") || IsStatus(ticket, "Resolved") || IsStatus(ticket, "Cancelled"))
             return BadRequest(new { message = "Cannot take a closed, resolved, or cancelled ticket." });
 
-        var agent = await _context.Users
-            .Include(u => u.Role)
-            .FirstOrDefaultAsync(u => u.ID == agentUserId);
-
+        var agent = await _context.Users.Include(u => u.Role).FirstOrDefaultAsync(u => u.ID == agentUserId);
         if (agent == null)
             return Unauthorized(new { message = "Agent user not found." });
-
-        var roleName = agent.Role?.Name ?? string.Empty;
-        if (!roleName.Equals("IT Support Agent", StringComparison.OrdinalIgnoreCase) &&
-            !roleName.Equals("Agent", StringComparison.OrdinalIgnoreCase))
+        if (!IsAgentRole(agent.Role?.Name ?? string.Empty))
             return Forbid();
 
         var now = DateTime.UtcNow;
@@ -854,19 +869,14 @@ public class TicketsController : ControllerBase
 
         var ticket = await _context.Tickets
             .Include(t => t.Status)
-            .FirstOrDefaultAsync(t =>
-                t.Id == id && !t.IsDeleted && t.AssignedToUserId == agentUserId);
-
+            .FirstOrDefaultAsync(t => t.Id == id && !t.IsDeleted && t.AssignedToUserId == agentUserId);
         if (ticket == null)
             return NotFound(new { message = "Ticket not found or not assigned to you." });
-
         if (IsStatus(ticket, "Closed") || IsStatus(ticket, "Resolved") || IsStatus(ticket, "Cancelled"))
             return BadRequest(new { message = "Cannot start work on a closed, resolved, or cancelled ticket." });
 
         var activeSession = await _context.TicketWorkSessions
-            .FirstOrDefaultAsync(session =>
-                session.AgentUserID == agentUserId && session.EndedAt == null);
-
+            .FirstOrDefaultAsync(session => session.AgentUserID == agentUserId && session.EndedAt == null);
         if (activeSession != null)
         {
             return Conflict(new
@@ -896,7 +906,6 @@ public class TicketsController : ControllerBase
         {
             var previousStatus = ticket.Status.StatusName;
             ticket.StatusId = inProgressStatus.ID;
-
             _context.TicketHistories.Add(new TicketHistory
             {
                 TicketID = ticket.Id,
@@ -918,7 +927,6 @@ public class TicketsController : ControllerBase
         });
 
         await _context.SaveChangesAsync();
-
         return Ok(new
         {
             message = "Work session started.",
@@ -935,28 +943,19 @@ public class TicketsController : ControllerBase
         if (!TryGetCurrentUserId(out var agentUserId))
             return Unauthorized(new { message = "Invalid or missing user ID in token." });
 
-        var ticket = await _context.Tickets
-            .FirstOrDefaultAsync(t =>
-                t.Id == id && !t.IsDeleted && t.AssignedToUserId == agentUserId);
-
+        var ticket = await _context.Tickets.FirstOrDefaultAsync(t =>
+            t.Id == id && !t.IsDeleted && t.AssignedToUserId == agentUserId);
         if (ticket == null)
             return NotFound(new { message = "Ticket not found or not assigned to you." });
 
-        var activeSession = await _context.TicketWorkSessions
-            .FirstOrDefaultAsync(session =>
-                session.TicketID == id &&
-                session.AgentUserID == agentUserId &&
-                session.EndedAt == null);
-
+        var activeSession = await _context.TicketWorkSessions.FirstOrDefaultAsync(session =>
+            session.TicketID == id && session.AgentUserID == agentUserId && session.EndedAt == null);
         if (activeSession == null)
             return BadRequest(new { message = "No active work session found for this ticket." });
 
         var now = DateTime.UtcNow;
         activeSession.EndedAt = now;
-        activeSession.DurationMinutes = Math.Max(
-            1,
-            (int)Math.Ceiling((now - activeSession.StartAt).TotalMinutes)
-        );
+        activeSession.DurationMinutes = Math.Max(1, (int)Math.Ceiling((now - activeSession.StartAt).TotalMinutes));
         activeSession.StopReason = "Paused";
         ticket.UpdatedAt = now;
 
@@ -970,7 +969,6 @@ public class TicketsController : ControllerBase
         });
 
         await _context.SaveChangesAsync();
-
         return Ok(new
         {
             message = "Work session paused.",
@@ -986,7 +984,6 @@ public class TicketsController : ControllerBase
     {
         if (!TryGetCurrentUserId(out var agentUserId))
             return Unauthorized(new { message = "Invalid or missing user ID in token." });
-
         if (request == null || string.IsNullOrWhiteSpace(request.Note))
             return BadRequest(new { message = "Resolution notes are required." });
 
@@ -994,28 +991,22 @@ public class TicketsController : ControllerBase
             .Include(t => t.Status)
             .Include(t => t.AssignedToUser)
             .FirstOrDefaultAsync(t => t.Id == id && !t.IsDeleted);
-
         if (ticket == null)
             return NotFound(new { message = "Ticket not found." });
-
         if (ticket.AssignedToUserId != agentUserId)
             return Forbid();
-
         if (IsStatus(ticket, "Closed") || IsStatus(ticket, "Cancelled"))
             return BadRequest(new { message = "A closed or cancelled ticket cannot be resolved." });
-
         if (IsStatus(ticket, "Resolved"))
             return BadRequest(new { message = "This ticket is already resolved." });
 
         var resolvedStatus = await _context.Statuses
             .FirstOrDefaultAsync(status => status.StatusName.ToLower() == "resolved");
-
         if (resolvedStatus == null)
             return BadRequest(new { message = "Resolved status was not found." });
 
         var now = DateTime.UtcNow;
         var previousStatus = ticket.Status.StatusName;
-
         await EndActiveWorkSessionsAsync(ticket.Id, now, "Ticket resolved");
 
         ticket.StatusId = resolvedStatus.ID;
@@ -1044,8 +1035,7 @@ public class TicketsController : ControllerBase
             CreatedAt = now
         });
 
-        var managerAndAdminIds = await GetManagersAndAdminsAsync();
-        var recipients = managerAndAdminIds
+        var recipients = (await GetManagersAndAdminsAsync())
             .Append(ticket.CreatedByUserId)
             .Where(userId => userId != agentUserId)
             .Distinct()
@@ -1060,7 +1050,6 @@ public class TicketsController : ControllerBase
         );
 
         await _context.SaveChangesAsync();
-
         return Ok(new
         {
             message = "Ticket resolved successfully.",
@@ -1075,7 +1064,6 @@ public class TicketsController : ControllerBase
     {
         if (!TryGetCurrentUserId(out var agentUserId))
             return Unauthorized(new { message = "Invalid or missing user ID in token." });
-
         if (request == null || string.IsNullOrWhiteSpace(request.Note))
             return BadRequest(new { message = "Escalation reason is required." });
 
@@ -1083,28 +1071,24 @@ public class TicketsController : ControllerBase
             .Include(t => t.Status)
             .Include(t => t.AssignedToUser)
             .FirstOrDefaultAsync(t => t.Id == id && !t.IsDeleted);
-
         if (ticket == null)
             return NotFound(new { message = "Ticket not found." });
-
         if (ticket.AssignedToUserId != agentUserId)
             return Forbid();
-
         if (IsStatus(ticket, "Closed") || IsStatus(ticket, "Resolved") || IsStatus(ticket, "Cancelled"))
             return BadRequest(new { message = "This ticket cannot be escalated in its current state." });
 
-        var openStatus = await _context.Statuses
-            .FirstOrDefaultAsync(status => status.StatusName.ToLower() == "open");
-
+        var openStatus = await _context.Statuses.FirstOrDefaultAsync(status => status.StatusName.ToLower() == "open");
         if (openStatus == null)
             return BadRequest(new { message = "Open status was not found." });
 
         var now = DateTime.UtcNow;
         var agentName = ticket.AssignedToUser?.FullName ?? "Assigned agent";
         var previousStatus = ticket.Status.StatusName;
+        var reason = request.Note.Trim();
 
         await EndActiveWorkSessionsAsync(ticket.Id, now, "Ticket escalated");
-        await EndCurrentAssignmentAsync(ticket.Id, now, $"Escalated: {request.Note.Trim()}");
+        await EndCurrentAssignmentAsync(ticket.Id, now, $"Escalated: {reason}");
 
         ticket.AssignedToUserId = null;
         ticket.StatusId = openStatus.ID;
@@ -1116,7 +1100,7 @@ public class TicketsController : ControllerBase
             ChangedByUserID = agentUserId,
             Action = "Ticket escalated",
             OldValue = $"{previousStatus} / {agentName}",
-            NewValue = $"Open / Unassigned - {request.Note.Trim()}",
+            NewValue = $"Open / Unassigned - {reason}",
             CreatedAt = now
         });
 
@@ -1125,13 +1109,13 @@ public class TicketsController : ControllerBase
             TicketID = ticket.Id,
             PerformedByUserID = agentUserId,
             ActivityType = "Escalated",
-            Description = $"{agentName} returned the ticket to the manager for reassignment. Reason: {request.Note.Trim()}",
+            Description = $"{agentName} returned the ticket to the manager for reassignment. Reason: {reason}",
             CreatedAt = now
         });
 
-        var managerIds = await _notificationService.GetUserIdsByRoleAsync("Manager");
+        var managersAndAdmins = await GetManagersAndAdminsAsync();
         await _notificationService.CreateNotificationsAsync(
-            managerIds,
+            managersAndAdmins,
             "Ticket Escalated",
             $"{ticket.TicketNumber} - {ticket.Subject} was escalated by {agentName} and needs reassignment.",
             "TicketEscalated",
@@ -1147,10 +1131,82 @@ public class TicketsController : ControllerBase
         );
 
         await _context.SaveChangesAsync();
-
         return Ok(new
         {
             message = "Ticket escalated successfully and returned to the manager for reassignment.",
+            status = "Open",
+            assignedAgent = (object?)null
+        });
+    }
+
+    [HttpPost("{id:int}/return-to-manager")]
+    [Authorize(Roles = "IT Support Agent,Agent")]
+    public async Task<IActionResult> ReturnToManager(int id, TicketActionRequest request)
+    {
+        if (!TryGetCurrentUserId(out var agentUserId))
+            return Unauthorized(new { message = "Invalid or missing user ID in token." });
+        if (request == null || string.IsNullOrWhiteSpace(request.Note))
+            return BadRequest(new { message = "A reason is required before returning the ticket." });
+
+        var ticket = await _context.Tickets
+            .Include(t => t.Status)
+            .Include(t => t.AssignedToUser)
+            .FirstOrDefaultAsync(t => t.Id == id && !t.IsDeleted);
+        if (ticket == null)
+            return NotFound(new { message = "Ticket not found." });
+        if (ticket.AssignedToUserId != agentUserId)
+            return Forbid();
+        if (IsStatus(ticket, "Closed") || IsStatus(ticket, "Resolved") || IsStatus(ticket, "Cancelled"))
+            return BadRequest(new { message = "This ticket cannot be returned in its current state." });
+
+        var openStatus = await _context.Statuses.FirstOrDefaultAsync(s => s.StatusName.ToLower() == "open");
+        if (openStatus == null)
+            return BadRequest(new { message = "Open status was not found." });
+
+        var now = DateTime.UtcNow;
+        var agentName = ticket.AssignedToUser?.FullName ?? "Assigned agent";
+        var previousStatus = ticket.Status.StatusName;
+        var reason = request.Note.Trim();
+
+        await EndActiveWorkSessionsAsync(ticket.Id, now, "Returned to manager: " + reason);
+        await EndCurrentAssignmentAsync(ticket.Id, now, "Agent could not resolve: " + reason);
+
+        ticket.AssignedToUserId = null;
+        ticket.StatusId = openStatus.ID;
+        ticket.UpdatedAt = now;
+
+        _context.TicketHistories.Add(new TicketHistory
+        {
+            TicketID = ticket.Id,
+            ChangedByUserID = agentUserId,
+            Action = "Returned to manager",
+            OldValue = $"{previousStatus} / {agentName}",
+            NewValue = $"Open / Unassigned - {reason}",
+            CreatedAt = now
+        });
+
+        _context.TicketActivityLogs.Add(new TicketActivityLog
+        {
+            TicketID = ticket.Id,
+            PerformedByUserID = agentUserId,
+            ActivityType = "Returned to Manager",
+            Description = $"{agentName} could not resolve the issue and returned the ticket for reassignment. Reason: {reason}",
+            CreatedAt = now
+        });
+
+        var managersAndAdmins = await GetManagersAndAdminsAsync();
+        await _notificationService.CreateNotificationsAsync(
+            managersAndAdmins,
+            "Ticket Needs Reassignment",
+            $"{ticket.TicketNumber} - {ticket.Subject} was returned by {agentName} and needs another agent.",
+            "TicketReturned",
+            ticket.Id
+        );
+
+        await _context.SaveChangesAsync();
+        return Ok(new
+        {
+            message = "Ticket returned to the manager for reassignment.",
             status = "Open",
             assignedAgent = (object?)null
         });
@@ -1162,7 +1218,6 @@ public class TicketsController : ControllerBase
     {
         if (!TryGetCurrentUserId(out var agentUserId))
             return Unauthorized(new { message = "Invalid or missing user ID in token." });
-
         if (request == null || string.IsNullOrWhiteSpace(request.Note))
             return BadRequest(new { message = "Cancellation reason is required." });
 
@@ -1170,22 +1225,15 @@ public class TicketsController : ControllerBase
             .Include(t => t.Status)
             .Include(t => t.AssignedToUser)
             .FirstOrDefaultAsync(t => t.Id == id && !t.IsDeleted);
-
         if (ticket == null)
             return NotFound(new { message = "Ticket not found." });
-
         if (ticket.AssignedToUserId != agentUserId)
             return Forbid();
-
         if (IsStatus(ticket, "Closed") || IsStatus(ticket, "Cancelled"))
             return BadRequest(new { message = "This ticket is already closed or cancelled." });
 
-        var cancelledStatus = await _context.Statuses
-            .FirstOrDefaultAsync(status => status.StatusName.ToLower() == "cancelled");
-
-        var closedStatus = await _context.Statuses
-            .FirstOrDefaultAsync(status => status.StatusName.ToLower() == "closed");
-
+        var cancelledStatus = await _context.Statuses.FirstOrDefaultAsync(status => status.StatusName.ToLower() == "cancelled");
+        var closedStatus = await _context.Statuses.FirstOrDefaultAsync(status => status.StatusName.ToLower() == "closed");
         var finalStatus = cancelledStatus ?? closedStatus;
         if (finalStatus == null)
             return BadRequest(new { message = "Neither Cancelled nor Closed status was found." });
@@ -1193,9 +1241,10 @@ public class TicketsController : ControllerBase
         var now = DateTime.UtcNow;
         var previousStatus = ticket.Status.StatusName;
         var agentName = ticket.AssignedToUser?.FullName ?? "Assigned agent";
+        var reason = request.Note.Trim();
 
         await EndActiveWorkSessionsAsync(ticket.Id, now, "Ticket cancelled");
-        await EndCurrentAssignmentAsync(ticket.Id, now, $"Ticket cancelled: {request.Note.Trim()}");
+        await EndCurrentAssignmentAsync(ticket.Id, now, $"Ticket cancelled: {reason}");
 
         ticket.StatusId = finalStatus.ID;
         ticket.ClosedAt = now;
@@ -1208,7 +1257,7 @@ public class TicketsController : ControllerBase
             ChangedByUserID = agentUserId,
             Action = "Ticket cancelled",
             OldValue = previousStatus,
-            NewValue = $"{finalStatus.StatusName}: {request.Note.Trim()}",
+            NewValue = $"{finalStatus.StatusName}: {reason}",
             CreatedAt = now
         });
 
@@ -1217,13 +1266,12 @@ public class TicketsController : ControllerBase
             TicketID = ticket.Id,
             PerformedByUserID = agentUserId,
             ActivityType = "Cancelled",
-            Description = $"Ticket cancelled by {agentName}. Reason: {request.Note.Trim()}",
+            Description = $"Ticket cancelled by {agentName}. Reason: {reason}",
             ProgressPercent = 100,
             CreatedAt = now
         });
 
-        var managerAndAdminIds = await GetManagersAndAdminsAsync();
-        var recipients = managerAndAdminIds
+        var recipients = (await GetManagersAndAdminsAsync())
             .Append(ticket.CreatedByUserId)
             .Where(userId => userId != agentUserId)
             .Distinct()
@@ -1238,7 +1286,6 @@ public class TicketsController : ControllerBase
         );
 
         await _context.SaveChangesAsync();
-
         return Ok(new
         {
             message = "Ticket cancelled successfully.",
@@ -1248,45 +1295,42 @@ public class TicketsController : ControllerBase
     }
 
     [HttpPost("{id:int}/reopen")]
-    [Authorize(Roles = "Employee,Manager,Admin")]
+    [Authorize(Roles = "Manager,Admin")]
     public async Task<IActionResult> ReopenTicket(int id, TicketActionRequest request)
     {
         if (!TryGetCurrentUserId(out var userId))
             return Unauthorized(new { message = "Invalid or missing user ID in token." });
-
         if (request == null || string.IsNullOrWhiteSpace(request.Note))
             return BadRequest(new { message = "Reopen reason is required." });
 
-        var role = (User.FindFirstValue(ClaimTypes.Role) ?? string.Empty).Trim();
         var ticket = await _context.Tickets
             .Include(t => t.Status)
             .Include(t => t.AssignedToUser)
             .FirstOrDefaultAsync(t => t.Id == id && !t.IsDeleted);
-
         if (ticket == null)
             return NotFound(new { message = "Ticket not found." });
-
-        if (role.Equals("Employee", StringComparison.OrdinalIgnoreCase) && ticket.CreatedByUserId != userId)
-            return Forbid();
-
         if (!IsStatus(ticket, "Resolved") && !IsStatus(ticket, "Closed") && !IsStatus(ticket, "Cancelled"))
             return BadRequest(new { message = "Only resolved, closed, or cancelled tickets can be reopened." });
 
-        var reopenedStatus = await _context.Statuses
-            .FirstOrDefaultAsync(status => status.StatusName.ToLower() == "reopened");
-
-        var openStatus = await _context.Statuses
-            .FirstOrDefaultAsync(status => status.StatusName.ToLower() == "open");
-
+        var reopenedStatus = await _context.Statuses.FirstOrDefaultAsync(status => status.StatusName.ToLower() == "reopened");
+        var openStatus = await _context.Statuses.FirstOrDefaultAsync(status => status.StatusName.ToLower() == "open");
         var targetStatus = reopenedStatus ?? openStatus;
         if (targetStatus == null)
             return BadRequest(new { message = "Reopened or Open status was not found." });
 
         var now = DateTime.UtcNow;
         var previousStatus = ticket.Status.StatusName;
+        var previousAgentId = ticket.AssignedToUserId;
+        var previousAgentName = ticket.AssignedToUser?.FullName;
+        var reason = request.Note.Trim();
 
+        await EndActiveWorkSessionsAsync(ticket.Id, now, "Ticket reopened for reassignment");
+        await EndCurrentAssignmentAsync(ticket.Id, now, "Ticket reopened for manager reassignment");
+
+        ticket.AssignedToUserId = null;
         ticket.StatusId = targetStatus.ID;
         ticket.ClosedAt = null;
+        ticket.ResolvedAt = null;
         ticket.ProgressPercentage = 0;
         ticket.UpdatedAt = now;
 
@@ -1295,8 +1339,8 @@ public class TicketsController : ControllerBase
             TicketID = ticket.Id,
             ChangedByUserID = userId,
             Action = "Ticket reopened",
-            OldValue = previousStatus,
-            NewValue = $"{targetStatus.StatusName}: {request.Note.Trim()}",
+            OldValue = previousAgentName == null ? previousStatus : $"{previousStatus} / {previousAgentName}",
+            NewValue = $"{targetStatus.StatusName} / Unassigned - {reason}",
             CreatedAt = now
         });
 
@@ -1305,33 +1349,41 @@ public class TicketsController : ControllerBase
             TicketID = ticket.Id,
             PerformedByUserID = userId,
             ActivityType = "Reopened",
-            Description = $"Ticket reopened. Reason: {request.Note.Trim()}",
+            Description = $"Ticket reopened for reassignment. Reason: {reason}",
             ProgressPercent = 0,
             CreatedAt = now
         });
 
-        var managerAndAdminIds = await GetManagersAndAdminsAsync();
-        var recipients = managerAndAdminIds
-            .Append(ticket.CreatedByUserId)
-            .Concat(ticket.AssignedToUserId.HasValue ? new[] { ticket.AssignedToUserId.Value } : Array.Empty<int>())
+        var recipients = new List<int> { ticket.CreatedByUserId };
+        if (previousAgentId.HasValue)
+            recipients.Add(previousAgentId.Value);
+
+        await _notificationService.CreateNotificationsAsync(
+            recipients.Where(recipientId => recipientId != userId),
+            "Ticket Reopened",
+            $"{ticket.TicketNumber} - {ticket.Subject} was reopened and is waiting for reassignment.",
+            "TicketReopened",
+            ticket.Id
+        );
+
+        var otherManagersAndAdmins = (await GetManagersAndAdminsAsync())
             .Where(recipientId => recipientId != userId)
-            .Distinct()
             .ToList();
 
         await _notificationService.CreateNotificationsAsync(
-            recipients,
+            otherManagersAndAdmins,
             "Ticket Reopened",
-            $"{ticket.TicketNumber} - {ticket.Subject} has been reopened.",
+            $"{ticket.TicketNumber} - {ticket.Subject} was reopened and needs reassignment.",
             "TicketReopened",
             ticket.Id
         );
 
         await _context.SaveChangesAsync();
-
         return Ok(new
         {
-            message = "Ticket reopened successfully.",
-            status = targetStatus.StatusName
+            message = "Ticket reopened successfully and returned to the assignment queue.",
+            status = targetStatus.StatusName,
+            assignedAgent = (object?)null
         });
     }
 
@@ -1345,19 +1397,14 @@ public class TicketsController : ControllerBase
         var ticket = await _context.Tickets
             .Include(t => t.Status)
             .FirstOrDefaultAsync(t => t.Id == id && !t.IsDeleted);
-
         if (ticket == null)
             return NotFound(new { message = "Ticket not found." });
-
         if (IsStatus(ticket, "Closed"))
             return BadRequest(new { message = "This ticket is already closed." });
-
         if (!IsStatus(ticket, "Resolved"))
             return BadRequest(new { message = "Only resolved tickets can be closed." });
 
-        var closedStatus = await _context.Statuses
-            .FirstOrDefaultAsync(status => status.StatusName.ToLower() == "closed");
-
+        var closedStatus = await _context.Statuses.FirstOrDefaultAsync(status => status.StatusName.ToLower() == "closed");
         if (closedStatus == null)
             return BadRequest(new { message = "Closed status was not found." });
 
@@ -1403,7 +1450,6 @@ public class TicketsController : ControllerBase
         );
 
         await _context.SaveChangesAsync();
-
         return Ok(new
         {
             message = "Ticket closed successfully.",
