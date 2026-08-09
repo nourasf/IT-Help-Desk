@@ -76,6 +76,13 @@ export async function getTicketComments(ticketId) {
 export async function addTicketComment(ticketId, comment) {
   return request(`${API_URL}/${ticketId}/comments`, { method: "POST", body: JSON.stringify({ comment: comment.trim() }) });
 }
+export async function getInternalNotes(ticketId) {
+  const data = await request(`${API_URL}/${ticketId}/internal-notes`, { method: "GET" });
+  return Array.isArray(data) ? data : [];
+}
+export async function addInternalNote(ticketId, note) {
+  return request(`${API_URL}/${ticketId}/internal-notes`, { method: "POST", body: JSON.stringify({ note: note.trim() }) });
+}
 export async function getTicketActivity(ticketId) {
   const data = await request(`${API_URL}/${ticketId}/activity`, { method: "GET" });
   return Array.isArray(data) ? data : [];
