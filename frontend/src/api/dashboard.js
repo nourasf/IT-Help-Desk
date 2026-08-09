@@ -1,20 +1,14 @@
 const API_URL = "http://localhost:5099/api/dashboard";
 
 function getToken() {
-  return (
-    localStorage.getItem("token") ||
-    sessionStorage.getItem("token")
-  );
+  return localStorage.getItem("token") || sessionStorage.getItem("token");
 }
 
-async function requestDashboard(endpoint) {
+async function requestJson(url) {
   const token = getToken();
+  if (!token) throw new Error("No authentication token found. Please log in again.");
 
-  if (!token) {
-    throw new Error("No authentication token found. Please log in again.");
-  }
-
-  const response = await fetch(`${API_URL}/${endpoint}`, {
+  const response = await fetch(url, {
     method: "GET",
     headers: {
       Authorization: `Bearer ${token}`,
@@ -27,29 +21,21 @@ async function requestDashboard(endpoint) {
     localStorage.removeItem("role");
     sessionStorage.removeItem("token");
     sessionStorage.removeItem("role");
-
     throw new Error("Your login session is invalid or expired.");
   }
 
-  if (!response.ok) {
-    throw new Error(`Failed to load ${endpoint} dashboard.`);
-  }
-
+  if (!response.ok) throw new Error(`Request failed. Error ${response.status}.`);
   return response.json();
 }
 
-export function getEmployeeDashboard() {
-  return requestDashboard("employee");
+function requestDashboard(endpoint) {
+  return requestJson(`${API_URL}/${endpoint}`);
 }
 
-export function getAdminDashboard() {
-  return requestDashboard("admin");
-}
-
-export function getAgentDashboard() {
-  return requestDashboard("agent");
-}
-
-export function getManagerDashboard() {
-  return requestDashboard("manager");
+export function getEmployeeDashboard() { return requestDashboard("employee"); }
+export function getAdminDashboard() { return requestDashboard("admin"); }
+export function getAgentDashboard() { return requestDashboard("agent"); }
+export function getManagerDashboard() { return requestDashboard("manager"); }
+export function getAdminResolvedAnalytics() {
+  return requestJson("http://localhost:5099/api/admin-analytics/resolved-last-30-days");
 }
