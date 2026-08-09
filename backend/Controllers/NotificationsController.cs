@@ -24,15 +24,13 @@ public class NotificationsController : ControllerBase
     }
 
     [HttpGet]
-    public async Task<IActionResult> GetNotifications([FromQuery] int take = 20, [FromQuery] int days=7)
+    public async Task<IActionResult> GetNotifications([FromQuery] int take = 20, [FromQuery] int days = 7)
     {
         if (!TryGetUserId(out var userId))
-        {
             return Unauthorized(new { message = "Invalid or missing user ID in token." });
-        }
 
         take = Math.Clamp(take, 1, 100);
-        days=Math.Clamp(days, 1, 30);
+        days = Math.Clamp(days, 1, 30);
         var cutoffDate = DateTime.UtcNow.AddDays(-days);
 
         var notifications = await _context.Notifications
@@ -53,21 +51,22 @@ public class NotificationsController : ControllerBase
             .ToListAsync();
 
         var unreadCount = await _context.Notifications
-            .CountAsync(n => n.UserId == userId && !n.IsRead);
+            .CountAsync(n => n.UserId == userId && !n.IsRead && n.CreatedAt >= cutoffDate);
 
         return Ok(new { unreadCount, notifications });
     }
 
     [HttpGet("unread-count")]
-    public async Task<IActionResult> GetUnreadCount()
+    public async Task<IActionResult> GetUnreadCount([FromQuery] int days = 7)
     {
         if (!TryGetUserId(out var userId))
-        {
             return Unauthorized(new { message = "Invalid or missing user ID in token." });
-        }
+
+        days = Math.Clamp(days, 1, 30);
+        var cutoffDate = DateTime.UtcNow.AddDays(-days);
 
         var unreadCount = await _context.Notifications
-            .CountAsync(n => n.UserId == userId && !n.IsRead);
+            .CountAsync(n => n.UserId == userId && !n.IsRead && n.CreatedAt >= cutoffDate);
 
         return Ok(new { unreadCount });
     }
@@ -76,17 +75,13 @@ public class NotificationsController : ControllerBase
     public async Task<IActionResult> MarkAsRead(int id)
     {
         if (!TryGetUserId(out var userId))
-        {
             return Unauthorized(new { message = "Invalid or missing user ID in token." });
-        }
 
         var notification = await _context.Notifications
             .FirstOrDefaultAsync(n => n.Id == id && n.UserId == userId);
 
         if (notification == null)
-        {
             return NotFound(new { message = "Notification not found." });
-        }
 
         notification.IsRead = true;
         await _context.SaveChangesAsync();
@@ -95,24 +90,23 @@ public class NotificationsController : ControllerBase
     }
 
     [HttpPost("read-all")]
-    public async Task<IActionResult> MarkAllAsRead()
+    public async Task<IActionResult> MarkAllAsRead([FromQuery] int days = 7)
     {
         if (!TryGetUserId(out var userId))
-        {
             return Unauthorized(new { message = "Invalid or missing user ID in token." });
-        }
+
+        days = Math.Clamp(days, 1, 30);
+        var cutoffDate = DateTime.UtcNow.AddDays(-days);
 
         var unreadNotifications = await _context.Notifications
-            .Where(n => n.UserId == userId && !n.IsRead)
+            .Where(n => n.UserId == userId && !n.IsRead && n.CreatedAt >= cutoffDate)
             .ToListAsync();
 
         foreach (var notification in unreadNotifications)
-        {
             notification.IsRead = true;
-        }
 
         await _context.SaveChangesAsync();
 
-        return Ok(new { message = "All notifications marked as read." });
+        return Ok(new { message = "Recent notifications marked as read." });
     }
 }
