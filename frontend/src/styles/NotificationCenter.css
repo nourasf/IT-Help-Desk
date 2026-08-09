@@ -49,7 +49,7 @@
   position: absolute;
   top: calc(100% + 14px);
   right: 0;
-  z-index: 1000;
+  z-index: 6000;
   width: min(430px, calc(100vw - 28px));
   overflow: hidden;
   border: 1px solid rgba(112, 83, 170, 0.15);
@@ -140,12 +140,11 @@
 .notification-footer { display:flex; min-height:39px; align-items:center; justify-content:center; gap:7px; border-top:1px solid #eee9f4; background:#fff; color:#948b9e; font-size:9px; font-weight:650; }
 .notification-live-dot { width:6px; height:6px; border-radius:50%; background:#4eaf7b; box-shadow:0 0 0 4px rgba(78,175,123,.1); animation:notificationLivePulse 2s ease-in-out infinite; }
 
-/* Noticeable desktop toast for newly arriving notifications. */
 .notification-toast-wrap {
   position: fixed;
   top: 92px;
   right: 26px;
-  z-index: 4000;
+  z-index: 7000;
   width: min(390px, calc(100vw - 32px));
   pointer-events: none;
 }
@@ -196,6 +195,28 @@
 .notification-toast-link { display:inline-flex; margin-top:8px; color:#704ebc; font-size:9px; font-weight:850; }
 .notification-toast-close { position:relative; z-index:2; display:grid; width:28px; height:28px; place-items:center; padding:0; border:0; border-radius:9px; background:#f5f1f8; color:#81788b; font-size:16px; cursor:pointer; }
 .notification-toast-close:hover { background:#ece5f3; color:#4c4159; }
+
+/* Keep the entire notification layer above dashboard cards.
+   The popover used to have a high z-index but was trapped inside
+   the topbar's lower stacking context, which is why dashboard cards
+   were drawing over it. */
+.topbar {
+  position: relative !important;
+  z-index: 5000 !important;
+  overflow: visible !important;
+}
+
+.topbar-user,
+.notification-center {
+  position: relative;
+  z-index: 5100;
+  overflow: visible;
+}
+
+.dashboard-content {
+  position: relative;
+  z-index: 1;
+}
 
 @keyframes notificationPopoverIn { from { opacity:0; transform:translateY(-8px) scale(.98); } to { opacity:1; transform:translateY(0) scale(1); } }
 @keyframes notificationBellNudge { 0%,86%,100% { transform:rotate(0deg); } 89% { transform:rotate(8deg); } 92% { transform:rotate(-7deg); } 95% { transform:rotate(4deg); } }
