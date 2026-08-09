@@ -34,14 +34,37 @@ public class NotificationService
         return Task.CompletedTask;
     }
 
-    public Task CreateNotificationsAsync(
+    public async Task CreateNotificationsAsync(
         IEnumerable<int> userIds,
         string title,
         string message,
         string type,
         int? ticketId = null)
     {
-        foreach (var userId in userIds.Distinct())
+        var recipients = userIds.Distinct().ToHashSet();
+
+        // Admins should receive system-level ticket events even when the caller
+        // originally targets only managers/employees/agents.
+        var adminVisibleTypes = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+        {
+            "TicketCreated",
+            "CommentAdded",
+            "TicketResolved",
+            "TicketEscalated",
+            "TicketCancelled",
+            "TicketReopened",
+            "TicketClosed",
+            "TicketReturned"
+        };
+
+        if (adminVisibleTypes.Contains(type))
+        {
+            var adminIds = await GetUserIdsByRoleAsync("Admin");
+            foreach (var adminId in adminIds)
+                recipients.Add(adminId);
+        }
+
+        foreach (var userId in recipients)
         {
             _context.Notifications.Add(new Notification
             {
@@ -54,8 +77,6 @@ public class NotificationService
                 CreatedAt = DateTime.UtcNow
             });
         }
-
-        return Task.CompletedTask;
     }
 
     public async Task<List<int>> GetUserIdsByRoleAsync(params string[] roleNames)
