@@ -37,5 +37,5 @@ export function getAdminDashboard() { return requestDashboard("admin"); }
 export function getAgentDashboard() { return requestDashboard("agent"); }
 export function getManagerDashboard() { return requestDashboard("manager"); }
 export function getAdminResolvedAnalytics() {
-  return requestJson("http://localhost:5099/api/admin-analytics/resolved-last-30-days");
+  return requestJson(`${API_URL}/admin/resolved-last-30-days`);
 }
