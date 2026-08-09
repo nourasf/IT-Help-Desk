@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import "../styles/AdminActionsModal.css";
+import "../styles/Admin.css";
 
 function AdminActionsModal({ open, onClose }) {
   if (!open) return null;
