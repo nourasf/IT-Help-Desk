@@ -22,6 +22,7 @@ function formatRelativeTime(value) {
 
 function getNotificationVisual(type) {
   const normalized = String(type || "").toLowerCase();
+  if (normalized.includes("returned")) return { icon: "↩", tone: "warning", label: "Needs reassignment" };
   if (normalized.includes("resolved")) return { icon: "✓", tone: "success", label: "Resolved" };
   if (normalized.includes("assigned") || normalized.includes("reassigned")) return { icon: "↗", tone: "purple", label: "Assignment" };
   if (normalized.includes("escalat")) return { icon: "!", tone: "warning", label: "Escalated" };
@@ -111,7 +112,7 @@ function Topbar() {
 
     async function checkForNewNotifications() {
       try {
-        const data = await getNotifications(20);
+        const data = await getNotifications(5, 7);
         if (cancelled) return;
         const items = Array.isArray(data.notifications) ? data.notifications : [];
         const newUnread = items.find((item) => !item.isRead && !knownNotificationIdsRef.current.has(item.id));
@@ -133,9 +134,7 @@ function Topbar() {
 
   useEffect(() => {
     function handleOutsideClick(event) {
-      if (notificationsOpen && notificationRef.current && !notificationRef.current.contains(event.target)) {
-        setNotificationsOpen(false);
-      }
+      if (notificationsOpen && notificationRef.current && !notificationRef.current.contains(event.target)) setNotificationsOpen(false);
     }
     function handleEscape(event) {
       if (event.key === "Escape") {
@@ -208,34 +207,13 @@ function Topbar() {
                   <div><span className="notification-kicker">Your activity</span><h2>Notifications</h2><p>{unreadCount > 0 ? `${unreadCount} update${unreadCount === 1 ? "" : "s"} waiting for you` : "You’re all caught up"}</p></div>
                   <div className="notification-header-orb" aria-hidden="true"><span>✦</span></div>
                 </header>
-               <div className="notification-toolbar">
-  <span>
-    {recentUnread > 0
-      ? `${recentUnread} unread in this list`
-      : "Latest activity"}
-  </span>
-
-  <div className="notification-toolbar-actions">
-    <button
-      type="button"
-      className="notification-see-all"
-      onClick={() => {
-        setNotificationsOpen(false);
-        navigate("/notifications");
-      }}
-    >
-      See all
-    </button>
-
-    <button
-      type="button"
-      onClick={handleMarkAllRead}
-      disabled={unreadCount === 0}
-    >
-      Mark all read
-    </button>
-  </div>
-</div>
+                <div className="notification-toolbar">
+                  <span>{recentUnread > 0 ? `${recentUnread} unread in this list` : "Latest activity"}</span>
+                  <div className="notification-toolbar-actions">
+                    <button type="button" className="notification-see-all" onClick={() => { setNotificationsOpen(false); navigate("/notifications"); }}>See all</button>
+                    <button type="button" onClick={handleMarkAllRead} disabled={unreadCount === 0}>Mark all read</button>
+                  </div>
+                </div>
                 <div className="notification-list">
                   {notificationsLoading ? (
                     <div className="notification-loading"><span /><span /><span /></div>
@@ -257,7 +235,7 @@ function Topbar() {
                       );
                     })
                   ) : (
-                    <div className="notification-empty-state"><div className="notification-empty-orbit" aria-hidden="true"><span className="orbit-dot one" /><span className="orbit-dot two" /><b>✓</b></div><strong>Inbox zero. Nice.</strong><p>No new ticket drama right now. Enjoy the quiet ✦</p></div>
+                    <div className="notification-empty-state"><div className="notification-empty-orbit" aria-hidden="true"><span className="orbit-dot one" /><span className="orbit-dot two" /><b>✓</b></div><strong>Inbox zero. Nice.</strong><p>No new ticket updates right now.</p></div>
                   )}
                 </div>
                 <footer className="notification-footer"><span className="notification-live-dot" /><span>Checks for new updates automatically</span></footer>
@@ -267,21 +245,9 @@ function Topbar() {
 
           <div className="user-avatar">{initials}</div>
           <span className="user-name">{currentUser?.name || "User"}</span>
-          <button
-  className="topbar-arrow"
-  type="button"
-  aria-label="Open user menu"
->
-  <svg viewBox="0 0 20 20" fill="none" aria-hidden="true">
-    <path
-      d="M6 8L10 12L14 8"
-      stroke="currentColor"
-      strokeWidth="1.8"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    />
-  </svg>
-</button>
+          <button className="topbar-arrow" type="button" aria-label="Open user menu">
+            <svg viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M6 8L10 12L14 8" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" /></svg>
+          </button>
         </div>
       </header>
 
