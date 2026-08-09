@@ -14,13 +14,14 @@ import {
   getTicketById,
   getTicketComments,
   getTicketHistory,
+  managerReopenTicket,
   pauseWork,
-  reopenTicket,
   resolveTicket,
   returnTicketToManager,
   startWork,
 } from "../../api/ticket";
 import "../../styles/Tickets.css";
+import "../../styles/TicketWorkflow.css";
 
 function formatDate(value) {
   if (!value) return "—";
@@ -63,6 +64,7 @@ function TicketDetails() {
   const [isWorking, setIsWorking] = useState(false);
   const [workLoading, setWorkLoading] = useState(false);
   const [message, setMessage] = useState("");
+  const [messageTone, setMessageTone] = useState("success");
   const [action, setAction] = useState("");
   const [actionNote, setActionNote] = useState("");
   const [actionLoading, setActionLoading] = useState(false);
@@ -84,14 +86,9 @@ function TicketDetails() {
   }
   async function loadTimeline() {
     if (isEmployee) { setActivity([]); setHistory([]); return; }
-    const activityData = await getTicketActivity(id);
-    setActivity(activityData || []);
-    if (isManager || isAdmin) {
-      const historyData = await getTicketHistory(id);
-      setHistory(historyData || []);
-    } else {
-      setHistory([]);
-    }
+    setActivity(await getTicketActivity(id));
+    if (isManager || isAdmin) setHistory(await getTicketHistory(id));
+    else setHistory([]);
   }
   async function loadNotes() {
     if (isEmployee) return;
@@ -113,65 +110,92 @@ function TicketDetails() {
     else if (isManager && !selectedAgentId && leastBusyAgent) setSelectedAgentId(String(leastBusyAgent.id));
   }, [ticket, isManager, leastBusyAgent]);
 
+  function showMessage(text, tone = "success") { setMessage(text || ""); setMessageTone(tone); }
+
   async function performAssignment(agentId, automatic = false) {
     if (!agentId) return;
-    setAssigning(true); setMessage("");
+    setAssigning(true); showMessage("");
     try {
       const result = await assignTicket(id, agentId);
       setAssignmentMessage(automatic ? `Auto-assigned to ${leastBusyAgent?.name || "the least busy agent"}.` : result.message || "Ticket assigned.");
       await Promise.all([loadTicket(), loadAgents(), loadTimeline()]);
-    } catch (e) { setMessage(e.message); } finally { setAssigning(false); }
+    } catch (e) { showMessage(e.message, "error"); } finally { setAssigning(false); }
   }
 
   async function handleWork() {
-    setWorkLoading(true); setMessage("");
+    setWorkLoading(true); showMessage("");
     try {
       const result = isWorking ? await pauseWork(id) : await startWork(id);
-      setMessage(result.message || "Work session updated.");
+      showMessage(result.message || "Work session updated.");
       await Promise.all([loadTicket(), loadTimeline()]);
-    } catch (e) { setMessage(e.message); } finally { setWorkLoading(false); }
+    } catch (e) { showMessage(e.message, "error"); } finally { setWorkLoading(false); }
   }
 
   async function submitComment(event) {
     event.preventDefault();
     if (!newComment.trim()) return;
-    setCommentSubmitting(true); setMessage("");
+    setCommentSubmitting(true); showMessage("");
     try {
       await addTicketComment(id, newComment);
       setNewComment("");
       await Promise.all([loadComments(), loadTimeline()]);
-    } catch (e) { setMessage(e.message); } finally { setCommentSubmitting(false); }
+    } catch (e) { showMessage(e.message, "error"); } finally { setCommentSubmitting(false); }
   }
 
   async function submitInternalNote(event) {
     event.preventDefault();
     if (!newNote.trim()) return;
-    setNoteSubmitting(true); setMessage("");
+    setNoteSubmitting(true); showMessage("");
     try {
       await addInternalNote(id, newNote);
       setNewNote("");
       await Promise.all([loadNotes(), loadTimeline()]);
-    } catch (e) { setMessage(e.message); } finally { setNoteSubmitting(false); }
+    } catch (e) { showMessage(e.message, "error"); } finally { setNoteSubmitting(false); }
   }
 
-  function openAction(name) { setAction(name); setActionNote(""); setMessage(""); if (name === "stop") setStopOutcome("no-issue"); }
+  function openAction(name) {
+    setAction(name);
+    setActionNote("");
+    showMessage("");
+    if (name === "stop") setStopOutcome("no-issue");
+  }
+
   async function runAction() {
     if (!action) return;
     const note = actionNote.trim();
-    if (["resolve", "escalate", "reopen", "stop"].includes(action) && !note) { setMessage("Please add a reason or note first."); return; }
-    setActionLoading(true); setMessage("");
+    if (["resolve", "escalate", "reopen", "stop"].includes(action) && !note) {
+      showMessage("Please add a reason or note first.", "error");
+      return;
+    }
+
+    setActionLoading(true); showMessage("");
     try {
       let result;
+      let returnedToManager = false;
+
       if (action === "resolve") result = await resolveTicket(id, note);
       if (action === "escalate") result = await escalateTicket(id, note);
       if (action === "close") result = await closeTicket(id);
-      if (action === "reopen") result = await reopenTicket(id, note);
+      if (action === "reopen") result = await managerReopenTicket(id, note);
       if (action === "stop" && stopOutcome === "no-issue") result = await cancelTicket(id, `No issue found: ${note}`);
-      if (action === "stop" && stopOutcome === "could-not-solve") result = await returnTicketToManager(id, note);
-      setMessage(result?.message || "Ticket updated.");
-      setAction(""); setActionNote("");
+      if (action === "stop" && stopOutcome === "could-not-solve") {
+        result = await returnTicketToManager(id, note);
+        returnedToManager = true;
+      }
+
+      showMessage(result?.message || "Ticket updated.");
+      setAction("");
+      setActionNote("");
+
+      if (returnedToManager && isAgent) {
+        navigate("/agent-dashboard", { replace: true });
+        return;
+      }
+
       await loadPage();
-    } catch (e) { setMessage(e.message); } finally { setActionLoading(false); }
+    } catch (e) {
+      showMessage(e.message, "error");
+    } finally { setActionLoading(false); }
   }
 
   if (loading) return <DashboardLayout activePage="tickets"><div className="ticket-details-state">Loading ticket...</div></DashboardLayout>;
@@ -195,19 +219,12 @@ function TicketDetails() {
             <button className="ticket-back-button" type="button" onClick={() => navigate(-1)}>← Back</button>
             <span className="ticket-details-number">{ticket.ticketNumber}</span>
             <h1>{ticket.subject}</h1>
-            <div className="ticket-details-badges">
-              <span className={`ticket-details-badge priority-${getBadgeClass(ticket.priority)}`}>{ticket.priority}</span>
-              <span className={`ticket-details-badge status-${getBadgeClass(ticket.status)}`}>{ticket.status}</span>
-            </div>
+            <div className="ticket-details-badges"><span className={`ticket-details-badge priority-${getBadgeClass(ticket.priority)}`}>{ticket.priority}</span><span className={`ticket-details-badge status-${getBadgeClass(ticket.status)}`}>{ticket.status}</span></div>
           </div>
-          {isAgent && !isResolved && !isClosed && !isCancelled && (
-            <button type="button" className={isWorking ? "ticket-pause-work-button" : "ticket-start-work-button"} onClick={handleWork} disabled={workLoading || !ticket.canEdit}>
-              {workLoading ? "Please wait..." : isWorking ? "Pause Work" : "Start Work"}
-            </button>
-          )}
+          {isAgent && !isResolved && !isClosed && !isCancelled && <button type="button" className={isWorking ? "ticket-pause-work-button" : "ticket-start-work-button"} onClick={handleWork} disabled={workLoading || !ticket.canEdit}>{workLoading ? "Please wait..." : isWorking ? "Pause Work" : "Start Work"}</button>}
         </header>
 
-        {message && <div className="ticket-work-message success">{message}</div>}
+        {message && <div className={`ticket-work-message ${messageTone}`}>{message}</div>}
 
         {(isAgent || isManager || isAdmin) && (
           <section className="ticket-action-bar">
@@ -225,15 +242,10 @@ function TicketDetails() {
         {action && (
           <div className="ticket-action-modal-backdrop" role="presentation" onMouseDown={() => !actionLoading && setAction("")}>
             <section className="ticket-action-modal" role="dialog" aria-modal="true" onMouseDown={(event) => event.stopPropagation()}>
-              <header><div><span>Confirm action</span><h3>{action === "stop" ? "Stop working on this ticket" : `${action[0].toUpperCase()}${action.slice(1)} ticket`}</h3></div><button type="button" onClick={() => setAction("")}>×</button></header>
-              {action === "stop" && (
-                <div className="ticket-stop-options">
-                  <button type="button" className={stopOutcome === "no-issue" ? "selected" : ""} onClick={() => setStopOutcome("no-issue")}><strong>No issue found</strong><span>Cancel the ticket because no reproducible issue was found.</span></button>
-                  <button type="button" className={stopOutcome === "could-not-solve" ? "selected" : ""} onClick={() => setStopOutcome("could-not-solve")}><strong>Could not solve it</strong><span>Return it to the manager, unassign me and keep the full history for reassignment.</span></button>
-                </div>
-              )}
+              <header><div><span>Confirm action</span><h3>{action === "stop" ? "Stop working on this ticket" : `${action[0].toUpperCase()}${action.slice(1)} ticket`}</h3></div><button type="button" onClick={() => setAction("")} aria-label="Close">×</button></header>
+              {action === "stop" && <div className="ticket-stop-options"><button type="button" className={stopOutcome === "no-issue" ? "selected" : ""} onClick={() => setStopOutcome("no-issue")}><strong>No issue found</strong><span>Cancel the ticket because no reproducible issue was found.</span></button><button type="button" className={stopOutcome === "could-not-solve" ? "selected" : ""} onClick={() => setStopOutcome("could-not-solve")}><strong>Could not solve it</strong><span>Return it to the manager, unassign me and preserve the history for reassignment.</span></button></div>}
               {action !== "close" && <textarea value={actionNote} onChange={(event) => setActionNote(event.target.value)} placeholder={action === "resolve" ? "Resolution notes..." : "Reason / notes..."} />}
-              {action === "close" && <p className="ticket-action-confirmation">This closes the resolved ticket and makes it read-only. The manager can reopen it later if needed.</p>}
+              {action === "close" && <p className="ticket-action-confirmation">This closes the resolved ticket and makes it read-only. A manager can reopen it later if the issue returns.</p>}
               <footer><button type="button" className="secondary" onClick={() => setAction("")} disabled={actionLoading}>Back</button><button type="button" className="primary" onClick={runAction} disabled={actionLoading}>{actionLoading ? "Updating..." : "Confirm"}</button></footer>
             </section>
           </div>
@@ -241,7 +253,7 @@ function TicketDetails() {
 
         {isManager && (
           <section className="ticket-manager-assignment-card">
-            <div className="ticket-manager-assignment-heading"><div><span>Manager action</span><h2>{ticket.assignedAgent ? "Assignment" : "This ticket needs an owner"}</h2><p>Assign manually or choose the least busy agent.</p></div>{ticket.assignedAgent && <div className="ticket-current-owner"><small>Current owner</small><strong>{ticket.assignedAgent.name}</strong></div>}</div>
+            <div className="ticket-manager-assignment-heading"><div><span>Manager action</span><h2>{ticket.assignedAgent ? "Assignment" : "This ticket needs an owner"}</h2><p>Assign manually or choose the least busy agent. Reopened and returned tickets remain in history and can be assigned again.</p></div>{ticket.assignedAgent && <div className="ticket-current-owner"><small>Current owner</small><strong>{ticket.assignedAgent.name}</strong></div>}</div>
             <div className="ticket-manager-assignment-grid">
               <div className="ticket-manual-assignment"><span>Manual assignment</span><select value={selectedAgentId} onChange={(event) => setSelectedAgentId(event.target.value)} disabled={assigning || assignmentLocked || !sortedAgents.length}>{sortedAgents.map((agent) => <option key={agent.id} value={agent.id}>{agent.name} · {agent.activeTickets} active</option>)}</select><button type="button" disabled={assigning || assignmentLocked || !selectedAgentId} onClick={() => performAssignment(selectedAgentId)}>{assigning ? "Assigning..." : ticket.assignedAgent ? "Reassign Ticket" : "Assign Ticket"}</button></div>
               <div className="ticket-smart-assignment"><div><span>✦ Smart assignment</span><strong>{leastBusyAgent?.name || "No agent available"}</strong><p>{leastBusyAgent ? `${leastBusyAgent.activeTickets} active ticket${Number(leastBusyAgent.activeTickets) === 1 ? "" : "s"}` : "No support agents available."}</p></div><button type="button" disabled={assigning || assignmentLocked || !leastBusyAgent} onClick={() => performAssignment(leastBusyAgent?.id, true)}>✦ Auto Assign</button></div>
@@ -251,37 +263,16 @@ function TicketDetails() {
         )}
 
         <section className="ticket-details-grid">
-          <article className="ticket-details-main-card">
-            <div className="ticket-details-section-heading"><h2>Issue Description</h2></div>
-            <p className="ticket-description">{ticket.description}</p>
-            <div className="ticket-information-grid">
-              <div><span>Category</span><strong>{ticket.category}</strong></div><div><span>Priority</span><strong>{ticket.priority}</strong></div><div><span>Status</span><strong>{ticket.status}</strong></div><div><span>Created</span><strong>{formatDate(ticket.createdAt)}</strong></div><div><span>Last Updated</span><strong>{formatDate(ticket.updatedAt)}</strong></div><div><span>Closed</span><strong>{formatDate(ticket.closedAt)}</strong></div>
-            </div>
-          </article>
-          <aside className="ticket-details-sidebar">
-            <article className="ticket-person-card"><span className="ticket-person-label">Requested by</span><div className="ticket-person-details"><span className="ticket-person-avatar">{getInitials(ticket.employee?.name)}</span><div><strong>{ticket.employee?.name || "Unknown employee"}</strong><small>{ticket.employee?.email || "No email"}</small></div></div></article>
-            <article className="ticket-person-card"><span className="ticket-person-label">Assigned agent</span>{ticket.assignedAgent ? <div className="ticket-person-details"><span className="ticket-person-avatar agent">{getInitials(ticket.assignedAgent.name)}</span><div><strong>{ticket.assignedAgent.name}</strong><small>{ticket.assignedAgent.email}</small></div></div> : <p className="ticket-unassigned-text">This ticket is currently unassigned.</p>}</article>
-            <article className="ticket-work-card"><h2>Work Session</h2><div className={isWorking ? "ticket-work-active" : "ticket-work-empty"}><strong>{isWorking ? "Work session active" : "No active work session"}</strong><p>{isWorking ? "Working time is being tracked." : "Real working time is preserved across sessions and assignments."}</p></div><div className="ticket-total-work-time"><span>Total working time</span><strong>{ticket.totalWorkMinutes ?? 0} minutes</strong></div></article>
-          </aside>
+          <article className="ticket-details-main-card"><div className="ticket-details-section-heading"><h2>Issue Description</h2></div><p className="ticket-description">{ticket.description}</p><div className="ticket-information-grid"><div><span>Category</span><strong>{ticket.category}</strong></div><div><span>Priority</span><strong>{ticket.priority}</strong></div><div><span>Status</span><strong>{ticket.status}</strong></div><div><span>Created</span><strong>{formatDate(ticket.createdAt)}</strong></div><div><span>Last Updated</span><strong>{formatDate(ticket.updatedAt)}</strong></div><div><span>Closed</span><strong>{formatDate(ticket.closedAt)}</strong></div></div></article>
+          <aside className="ticket-details-sidebar"><article className="ticket-person-card"><span className="ticket-person-label">Requested by</span><div className="ticket-person-details"><span className="ticket-person-avatar">{getInitials(ticket.employee?.name)}</span><div><strong>{ticket.employee?.name || "Unknown employee"}</strong><small>{ticket.employee?.email || "No email"}</small></div></div></article><article className="ticket-person-card"><span className="ticket-person-label">Assigned agent</span>{ticket.assignedAgent ? <div className="ticket-person-details"><span className="ticket-person-avatar agent">{getInitials(ticket.assignedAgent.name)}</span><div><strong>{ticket.assignedAgent.name}</strong><small>{ticket.assignedAgent.email}</small></div></div> : <p className="ticket-unassigned-text">This ticket is currently unassigned.</p>}</article><article className="ticket-work-card"><h2>Work Session</h2><div className={isWorking ? "ticket-work-active" : "ticket-work-empty"}><strong>{isWorking ? "Work session active" : "No active work session"}</strong><p>{isWorking ? "Working time is being tracked." : "Real working time is preserved across sessions and assignments."}</p></div><div className="ticket-total-work-time"><span>Total working time</span><strong>{ticket.totalWorkMinutes ?? 0} minutes</strong></div></article></aside>
         </section>
 
         <section className="ticket-details-bottom-grid">
-          <article className="ticket-details-placeholder-card ticket-comments-card">
-            <div className="ticket-bottom-card-heading"><div><span>Conversation</span><h2>Comments</h2></div><small>{comments.length} comment{comments.length === 1 ? "" : "s"}</small></div>
-            <div className="ticket-comments-list">{comments.length ? comments.map((comment) => <div className="ticket-comment-item" key={comment.id}><span className="ticket-comment-avatar">{getInitials(getCommentUser(comment))}</span><div className="ticket-comment-body"><div className="ticket-comment-meta"><strong>{getCommentUser(comment)}</strong><time>{formatDate(comment.createdAt)}</time></div><p>{comment.comment}</p></div></div>) : <div className="ticket-empty-section"><strong>No comments yet</strong><p>Start the support conversation below.</p></div>}</div>
-            {canComment && <form className="ticket-comment-form" onSubmit={submitComment}><textarea value={newComment} onChange={(event) => setNewComment(event.target.value)} placeholder="Write a comment..." /><div className="ticket-comment-form-footer"><small>Visible to everyone who can access this ticket.</small><button type="submit" disabled={commentSubmitting || !newComment.trim()}>{commentSubmitting ? "Posting..." : "Post Comment"}</button></div></form>}
-          </article>
-
+          <article className="ticket-details-placeholder-card ticket-comments-card"><div className="ticket-bottom-card-heading"><div><span>Conversation</span><h2>Comments</h2></div><small>{comments.length} comment{comments.length === 1 ? "" : "s"}</small></div><div className="ticket-comments-list">{comments.length ? comments.map((comment) => <div className="ticket-comment-item" key={comment.id}><span className="ticket-comment-avatar">{getInitials(getCommentUser(comment))}</span><div className="ticket-comment-body"><div className="ticket-comment-meta"><strong>{getCommentUser(comment)}</strong><time>{formatDate(comment.createdAt)}</time></div><p>{comment.comment}</p></div></div>) : <div className="ticket-empty-section"><strong>No comments yet</strong><p>Start the support conversation below.</p></div>}</div>{canComment && <form className="ticket-comment-form" onSubmit={submitComment}><textarea value={newComment} onChange={(event) => setNewComment(event.target.value)} placeholder="Write a comment..." /><div className="ticket-comment-form-footer"><small>Visible to everyone who can access this ticket.</small><button type="submit" disabled={commentSubmitting || !newComment.trim()}>{commentSubmitting ? "Posting..." : "Post Comment"}</button></div></form>}</article>
           {!isEmployee && <article className="ticket-details-placeholder-card ticket-timeline-card"><div className="ticket-bottom-card-heading"><div><span>Ticket history</span><h2>Activity Timeline</h2></div><small>{combinedTimeline.length} updates</small></div><div className="ticket-timeline-list">{combinedTimeline.length ? combinedTimeline.map((item, index) => <div className="ticket-timeline-item" key={`${item.source}-${item.id || index}`}><span className="ticket-timeline-dot" /><div className="ticket-timeline-content"><div className="ticket-timeline-meta"><span>{item.source}</span><time>{formatDate(item.at)}</time></div><strong>{timelineText(item)}</strong>{timelineUser(item) && <p>By {timelineUser(item)}</p>}</div></div>) : <div className="ticket-empty-section"><strong>No activity yet</strong><p>Ticket changes will appear here.</p></div>}</div></article>}
         </section>
 
-        {!isEmployee && (
-          <section className="ticket-internal-notes-card">
-            <div className="ticket-bottom-card-heading"><div><span>Support only</span><h2>Internal Notes</h2></div><small>Hidden from employees</small></div>
-            <div className="ticket-comments-list">{notes.length ? notes.map((note) => <div className="ticket-comment-item" key={note.id}><span className="ticket-comment-avatar">{getInitials(note.author?.name)}</span><div className="ticket-comment-body"><div className="ticket-comment-meta"><strong>{note.author?.name || "Support"}</strong><time>{formatDate(note.createdAt)}</time></div><p>{note.note}</p></div></div>) : <div className="ticket-empty-section"><strong>No internal notes</strong><p>Private support notes will stay hidden from the employee.</p></div>}</div>
-            {!isClosed && <form className="ticket-comment-form" onSubmit={submitInternalNote}><textarea value={newNote} onChange={(event) => setNewNote(event.target.value)} placeholder="Write a private internal note..." /><div className="ticket-comment-form-footer"><small>Only agents, managers and admins can see this.</small><button type="submit" disabled={noteSubmitting || !newNote.trim()}>{noteSubmitting ? "Saving..." : "Add Internal Note"}</button></div></form>}
-          </section>
-        )}
+        {!isEmployee && <section className="ticket-internal-notes-card"><div className="ticket-bottom-card-heading"><div><span>Support only</span><h2>Internal Notes</h2></div><small>Hidden from employees</small></div><div className="ticket-comments-list">{notes.length ? notes.map((note) => <div className="ticket-comment-item" key={note.id}><span className="ticket-comment-avatar">{getInitials(note.author?.name)}</span><div className="ticket-comment-body"><div className="ticket-comment-meta"><strong>{note.author?.name || "Support"}</strong><time>{formatDate(note.createdAt)}</time></div><p>{note.note}</p></div></div>) : <div className="ticket-empty-section"><strong>No internal notes</strong><p>Private support notes stay hidden from the employee.</p></div>}</div>{!isClosed && <form className="ticket-comment-form" onSubmit={submitInternalNote}><textarea value={newNote} onChange={(event) => setNewNote(event.target.value)} placeholder="Write a private internal note..." /><div className="ticket-comment-form-footer"><small>Only agents, managers and admins can see this.</small><button type="submit" disabled={noteSubmitting || !newNote.trim()}>{noteSubmitting ? "Saving..." : "Add Internal Note"}</button></div></form>}</section>}
       </main>
     </DashboardLayout>
   );
