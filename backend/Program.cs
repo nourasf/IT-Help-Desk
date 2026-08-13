@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using System.Text;
 using backend.Data;
 using backend.Hubs;
@@ -72,6 +73,81 @@ if (app.Environment.IsDevelopment()) app.MapOpenApi();
 app.UseHttpsRedirection();
 app.UseCors("AllowFrontend");
 app.UseAuthentication();
+
+app.Use(async (context, next) =>
+{
+    var path = context.Request.Path.Value ?? string.Empty;
+    var segments = path.Split('/', StringSplitOptions.RemoveEmptyEntries);
+    var isTicketRoute = segments.Length >= 4 &&
+        segments[0].Equals("api", StringComparison.OrdinalIgnoreCase) &&
+        segments[1].Equals("tickets", StringComparison.OrdinalIgnoreCase) &&
+        int.TryParse(segments[2], out var ticketId);
+
+    var isHistoryRequest = isTicketRoute &&
+        HttpMethods.IsGet(context.Request.Method) &&
+        segments.Length == 4 &&
+        segments[3].Equals("history", StringComparison.OrdinalIgnoreCase);
+
+    var isInternalNotePost = isTicketRoute &&
+        HttpMethods.IsPost(context.Request.Method) &&
+        segments.Length == 4 &&
+        segments[3].Equals("internal-notes", StringComparison.OrdinalIgnoreCase);
+
+    if ((isHistoryRequest || isInternalNotePost) &&
+        !context.User.IsInRole("Manager") &&
+        !context.User.IsInRole("Admin"))
+    {
+        context.Response.StatusCode = StatusCodes.Status403Forbidden;
+        await context.Response.WriteAsJsonAsync(new
+        {
+            message = isHistoryRequest
+                ? "Ticket history is available to managers and administrators only."
+                : "Only managers and administrators can add internal notes."
+        });
+        return;
+    }
+
+    await next();
+
+    if (!isInternalNotePost || context.Response.StatusCode < 200 || context.Response.StatusCode >= 300)
+        return;
+
+    try
+    {
+        var db = context.RequestServices.GetRequiredService<AppDbContext>();
+        var ticket = await db.Tickets
+            .AsNoTracking()
+            .Where(t => t.Id == ticketId && !t.IsDeleted)
+            .Select(t => new
+            {
+                t.Id,
+                t.TicketNumber,
+                t.Subject,
+                t.AssignedToUserId
+            })
+            .FirstOrDefaultAsync();
+
+        var currentUserIdValue = context.User.FindFirstValue(ClaimTypes.NameIdentifier);
+        _ = int.TryParse(currentUserIdValue, out var currentUserId);
+
+        if (ticket?.AssignedToUserId is int agentId && agentId != currentUserId)
+        {
+            var notificationService = context.RequestServices.GetRequiredService<NotificationService>();
+            await notificationService.CreateNotificationAsync(
+                agentId,
+                "New Internal Note",
+                $"A manager or administrator added an internal note to {ticket.TicketNumber} - {ticket.Subject}.",
+                "InternalNoteAdded",
+                ticket.Id
+            );
+        }
+    }
+    catch
+    {
+        // The note has already been saved; notification delivery should not turn it into a failed request.
+    }
+});
+
 app.UseAuthorization();
 app.MapControllers();
 app.MapHub<NotificationHub>("/hubs/notifications");
