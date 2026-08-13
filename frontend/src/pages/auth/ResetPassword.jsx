@@ -8,9 +8,11 @@ function ResetPassword() {
   const navigate = useNavigate();
   const location = useLocation();
   const [searchParams] = useSearchParams();
-  const token = searchParams.get("token") || "";
-  const email = location.state?.email || "";
 
+  const email = searchParams.get("email") || location.state?.email || "";
+  const devOtp = location.state?.devOtp || "";
+
+  const [otp, setOtp] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState("");
@@ -26,13 +28,22 @@ function ResetPassword() {
     return "";
   }, [password]);
 
+  function handleOtpChange(event) {
+    setOtp(event.target.value.replace(/\D/g, "").slice(0, 6));
+  }
+
   async function handleSubmit(event) {
     event.preventDefault();
     setError("");
     setSuccess("");
 
-    if (!token) {
-      setError("This password reset link is missing its token. Start again from Forgot Password.");
+    if (!email) {
+      setError("Your recovery email is missing. Start again from Forgot Password.");
+      return;
+    }
+
+    if (otp.length !== 6) {
+      setError("Enter the 6-digit verification code.");
       return;
     }
 
@@ -48,8 +59,9 @@ function ResetPassword() {
 
     setLoading(true);
     try {
-      const result = await resetPassword(token, password);
+      const result = await resetPassword(email, otp, password);
       setSuccess(result.message || "Password reset successfully.");
+      setOtp("");
       setPassword("");
       setConfirmPassword("");
       window.setTimeout(() => navigate("/login", { replace: true }), 1200);
@@ -63,23 +75,49 @@ function ResetPassword() {
   return (
     <main className="password-recovery-page">
       <section className="password-recovery-card">
-        <Link to="/login" className="password-back-link">← Back to sign in</Link>
+        <Link to="/forgot-password" className="password-back-link">← Request another code</Link>
         <img src={logo} alt="SupportHub logo" className="password-recovery-logo" />
 
         <div className="password-recovery-heading">
-          <span>Secure reset</span>
-          <h1>Create a new password</h1>
-          <p>{email ? `Resetting the password for ${email}.` : "Choose a strong new password for your account."}</p>
+          <span>Verify your account</span>
+          <h1>Enter your verification code</h1>
+          <p>
+            {email
+              ? `Enter the 6-digit code for ${email}, then choose your new password.`
+              : "Enter your verification code and choose a new password."}
+          </p>
         </div>
 
-        {!token ? (
+        {devOtp && (
+          <div className="password-dev-otp" role="status">
+            <span>Development verification code</span>
+            <strong>{devOtp}</strong>
+            <small>Email delivery is not connected yet. This code expires in 10 minutes.</small>
+          </div>
+        )}
+
+        {!email ? (
           <div className="password-message error" role="alert">
-            This reset link is invalid. <Link to="/forgot-password">Start password recovery again.</Link>
+            Recovery information is missing. <Link to="/forgot-password">Start again.</Link>
           </div>
         ) : (
           <form className="password-recovery-form" onSubmit={handleSubmit}>
             {error && <div className="password-message error" role="alert">{error}</div>}
             {success && <div className="password-message success" role="status">{success}</div>}
+
+            <label htmlFor="verification-code">Verification code</label>
+            <input
+              id="verification-code"
+              className="password-otp-input"
+              type="text"
+              inputMode="numeric"
+              autoComplete="one-time-code"
+              value={otp}
+              onChange={handleOtpChange}
+              placeholder="000000"
+              maxLength={6}
+              required
+            />
 
             <label htmlFor="new-password">New password</label>
             <input
@@ -104,8 +142,11 @@ function ResetPassword() {
               required
             />
 
-            <button type="submit" disabled={loading || !password || !confirmPassword || Boolean(success)}>
-              {loading ? "Resetting password..." : success ? "Password changed" : "Reset Password"}
+            <button
+              type="submit"
+              disabled={loading || otp.length !== 6 || !password || !confirmPassword || Boolean(success)}
+            >
+              {loading ? "Resetting password..." : success ? "Password changed" : "Verify & Reset Password"}
             </button>
           </form>
         )}
