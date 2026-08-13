@@ -10,6 +10,8 @@ import {
 import Notifications from "./pages/notifications/Notifications";
 
 import Login from "./pages/auth/Login";
+import ForgotPassword from "./pages/auth/ForgotPassword";
+import ResetPassword from "./pages/auth/ResetPassword";
 import AdminDashboard from "./pages/dashboards/AdminDashboard";
 import ManagerDashboard from "./pages/dashboards/ManagerDashboard";
 import EmployeeDashboard from "./pages/dashboards/EmployeeDashboard";
@@ -18,6 +20,7 @@ import CreateUser from "./pages/admin/CreateUser";
 import AdminTickets from "./pages/admin/AdminTickets";
 import CreateTicket from "./pages/tickets/CreateTicket";
 import MyTickets from "./pages/tickets/MyTickets";
+import AllTickets from "./pages/tickets/AllTickets";
 import TicketDetails from "./pages/tickets/TicketDetails";
 
 function normalizeRole(role) {
@@ -81,9 +84,12 @@ function App() {
     <BrowserRouter>
       <Routes>
         <Route path="/login" element={<Login />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
+        <Route path="/reset-password" element={<ResetPassword />} />
         <Route path="/notifications" element={<ProtectedRoute allowedRoles={["Admin","Manager","Employee","IT Support Agent","Agent"]}><Notifications /></ProtectedRoute>} />
         <Route path="/admin/users/create" element={<ProtectedRoute allowedRole="Admin"><CreateUser /></ProtectedRoute>} />
         <Route path="/admin/tickets" element={<ProtectedRoute allowedRole="Admin"><AdminTickets /></ProtectedRoute>} />
+        <Route path="/tickets/all" element={<ProtectedRoute allowedRoles={["Manager","Admin"]}><AllTickets /></ProtectedRoute>} />
         <Route path="/create-ticket" element={<ProtectedRoute allowedRole="Employee"><CreateTicket /></ProtectedRoute>} />
         <Route path="/my-tickets" element={<ProtectedRoute allowedRole="Employee"><MyTickets /></ProtectedRoute>} />
         <Route path="/tickets/:id" element={<ProtectedRoute allowedRoles={["Employee","Manager","Admin","IT Support Agent","Agent"]}><TicketDetails /></ProtectedRoute>} />

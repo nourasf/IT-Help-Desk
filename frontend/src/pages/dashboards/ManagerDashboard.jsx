@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import DashboardLayout from "../../components/DashboardLayout";
 import { getManagerDashboard } from "../../api/dashboard";
 import { assignTicket, getAssignmentOptions } from "../../api/ticket";
@@ -16,6 +17,7 @@ function normalize(value) {
 }
 
 function ManagerDashboard() {
+  const navigate = useNavigate();
   const [dashboard, setDashboard] = useState(null);
   const [assignmentOptions, setAssignmentOptions] = useState({ tickets: [], agents: [] });
   const [selectedAgents, setSelectedAgents] = useState({});
@@ -41,9 +43,7 @@ function ManagerDashboard() {
     }
   }
 
-  useEffect(() => {
-    loadData();
-  }, []);
+  useEffect(() => { loadData(); }, []);
 
   const agents = useMemo(() =>
     [...(assignmentOptions.agents || [])].sort((a, b) =>
@@ -100,7 +100,10 @@ function ManagerDashboard() {
             <h1>Welcome back, Manager.</h1>
             <p>Here is an overview of your team and ticket workload.</p>
           </div>
-          <button className="product-primary-button" onClick={loadData}>Refresh Dashboard</button>
+          <div style={{ display: "flex", gap: 10, flexWrap: "wrap", justifyContent: "flex-end" }}>
+            <button className="product-primary-button" onClick={() => navigate("/tickets/all")}>View All Tickets</button>
+            <button className="product-primary-button" onClick={loadData}>Refresh Dashboard</button>
+          </div>
         </header>
 
         <section className="product-kpi-grid">
@@ -146,16 +149,10 @@ function ManagerDashboard() {
                               disabled={agents.length === 0 || assigningTicketId === ticket.id}
                             >
                               {agents.map((agent) => (
-                                <option key={agent.id} value={agent.id}>
-                                  {agent.name} · {agent.activeTickets} active
-                                </option>
+                                <option key={agent.id} value={agent.id}>{agent.name} · {agent.activeTickets} active</option>
                               ))}
                             </select>
-                            <button
-                              className="manager-manual-button"
-                              disabled={assigningTicketId === ticket.id || agents.length === 0}
-                              onClick={() => handleAssign(ticket.id)}
-                            >
+                            <button className="manager-manual-button" disabled={assigningTicketId === ticket.id || agents.length === 0} onClick={() => handleAssign(ticket.id)}>
                               {assigningTicketId === ticket.id ? "Working..." : "Assign"}
                             </button>
                           </div>
@@ -164,19 +161,10 @@ function ManagerDashboard() {
                         <div className="manager-auto-assignment">
                           <div>
                             <span className="manager-action-label">Smart assignment</span>
-                            <small>
-                              {leastBusyAgent
-                                ? `${leastBusyAgent.name} has the lightest workload (${leastBusyAgent.activeTickets} active).`
-                                : "No agent is currently available."}
-                            </small>
+                            <small>{leastBusyAgent ? `${leastBusyAgent.name} has the lightest workload (${leastBusyAgent.activeTickets} active).` : "No agent is currently available."}</small>
                           </div>
-                          <button
-                            className="manager-auto-button"
-                            disabled={assigningTicketId === ticket.id || agents.length === 0}
-                            onClick={() => handleAutoAssign(ticket.id)}
-                          >
-                            <span>✦</span>
-                            {assigningTicketId === ticket.id ? "Assigning..." : "Auto Assign"}
+                          <button className="manager-auto-button" disabled={assigningTicketId === ticket.id || agents.length === 0} onClick={() => handleAutoAssign(ticket.id)}>
+                            <span>✦</span>{assigningTicketId === ticket.id ? "Assigning..." : "Auto Assign"}
                           </button>
                         </div>
                       </div>
@@ -210,14 +198,17 @@ function ManagerDashboard() {
 
         <section className="product-two-column manager-bottom-grid">
           <article className="product-panel product-table-panel">
-            <div className="product-panel-heading"><div><span>Latest requests</span><h2>Recent Tickets</h2></div></div>
+            <div className="product-panel-heading">
+              <div><span>Latest requests</span><h2>Recent Tickets</h2></div>
+              <button type="button" onClick={() => navigate("/tickets/all")} style={{ border: 0, background: "transparent", color: "#7659bd", fontSize: 11, fontWeight: 800 }}>View all</button>
+            </div>
             <div className="product-table-wrap">
               <table className="product-table">
                 <thead><tr><th>Ticket</th><th>Requester</th><th>Priority</th><th>Status</th><th>Owner</th></tr></thead>
                 <tbody>
                   {recentTickets.slice(0, 6).map((ticket) => (
                     <tr key={ticket.id}>
-                      <td><button><span>{ticket.ticketNumber}</span><strong>{ticket.subject}</strong></button></td>
+                      <td><button type="button" onClick={() => navigate(`/tickets/${ticket.id}`)}><span>{ticket.ticketNumber}</span><strong>{ticket.subject}</strong></button></td>
                       <td>{ticket.employee}</td>
                       <td><span className={`product-badge priority-${normalize(ticket.priority)}`}>{ticket.priority}</span></td>
                       <td><span className={`product-badge status-${normalize(ticket.status)}`}>{ticket.status}</span></td>
@@ -232,7 +223,7 @@ function ManagerDashboard() {
           <aside className="product-panel manager-quick-actions">
             <div className="product-panel-heading"><div><span>Shortcuts</span><h2>Quick Actions</h2></div></div>
             <button onClick={() => document.querySelector(".manager-needs-attention")?.scrollIntoView({ behavior: "smooth" })}><span>＋</span><strong>Assign Tickets</strong></button>
-            <button><span>▣</span><strong>Review Team</strong></button>
+            <button onClick={() => navigate("/tickets/all")}><span>▣</span><strong>View All Tickets</strong></button>
             <button><span>▤</span><strong>View Reports</strong></button>
             <button onClick={loadData}><span>↻</span><strong>Refresh Data</strong></button>
           </aside>
