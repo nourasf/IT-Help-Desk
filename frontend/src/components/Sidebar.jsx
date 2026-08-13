@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { NavLink, useNavigate } from "react-router-dom";
 import logo from "../assets/logo.png";
-import { getStoredRole } from "../utils/authStorage";
+import { clearAuthentication, getStoredRole } from "../utils/authStorage";
 import ConfirmModal from "./ConfirmModal";
 
 function SidebarIcon({ name }) {
@@ -26,10 +26,10 @@ function Sidebar({ activePage, collapsed, onToggle }) {
   const [logoutOpen, setLogoutOpen] = useState(false);
 
   function handleLogout() {
-    localStorage.removeItem("token");
-    localStorage.removeItem("role");
-    sessionStorage.removeItem("token");
-    sessionStorage.removeItem("role");
+    clearAuthentication();
+    sessionStorage.removeItem("resetEmail");
+    sessionStorage.removeItem("passwordResetToken");
+    setLogoutOpen(false);
     navigate("/login", { replace: true });
   }
 
@@ -75,7 +75,7 @@ function Sidebar({ activePage, collapsed, onToggle }) {
         ))}
       </nav>
       <div className="sidebar-bottom">
-        <NavLink to="/profile" className="nav-item" title={collapsed ? "My Profile" : undefined}><span className="nav-icon"><SidebarIcon name="profile" /></span><span className="nav-label">My Profile</span></NavLink>
+        <NavLink to="/profile" className={({ isActive }) => `nav-item ${activePage === "profile" || isActive ? "active" : ""}`} title={collapsed ? "My Profile" : undefined}><span className="nav-icon"><SidebarIcon name="profile" /></span><span className="nav-label">My Profile</span></NavLink>
         <button type="button" className="nav-item logout-button" onClick={() => setLogoutOpen(true)} title={collapsed ? "Log Out" : undefined}><span className="nav-icon"><SidebarIcon name="logout" /></span><span className="nav-label">Log Out</span></button>
       </div>
 
