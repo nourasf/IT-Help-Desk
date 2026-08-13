@@ -78,10 +78,11 @@ app.Use(async (context, next) =>
 {
     var path = context.Request.Path.Value ?? string.Empty;
     var segments = path.Split('/', StringSplitOptions.RemoveEmptyEntries);
+    var ticketId = 0;
     var isTicketRoute = segments.Length >= 4 &&
         segments[0].Equals("api", StringComparison.OrdinalIgnoreCase) &&
         segments[1].Equals("tickets", StringComparison.OrdinalIgnoreCase) &&
-        int.TryParse(segments[2], out var ticketId);
+        int.TryParse(segments[2], out ticketId);
 
     var isHistoryRequest = isTicketRoute &&
         HttpMethods.IsGet(context.Request.Method) &&
