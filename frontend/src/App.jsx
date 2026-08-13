@@ -3,6 +3,7 @@ import "./styles/Auth.css";
 import "./styles/TicketDetailsEnhancements.css";
 import "./styles/TicketActionPolish.css";
 import "./styles/TicketActionHotfix.css";
+import "./utils/globalDashboardFixes.js";
 import { BrowserRouter, Navigate, Route, Routes, useNavigate } from "react-router-dom";
 import Notifications from "./pages/notifications/Notifications";
 import Login from "./pages/auth/Login";
