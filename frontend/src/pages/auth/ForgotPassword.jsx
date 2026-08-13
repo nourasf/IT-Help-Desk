@@ -18,19 +18,23 @@ function ForgotPassword() {
     setLoading(true);
 
     try {
-      const result = await forgotPassword(email);
+      const cleanEmail = email.trim();
+      const result = await forgotPassword(cleanEmail);
 
-      if (result.token) {
-        navigate(`/reset-password?token=${encodeURIComponent(result.token)}`, {
+      if (result.devOtp) {
+        navigate(`/reset-password?email=${encodeURIComponent(cleanEmail)}`, {
           replace: true,
-          state: { email: email.trim() },
+          state: {
+            email: cleanEmail,
+            devOtp: result.devOtp,
+          },
         });
         return;
       }
 
       setMessage(
         result.message ||
-          "If an account exists for that email, password recovery instructions have been created."
+          "If an account exists for that email, a verification code has been created."
       );
     } catch (requestError) {
       setError(requestError.message || "Password recovery could not be started.");
@@ -48,7 +52,7 @@ function ForgotPassword() {
         <div className="password-recovery-heading">
           <span>Account recovery</span>
           <h1>Forgot your password?</h1>
-          <p>Enter the email address connected to your SupportHub account.</p>
+          <p>Enter your account email and we&apos;ll create a 6-digit verification code.</p>
         </div>
 
         <form className="password-recovery-form" onSubmit={handleSubmit}>
@@ -67,7 +71,7 @@ function ForgotPassword() {
           />
 
           <button type="submit" disabled={loading || !email.trim()}>
-            {loading ? "Checking account..." : "Continue"}
+            {loading ? "Creating code..." : "Send Verification Code"}
           </button>
         </form>
 
