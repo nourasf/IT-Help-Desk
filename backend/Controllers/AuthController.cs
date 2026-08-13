@@ -43,23 +43,23 @@ namespace backend.Controllers
             {
                 return Ok(new
                 {
-                    message = "If the email exists, password recovery instructions have been created."
+                    message = "If the email exists, a verification code has been created."
                 });
             }
 
-            var tokenBytes = RandomNumberGenerator.GetBytes(32);
-            var resetToken = Convert.ToHexString(tokenBytes);
+            var otp = RandomNumberGenerator.GetInt32(100000, 1000000).ToString();
 
-            user.ResetPasswordToken = resetToken;
-            user.ResetPasswordExpiry = DateTime.UtcNow.AddHours(1);
+            user.ResetPasswordToken = otp;
+            user.ResetPasswordExpiry = DateTime.UtcNow.AddMinutes(10);
             await _context.SaveChangesAsync();
 
-            // The token is returned because this project currently runs locally without an email provider.
-            // The frontend immediately carries it to the reset-password page.
+            // Development only: there is no email provider configured yet,
+            // so return the OTP so the local frontend can display it.
+            // When email is added, remove devOtp and send this code by email instead.
             return Ok(new
             {
-                message = "Password recovery is ready.",
-                token = resetToken,
+                message = "A 6-digit verification code was created. It expires in 10 minutes.",
+                devOtp = otp,
                 expiresAt = user.ResetPasswordExpiry
             });
         }
@@ -67,11 +67,19 @@ namespace backend.Controllers
         [HttpPost("reset-password")]
         public async Task<IActionResult> ResetPassword(ResetPasswordRequest request)
         {
-            if (request == null || string.IsNullOrWhiteSpace(request.Token))
+            if (request == null || string.IsNullOrWhiteSpace(request.Email))
             {
                 return BadRequest(new
                 {
-                    message = "The password reset token is required."
+                    message = "Email address is required."
+                });
+            }
+
+            if (string.IsNullOrWhiteSpace(request.Otp) || request.Otp.Length != 6 || !request.Otp.All(char.IsDigit))
+            {
+                return BadRequest(new
+                {
+                    message = "Enter the 6-digit verification code."
                 });
             }
 
@@ -83,8 +91,12 @@ namespace backend.Controllers
                 });
             }
 
+            var email = request.Email.Trim();
+            var otp = request.Otp.Trim();
+
             var user = await _context.Users.FirstOrDefaultAsync(u =>
-                u.ResetPasswordToken == request.Token &&
+                u.Email.ToLower() == email.ToLower() &&
+                u.ResetPasswordToken == otp &&
                 u.ResetPasswordExpiry.HasValue &&
                 u.ResetPasswordExpiry.Value > DateTime.UtcNow
             );
@@ -93,11 +105,10 @@ namespace backend.Controllers
             {
                 return BadRequest(new
                 {
-                    message = "The reset token is invalid or has expired."
+                    message = "The verification code is invalid or has expired."
                 });
             }
 
-            // Login verifies passwords with BCrypt, so password resets must use BCrypt too.
             user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.NewPassword);
             user.ResetPasswordToken = null;
             user.ResetPasswordExpiry = null;
