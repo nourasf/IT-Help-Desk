@@ -48,6 +48,8 @@
 .create-user-field label { color:#413A5F;font-size:14px;font-weight:700; }
 .create-user-field input,.create-user-field select { width:100%;min-height:49px;padding:0 16px;border:1px solid #EEEAF7;border-radius:11px;outline:none;background:#F8F7FB;color:var(--dark-text);transition:border-color .2s ease,box-shadow .2s ease; }
 .create-user-field input:focus,.create-user-field select:focus { border-color:#6C5FA0;box-shadow:0 0 0 4px rgba(149,137,207,.16); }
+.create-user-field input[aria-invalid="true"] { border-color:#d99aa5;box-shadow:0 0 0 3px rgba(188,72,91,.08); }
+.create-user-field-error { margin-top:-2px;color:#a83e52;font-size:11px;font-weight:600;line-height:1.35; }
 .create-user-message { padding:13px 16px;border-radius:10px;font-size:14px; }
 .create-user-message.error { color:#9f2020;background:#fff0f0;border:1px solid #f2c2c2; }
 .create-user-message.success { color:#176b3a;background:#edfbf2;border:1px solid #bce4ca; }
