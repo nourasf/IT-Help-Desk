@@ -2,6 +2,14 @@ import { clearAuthentication, getStoredRole } from "./authStorage";
 
 let installed = false;
 
+function normalizeRole(value) {
+  return String(value || "").trim().toLowerCase().replaceAll("_", " ").replaceAll("-", " ");
+}
+
+function syncRoleUi() {
+  document.documentElement.dataset.supporthubRole = normalizeRole(getStoredRole());
+}
+
 function setReactInputValue(input, value) {
   const setter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, "value")?.set;
   if (setter) setter.call(input, value);
@@ -20,6 +28,7 @@ function searchRouteForRole() {
 }
 
 function applyPendingSearch() {
+  syncRoleUi();
   const query = sessionStorage.getItem("supporthubPendingSearch");
   if (!query) return;
 
@@ -39,8 +48,10 @@ function applyPendingSearch() {
 export function installGlobalDashboardFixes() {
   if (installed || typeof window === "undefined") return;
   installed = true;
+  syncRoleUi();
 
   document.addEventListener("click", (event) => {
+    syncRoleUi();
     const logoutButton = event.target.closest?.(".logout-button");
     if (!logoutButton) return;
     event.preventDefault();
@@ -49,10 +60,12 @@ export function installGlobalDashboardFixes() {
     sessionStorage.removeItem("resetEmail");
     sessionStorage.removeItem("passwordResetToken");
     sessionStorage.removeItem("supporthubPendingSearch");
+    document.documentElement.dataset.supporthubRole = "";
     window.location.replace("/login");
   }, true);
 
   document.addEventListener("keydown", (event) => {
+    syncRoleUi();
     if (event.key !== "Enter") return;
     const input = event.target;
     if (!(input instanceof HTMLInputElement) || !input.closest(".topbar-search")) return;
@@ -68,6 +81,7 @@ export function installGlobalDashboardFixes() {
   const observer = new MutationObserver(() => applyPendingSearch());
   observer.observe(document.documentElement, { childList: true, subtree: true });
   window.addEventListener("popstate", applyPendingSearch);
+  window.addEventListener("focus", syncRoleUi);
   window.setTimeout(applyPendingSearch, 0);
 }
 
