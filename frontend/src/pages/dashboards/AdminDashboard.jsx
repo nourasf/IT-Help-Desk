@@ -1,5 +1,6 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
 import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import DashboardLayout from "../../components/DashboardLayout";
 import AdminActionsModal from "../../components/AdminActionsModal";
@@ -50,21 +51,15 @@ function ResolutionChart({ analytics }) {
 }
 
 function AdminDashboard() {
-  const [dashboard, setDashboard] = useState(null);
-  const [analytics, setAnalytics] = useState(null);
-  const [error, setError] = useState("");
   const [actionsOpen, setActionsOpen] = useState(false);
 
-  async function loadDashboard() {
-    setError("");
-    try {
-      const [dashboardData, analyticsData] = await Promise.all([getAdminDashboard(), getAdminResolvedAnalytics()]);
-      setDashboard(dashboardData);
-      setAnalytics(analyticsData);
-    } catch (requestError) { setError(requestError.message || "The dashboard could not be loaded."); }
-  }
+  const dashboardQuery = useQuery({ queryKey: ["dashboard", "admin"], queryFn: getAdminDashboard });
+  const analyticsQuery = useQuery({ queryKey: ["dashboard", "admin", "resolved-analytics"], queryFn: getAdminResolvedAnalytics });
 
-  useEffect(() => { loadDashboard(); }, []);
+  const dashboard = dashboardQuery.data;
+  const analytics = analyticsQuery.data;
+  const isLoading = dashboardQuery.isLoading || analyticsQuery.isLoading;
+  const error = dashboardQuery.error || analyticsQuery.error;
 
   const roleChart = useMemo(() => {
     const roles = dashboard?.usersByRole || [];
@@ -74,8 +69,8 @@ function AdminDashboard() {
     return `conic-gradient(${stops.length ? stops.join(", ") : "#ece7f7 0 100%"})`;
   }, [dashboard]);
 
-  if (error) return <DashboardLayout activePage="dashboard"><div className="admin-dashboard-state"><h1>Dashboard unavailable</h1><p>{error}</p><button type="button" onClick={loadDashboard}>Try Again</button></div></DashboardLayout>;
-  if (!dashboard) return <DashboardLayout activePage="dashboard"><div className="admin-dashboard-state">Loading dashboard...</div></DashboardLayout>;
+  if (error) return <DashboardLayout activePage="dashboard"><div className="admin-dashboard-state"><h1>Dashboard unavailable</h1><p>{error.message || "The dashboard could not be loaded."}</p><button type="button" onClick={() => { dashboardQuery.refetch(); analyticsQuery.refetch(); }}>Try Again</button></div></DashboardLayout>;
+  if (isLoading || !dashboard) return <DashboardLayout activePage="dashboard"><div className="admin-dashboard-state">Loading dashboard...</div></DashboardLayout>;
 
   const roles = dashboard.usersByRole || [];
   const activity = dashboard.recentActivity || [];
