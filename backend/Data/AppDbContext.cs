@@ -24,6 +24,8 @@ namespace backend.Data
         public DbSet<Notification> Notifications { get; set; }
         public DbSet<FileAttachment> FileAttachments { get; set; }
 
+  
+
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
@@ -63,6 +65,12 @@ namespace backend.Data
                 .WithMany(t => t.TicketComments)
                 .HasForeignKey(c => c.TicketID)
                 .OnDelete(DeleteBehavior.Cascade);
+
+                modelBuilder.Entity<TicketComment>()
+    .HasOne(c => c.ParentComment)
+    .WithMany(c => c.Replies)
+    .HasForeignKey(c => c.ParentCommentID)
+    .OnDelete(DeleteBehavior.Restrict);
 
             modelBuilder.Entity<TicketAssignment>()
                 .HasOne(a => a.Ticket)
@@ -137,11 +145,11 @@ namespace backend.Data
                 .HasForeignKey(a => a.TicketId)
                 .OnDelete(DeleteBehavior.Cascade);
 
-            modelBuilder.Entity<FileAttachment>()
-                .HasOne(a => a.TicketComment)
-                .WithMany()
-                .HasForeignKey(a => a.TicketCommentId)
-                .OnDelete(DeleteBehavior.SetNull);
+         modelBuilder.Entity<FileAttachment>()
+    .HasOne(a => a.TicketComment)
+    .WithMany(c => c.Attachments)
+    .HasForeignKey(a => a.TicketCommentId)
+    .OnDelete(DeleteBehavior.SetNull);
 
             modelBuilder.Entity<FileAttachment>()
                 .HasOne(a => a.UploadedByUser)

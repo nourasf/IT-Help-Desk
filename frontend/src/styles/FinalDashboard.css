@@ -874,3 +874,44 @@
     grid-template-columns: 1fr;
   }
 }
+/* =========================
+   AGENT WORKLOAD FIX
+========================= */
+
+.agent-workload-list > div {
+  grid-template-columns: 30px minmax(145px, 0.9fr) minmax(120px, 1.3fr) 28px;
+  gap: 12px;
+}
+
+.agent-workload-list > div > div:nth-child(2) {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 3px;
+}
+
+.agent-workload-list > div > div:nth-child(2) strong {
+  display: block;
+  width: 100%;
+  color: #2f2948;
+  font-size: 13px;
+  line-height: 1.25;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.agent-workload-list > div > div:nth-child(2) small {
+  display: block;
+  color: #81798c;
+  font-size: 10px;
+  line-height: 1.3;
+  white-space: nowrap;
+}
+
+.agent-workload-list > div > b {
+  justify-self: end;
+  color: #302746;
+  font-size: 13px;
+}

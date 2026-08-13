@@ -38,7 +38,7 @@ public class Ticket
 
     public Priority Priority { get; set; } = null!;
 
-    public DateTime ResolvedAt { get; set; }
+    public DateTime? ResolvedAt { get; set; }
 
     public int ProgressPercentage { get; set; } = 0;
 

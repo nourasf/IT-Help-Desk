@@ -4,6 +4,7 @@ import DashboardLayout from "../../components/DashboardLayout";
 import {
   addInternalNote,
   addTicketComment,
+  uploadCommentAttachments,
   assignTicket,
   cancelTicket,
   closeTicket,
@@ -19,6 +20,7 @@ import {
   resolveTicket,
   returnTicketToManager,
   startWork,
+  getAttachmentBlobUrl,
 } from "../../api/ticket";
 import "../../styles/Tickets.css";
 import "../../styles/TicketWorkflow.css";
@@ -36,6 +38,68 @@ function getInitials(name) { return String(name || "NA").trim().split(/\s+/).map
 function getCommentUser(comment) { return comment.author?.name || comment.user?.name || comment.userName || comment.authorName || "User"; }
 function timelineText(item) { return item.description || item.action || item.activityType || "Ticket updated"; }
 function timelineUser(item) { return item.performedBy?.name || item.changedBy?.name || item.user?.name || ""; }
+
+
+function TicketAttachmentImage({ ticketId, attachment }) {
+  const [src, setSrc] = useState("");
+  const [failed, setFailed] = useState(false);
+
+  useEffect(() => {
+    let objectUrl = "";
+    let cancelled = false;
+
+    async function loadImage() {
+      try {
+        objectUrl = await getAttachmentBlobUrl(
+          ticketId,
+          attachment.id
+        );
+
+        if (!cancelled) {
+          setSrc(objectUrl);
+        }
+      } catch {
+        if (!cancelled) {
+          setFailed(true);
+        }
+      }
+    }
+
+    loadImage();
+
+    return () => {
+      cancelled = true;
+
+      if (objectUrl) {
+        URL.revokeObjectURL(objectUrl);
+      }
+    };
+  }, [ticketId, attachment.id]);
+
+  if (failed) {
+    return (
+      <div className="ticket-attachment-failed">
+        {attachment.fileName}
+      </div>
+    );
+  }
+
+  if (!src) {
+    return (
+      <div className="ticket-attachment-loading">
+        Loading image...
+      </div>
+    );
+  }
+
+  return (
+    <img
+      src={src}
+      alt={attachment.fileName}
+      className="ticket-comment-image"
+    />
+  );
+}
 
 function TicketDetails() {
   const { id } = useParams();
@@ -56,9 +120,15 @@ function TicketDetails() {
   const [comments, setComments] = useState([]);
   const [newComment, setNewComment] = useState("");
   const [commentSubmitting, setCommentSubmitting] = useState(false);
+  const [commentFiles, setCommentFiles] = useState([]);
+  const [replyingTo, setReplyingTo] = useState(null);
+  const [replyText, setReplyText] = useState("");
+  const [replyFiles, setReplyFiles] = useState([]);
+  const [replySubmitting, setReplySubmitting] = useState(false);
   const [notes, setNotes] = useState([]);
   const [newNote, setNewNote] = useState("");
   const [noteSubmitting, setNoteSubmitting] = useState(false);
+  const [noteFiles, setNoteFiles] = useState([]);
   const [activity, setActivity] = useState([]);
   const [history, setHistory] = useState([]);
   const [isWorking, setIsWorking] = useState(false);
@@ -134,23 +204,77 @@ function TicketDetails() {
   async function submitComment(event) {
     event.preventDefault();
     if (!newComment.trim()) return;
-    setCommentSubmitting(true); showMessage("");
+
+    setCommentSubmitting(true);
+    showMessage("");
+
     try {
-      await addTicketComment(id, newComment);
+      const result = await addTicketComment(id, newComment);
+      const commentId = result.comment?.id;
+
+      if (commentFiles.length > 0 && commentId) {
+        await uploadCommentAttachments(id, commentId, commentFiles);
+      }
+
       setNewComment("");
+      setCommentFiles([]);
       await Promise.all([loadComments(), loadTimeline()]);
-    } catch (e) { showMessage(e.message, "error"); } finally { setCommentSubmitting(false); }
+    } catch (e) {
+      showMessage(e.message, "error");
+    } finally {
+      setCommentSubmitting(false);
+    }
+  }
+
+  async function submitReply(event, parentCommentId) {
+    event.preventDefault();
+    if (!replyText.trim()) return;
+
+    setReplySubmitting(true);
+    showMessage("");
+
+    try {
+      const result = await addTicketComment(id, replyText, parentCommentId);
+      const replyId = result.comment?.id;
+
+      if (replyFiles.length > 0 && replyId) {
+        await uploadCommentAttachments(id, replyId, replyFiles);
+      }
+
+      setReplyText("");
+      setReplyFiles([]);
+      setReplyingTo(null);
+      await Promise.all([loadComments(), loadTimeline()]);
+    } catch (e) {
+      showMessage(e.message, "error");
+    } finally {
+      setReplySubmitting(false);
+    }
   }
 
   async function submitInternalNote(event) {
     event.preventDefault();
     if (!newNote.trim()) return;
-    setNoteSubmitting(true); showMessage("");
+
+    setNoteSubmitting(true);
+    showMessage("");
+
     try {
-      await addInternalNote(id, newNote);
+      const result = await addInternalNote(id, newNote);
+      const noteId = result.note?.id;
+
+      if (noteFiles.length > 0 && noteId) {
+        await uploadCommentAttachments(id, noteId, noteFiles);
+      }
+
       setNewNote("");
+      setNoteFiles([]);
       await Promise.all([loadNotes(), loadTimeline()]);
-    } catch (e) { showMessage(e.message, "error"); } finally { setNoteSubmitting(false); }
+    } catch (e) {
+      showMessage(e.message, "error");
+    } finally {
+      setNoteSubmitting(false);
+    }
   }
 
   function openAction(name) {
@@ -177,11 +301,15 @@ function TicketDetails() {
       if (action === "escalate") result = await escalateTicket(id, note);
       if (action === "close") result = await closeTicket(id);
       if (action === "reopen") result = await managerReopenTicket(id, note);
-      if (action === "stop" && stopOutcome === "no-issue") result = await cancelTicket(id, `No issue found: ${note}`);
-      if (action === "stop" && stopOutcome === "could-not-solve") {
-        result = await returnTicketToManager(id, note);
-        returnedToManager = true;
-      }
+     if (action === "stop" && stopOutcome === "no-issue") {
+  result = await cancelTicket(id, `No issue found: ${note}`);
+  returnedToManager = true;
+}
+
+if (action === "stop" && stopOutcome === "could-not-solve") {
+  result = await returnTicketToManager(id, note);
+  returnedToManager = true;
+}
 
       showMessage(result?.message || "Ticket updated.");
       setAction("");
@@ -206,7 +334,7 @@ function TicketDetails() {
   const isClosed = status === "closed";
   const isCancelled = status === "cancelled";
   const assignmentLocked = isClosed || isCancelled || isResolved;
-  const canComment = !isClosed;
+  const canComment = !isClosed && (isEmployee || isAgent);
   const canReopen = (isManager || isAdmin) && (isResolved || isClosed || isCancelled);
   const combinedTimeline = [...activity.map((item) => ({ ...item, source: "Activity", at: item.createdAt })), ...history.map((item) => ({ ...item, source: "History", at: item.createdAt }))]
     .sort((a, b) => new Date(b.at || 0) - new Date(a.at || 0));
@@ -268,11 +396,412 @@ function TicketDetails() {
         </section>
 
         <section className="ticket-details-bottom-grid">
-          <article className="ticket-details-placeholder-card ticket-comments-card"><div className="ticket-bottom-card-heading"><div><span>Conversation</span><h2>Comments</h2></div><small>{comments.length} comment{comments.length === 1 ? "" : "s"}</small></div><div className="ticket-comments-list">{comments.length ? comments.map((comment) => <div className="ticket-comment-item" key={comment.id}><span className="ticket-comment-avatar">{getInitials(getCommentUser(comment))}</span><div className="ticket-comment-body"><div className="ticket-comment-meta"><strong>{getCommentUser(comment)}</strong><time>{formatDate(comment.createdAt)}</time></div><p>{comment.comment}</p></div></div>) : <div className="ticket-empty-section"><strong>No comments yet</strong><p>Start the support conversation below.</p></div>}</div>{canComment && <form className="ticket-comment-form" onSubmit={submitComment}><textarea value={newComment} onChange={(event) => setNewComment(event.target.value)} placeholder="Write a comment..." /><div className="ticket-comment-form-footer"><small>Visible to everyone who can access this ticket.</small><button type="submit" disabled={commentSubmitting || !newComment.trim()}>{commentSubmitting ? "Posting..." : "Post Comment"}</button></div></form>}</article>
-          {!isEmployee && <article className="ticket-details-placeholder-card ticket-timeline-card"><div className="ticket-bottom-card-heading"><div><span>Ticket history</span><h2>Activity Timeline</h2></div><small>{combinedTimeline.length} updates</small></div><div className="ticket-timeline-list">{combinedTimeline.length ? combinedTimeline.map((item, index) => <div className="ticket-timeline-item" key={`${item.source}-${item.id || index}`}><span className="ticket-timeline-dot" /><div className="ticket-timeline-content"><div className="ticket-timeline-meta"><span>{item.source}</span><time>{formatDate(item.at)}</time></div><strong>{timelineText(item)}</strong>{timelineUser(item) && <p>By {timelineUser(item)}</p>}</div></div>) : <div className="ticket-empty-section"><strong>No activity yet</strong><p>Ticket changes will appear here.</p></div>}</div></article>}
+          <article className="ticket-details-placeholder-card ticket-comments-card">
+            <div className="ticket-bottom-card-heading">
+              <div>
+                <span>Conversation</span>
+                <h2>Comments</h2>
+              </div>
+              <small>
+                {comments.length} comment{comments.length === 1 ? "" : "s"}
+              </small>
+            </div>
+
+            <div className="ticket-comments-list">
+              {comments.filter((comment) => !comment.parentCommentID).length ? (
+                comments
+                  .filter((comment) => !comment.parentCommentID)
+                  .map((comment) => {
+                    const replies = comments.filter(
+                      (reply) => reply.parentCommentID === comment.id
+                    );
+
+                    return (
+                      <div className="ticket-comment-item" key={comment.id}>
+                        <span className="ticket-comment-avatar">
+                          {getInitials(getCommentUser(comment))}
+                        </span>
+
+                        <div className="ticket-comment-body">
+                          <div className="ticket-comment-meta">
+                            <strong>{getCommentUser(comment)}</strong>
+                            <time>{formatDate(comment.createdAt)}</time>
+                          </div>
+
+                          <p>{comment.comment}</p>
+
+                          {comment.attachments?.length > 0 && (
+                            <div className="ticket-comment-attachments">
+                              {comment.attachments.map((attachment) => (
+                                <a
+                                  key={attachment.id}
+                                  href={`http://localhost:5099${attachment.downloadUrl}`}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  className="ticket-comment-attachment"
+                                >
+                                  {attachment.contentType?.startsWith("image/") ? (
+                                   <TicketAttachmentImage
+  ticketId={id}
+  attachment={attachment}
+/>
+                                  ) : (
+                                    <span>{attachment.fileName}</span>
+                                  )}
+                                </a>
+                              ))}
+                            </div>
+                          )}
+
+                          {canComment && (
+                            <button
+                              type="button"
+                              className="ticket-comment-reply-button"
+                              onClick={() => {
+                                setReplyingTo(replyingTo === comment.id ? null : comment.id);
+                                setReplyText("");
+                                setReplyFiles([]);
+                              }}
+                            >
+                              Reply
+                            </button>
+                          )}
+
+                          {replyingTo === comment.id && canComment && (
+                            <form
+                              className="ticket-reply-form"
+                              onSubmit={(event) => submitReply(event, comment.id)}
+                            >
+                              <textarea
+                                value={replyText}
+                                onChange={(event) => setReplyText(event.target.value)}
+                                placeholder={`Reply to ${getCommentUser(comment)}...`}
+                              />
+
+                              {replyFiles.length > 0 && (
+                                <div className="ticket-comment-files">
+                                  {replyFiles.map((file, index) => (
+                                    <div
+                                      className="ticket-comment-file"
+                                      key={`${file.name}-${index}`}
+                                    >
+                                      <span>{file.name}</span>
+                                      <button
+                                        type="button"
+                                        onClick={() =>
+                                          setReplyFiles((current) =>
+                                            current.filter((_, i) => i !== index)
+                                          )
+                                        }
+                                      >
+                                        ×
+                                      </button>
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+
+                              <div className="ticket-reply-actions">
+                                <label className="ticket-attach-button">
+                                  Attach screenshot
+                                  <input
+                                    type="file"
+                                    accept="image/png,image/jpeg,image/webp"
+                                    multiple
+                                    hidden
+                                    onChange={(event) => {
+                                      const files = Array.from(event.target.files || []);
+                                      setReplyFiles((current) => [...current, ...files]);
+                                      event.target.value = "";
+                                    }}
+                                  />
+                                </label>
+
+                                <button
+                                  type="button"
+                                  className="ticket-reply-cancel"
+                                  onClick={() => {
+                                    setReplyingTo(null);
+                                    setReplyText("");
+                                    setReplyFiles([]);
+                                  }}
+                                >
+                                  Cancel
+                                </button>
+
+                                <button
+                                  type="submit"
+                                  disabled={replySubmitting || !replyText.trim()}
+                                >
+                                  {replySubmitting ? "Replying..." : "Reply"}
+                                </button>
+                              </div>
+                            </form>
+                          )}
+
+                          {replies.length > 0 && (
+                            <div className="ticket-comment-replies">
+                              {replies.map((reply) => (
+                                <div className="ticket-comment-item reply" key={reply.id}>
+                                  <span className="ticket-comment-avatar">
+                                    {getInitials(getCommentUser(reply))}
+                                  </span>
+
+                                  <div className="ticket-comment-body">
+                                    <div className="ticket-comment-meta">
+                                      <strong>{getCommentUser(reply)}</strong>
+                                      <time>{formatDate(reply.createdAt)}</time>
+                                    </div>
+
+                                    <p>{reply.comment}</p>
+
+                                    {reply.attachments?.length > 0 && (
+                                      <div className="ticket-comment-attachments">
+                                        {reply.attachments.map((attachment) => (
+                                          <a
+                                            key={attachment.id}
+                                            href={`http://localhost:5099${attachment.downloadUrl}`}
+                                            target="_blank"
+                                            rel="noreferrer"
+                                            className="ticket-comment-attachment"
+                                          >
+                                            {attachment.contentType?.startsWith("image/") ? (
+                                            <TicketAttachmentImage
+  ticketId={id}
+  attachment={attachment}
+/>
+                                            ) : (
+                                              <span>{attachment.fileName}</span>
+                                            )}
+                                          </a>
+                                        ))}
+                                      </div>
+                                    )}
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })
+              ) : (
+                <div className="ticket-empty-section">
+                  <strong>No comments yet</strong>
+                  <p>Start the support conversation below.</p>
+                </div>
+              )}
+            </div>
+
+            {canComment && (
+              <form className="ticket-comment-form" onSubmit={submitComment}>
+                <textarea
+                  value={newComment}
+                  onChange={(event) => setNewComment(event.target.value)}
+                  placeholder="Write a comment..."
+                />
+
+                {commentFiles.length > 0 && (
+                  <div className="ticket-comment-files">
+                    {commentFiles.map((file, index) => (
+                      <div className="ticket-comment-file" key={`${file.name}-${index}`}>
+                        <span>{file.name}</span>
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setCommentFiles((current) =>
+                              current.filter((_, i) => i !== index)
+                            )
+                          }
+                        >
+                          ×
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                <div className="ticket-comment-form-footer">
+                  <div>
+                    <label className="ticket-attach-button">
+                      Attach screenshot
+                      <input
+                        type="file"
+                        accept="image/png,image/jpeg,image/webp"
+                        multiple
+                        hidden
+                        onChange={(event) => {
+                          const files = Array.from(event.target.files || []);
+                          setCommentFiles((current) => [...current, ...files]);
+                          event.target.value = "";
+                        }}
+                      />
+                    </label>
+                    <small>Visible to the employee and assigned IT agent.</small>
+                  </div>
+
+                  <button
+                    type="submit"
+                    disabled={commentSubmitting || !newComment.trim()}
+                  >
+                    {commentSubmitting ? "Posting..." : "Post Comment"}
+                  </button>
+                </div>
+              </form>
+            )}
+          </article>
+
+          {!isEmployee && (
+            <article className="ticket-details-placeholder-card ticket-timeline-card">
+              <div className="ticket-bottom-card-heading">
+                <div>
+                  <span>Ticket history</span>
+                  <h2>Activity Timeline</h2>
+                </div>
+                <small>{combinedTimeline.length} updates</small>
+              </div>
+              <div className="ticket-timeline-list">
+                {combinedTimeline.length ? (
+                  combinedTimeline.map((item, index) => (
+                    <div className="ticket-timeline-item" key={`${item.source}-${item.id || index}`}>
+                      <span className="ticket-timeline-dot" />
+                      <div className="ticket-timeline-content">
+                        <div className="ticket-timeline-meta">
+                          <span>{item.source}</span>
+                          <time>{formatDate(item.at)}</time>
+                        </div>
+                        <strong>{timelineText(item)}</strong>
+                        {timelineUser(item) && <p>By {timelineUser(item)}</p>}
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <div className="ticket-empty-section">
+                    <strong>No activity yet</strong>
+                    <p>Ticket changes will appear here.</p>
+                  </div>
+                )}
+              </div>
+            </article>
+          )}
         </section>
 
-        {!isEmployee && <section className="ticket-internal-notes-card"><div className="ticket-bottom-card-heading"><div><span>Support only</span><h2>Internal Notes</h2></div><small>Hidden from employees</small></div><div className="ticket-comments-list">{notes.length ? notes.map((note) => <div className="ticket-comment-item" key={note.id}><span className="ticket-comment-avatar">{getInitials(note.author?.name)}</span><div className="ticket-comment-body"><div className="ticket-comment-meta"><strong>{note.author?.name || "Support"}</strong><time>{formatDate(note.createdAt)}</time></div><p>{note.note}</p></div></div>) : <div className="ticket-empty-section"><strong>No internal notes</strong><p>Private support notes stay hidden from the employee.</p></div>}</div>{!isClosed && <form className="ticket-comment-form" onSubmit={submitInternalNote}><textarea value={newNote} onChange={(event) => setNewNote(event.target.value)} placeholder="Write a private internal note..." /><div className="ticket-comment-form-footer"><small>Only agents, managers and admins can see this.</small><button type="submit" disabled={noteSubmitting || !newNote.trim()}>{noteSubmitting ? "Saving..." : "Add Internal Note"}</button></div></form>}</section>}
+        {!isEmployee && (
+          <section className="ticket-internal-notes-card">
+            <div className="ticket-bottom-card-heading">
+              <div>
+                <span>Support only</span>
+                <h2>Internal Notes</h2>
+              </div>
+              <small>Hidden from employees</small>
+            </div>
+
+            <div className="ticket-comments-list">
+              {notes.length ? (
+                notes.map((note) => (
+                  <div className="ticket-comment-item" key={note.id}>
+                    <span className="ticket-comment-avatar">
+                      {getInitials(note.author?.name)}
+                    </span>
+                    <div className="ticket-comment-body">
+                      <div className="ticket-comment-meta">
+                        <strong>{note.author?.name || "Support"}</strong>
+                        <time>{formatDate(note.createdAt)}</time>
+                      </div>
+                      <p>{note.note}</p>
+
+                      {note.attachments?.length > 0 && (
+                        <div className="ticket-comment-attachments">
+                          {note.attachments.map((attachment) => (
+                            <a
+                              key={attachment.id}
+                              href={`http://localhost:5099${attachment.downloadUrl}`}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="ticket-comment-attachment"
+                            >
+                              {attachment.contentType?.startsWith("image/") ? (
+                              <TicketAttachmentImage
+  ticketId={id}
+  attachment={attachment}
+/>
+                              ) : (
+                                <span>{attachment.fileName}</span>
+                              )}
+                            </a>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div className="ticket-empty-section">
+                  <strong>No internal notes</strong>
+                  <p>Private support notes stay hidden from the employee.</p>
+                </div>
+              )}
+            </div>
+
+            {!isClosed && (
+              <form className="ticket-comment-form" onSubmit={submitInternalNote}>
+                <textarea
+                  value={newNote}
+                  onChange={(event) => setNewNote(event.target.value)}
+                  placeholder="Write a private internal note..."
+                />
+
+                {noteFiles.length > 0 && (
+                  <div className="ticket-comment-files">
+                    {noteFiles.map((file, index) => (
+                      <div className="ticket-comment-file" key={`${file.name}-${index}`}>
+                        <span>{file.name}</span>
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setNoteFiles((current) =>
+                              current.filter((_, i) => i !== index)
+                            )
+                          }
+                        >
+                          ×
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                <div className="ticket-comment-form-footer">
+                  <div>
+                    <label className="ticket-attach-button">
+                      Attach screenshot
+                      <input
+                        type="file"
+                        accept="image/png,image/jpeg,image/webp"
+                        multiple
+                        hidden
+                        onChange={(event) => {
+                          const files = Array.from(event.target.files || []);
+                          setNoteFiles((current) => [...current, ...files]);
+                          event.target.value = "";
+                        }}
+                      />
+                    </label>
+                    <small>Only IT agents, managers and admins can see this.</small>
+                  </div>
+
+                  <button
+                    type="submit"
+                    disabled={noteSubmitting || !newNote.trim()}
+                  >
+                    {noteSubmitting ? "Saving..." : "Add Internal Note"}
+                  </button>
+                </div>
+              </form>
+            )}
+          </section>
+        )}
       </main>
     </DashboardLayout>
   );

@@ -1211,3 +1211,54 @@ body {
     width: 100%;
   }
 }
+/* =========================
+   COLLAPSED SIDEBAR FIX
+========================= */
+
+.sidebar.collapsed {
+  width: 82px;
+  padding-left: 12px;
+  padding-right: 12px;
+}
+
+.sidebar.collapsed .nav-label {
+  display: none;
+}
+
+.sidebar.collapsed .sidebar-nav {
+  align-items: center;
+}
+
+.sidebar.collapsed .nav-item {
+  width: 48px;
+  min-width: 48px;
+  height: 48px;
+  min-height: 48px;
+  justify-content: center;
+  padding: 0;
+  gap: 0;
+}
+
+.sidebar.collapsed .nav-icon {
+  width: 24px;
+  flex: 0 0 24px;
+  display: grid;
+  place-items: center;
+}
+
+.sidebar.collapsed .nav-item:hover {
+  transform: none;
+}
+
+.sidebar.collapsed .sidebar-bottom {
+  width: 100%;
+  margin-left: 0;
+  margin-right: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.sidebar.collapsed .sidebar-brand {
+  overflow: hidden;
+}

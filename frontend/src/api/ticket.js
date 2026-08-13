@@ -73,9 +73,96 @@ export async function getTicketComments(ticketId) {
   const data = await request(`${API_URL}/${ticketId}/comments`, { method: "GET" });
   return Array.isArray(data) ? data : [];
 }
-export async function addTicketComment(ticketId, comment) {
-  return request(`${API_URL}/${ticketId}/comments`, { method: "POST", body: JSON.stringify({ comment: comment.trim() }) });
+export async function addTicketComment(
+  ticketId,
+  comment,
+  parentCommentID = null
+) {
+  return request(`${API_URL}/${ticketId}/comments`, {
+    method: "POST",
+    body: JSON.stringify({
+      comment: comment.trim(),
+      parentCommentID
+    })
+  });
 }
+
+export async function uploadCommentAttachments(
+  ticketId,
+  commentId,
+  files
+) {
+  const token = requireToken();
+
+  const formData = new FormData();
+
+  files.forEach((file) => {
+    formData.append("files", file);
+  });
+
+  formData.append("ticketCommentId", String(commentId));
+
+  const response = await fetch(
+    `${API_URL}/${ticketId}/attachments`,
+    {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`
+      },
+      body: formData
+    }
+  );
+
+  const data = await readResponse(response);
+
+  if (response.status === 401) {
+    throw new Error("Your session has expired. Please sign in again.");
+  }
+
+  if (response.status === 403) {
+    throw new Error(
+      data.message || "You do not have permission to upload attachments."
+    );
+  }
+
+  if (!response.ok) {
+    throw new Error(
+      data.message || `Upload failed. Error ${response.status}.`
+    );
+  }
+
+  return data;
+}
+
+export async function getAttachmentBlobUrl(ticketId, attachmentId) {
+  const token = requireToken();
+
+  const response = await fetch(
+    `${API_URL}/${ticketId}/attachments/${attachmentId}/download`,
+    {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    }
+  );
+
+  if (response.status === 401) {
+    throw new Error("Your session has expired. Please sign in again.");
+  }
+
+  if (response.status === 403) {
+    throw new Error("You do not have permission to view this attachment.");
+  }
+
+  if (!response.ok) {
+    throw new Error("Attachment could not be loaded.");
+  }
+
+  const blob = await response.blob();
+
+  return URL.createObjectURL(blob);
+}
+
 export async function getInternalNotes(ticketId) {
   const data = await request(`${API_URL}/${ticketId}/internal-notes`, { method: "GET" });
   return Array.isArray(data) ? data : [];
