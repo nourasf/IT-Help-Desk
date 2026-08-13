@@ -23,103 +23,210 @@ namespace backend.Controllers
             _jwtService = jwtService;
         }
 
-        [HttpPost("forgot-password")]
-        public async Task<IActionResult> ForgotPassword(ForgotPasswordRequest request)
+       [HttpPost("forgot-password")]
+public async Task<IActionResult> ForgotPassword(ForgotPasswordRequest request)
+{
+    if (request == null || string.IsNullOrWhiteSpace(request.Email))
+    {
+        return BadRequest(new
         {
-            var email = request?.Email?.Trim();
+            message = "Email is required."
+        });
+    }
 
-            if (string.IsNullOrWhiteSpace(email))
-            {
-                return BadRequest(new
-                {
-                    message = "Email address is required."
-                });
-            }
+    var email = request.Email.Trim().ToLower();
 
-            var user = await _context.Users
-                .FirstOrDefaultAsync(u => u.Email.ToLower() == email.ToLower());
+    var user = await _context.Users
+        .FirstOrDefaultAsync(u => u.Email.ToLower() == email);
 
-            if (user == null)
-            {
-                return Ok(new
-                {
-                    message = "If the email exists, a verification code has been created."
-                });
-            }
-
-            var otp = RandomNumberGenerator.GetInt32(100000, 1000000).ToString();
-
-            user.ResetPasswordToken = otp;
-            user.ResetPasswordExpiry = DateTime.UtcNow.AddMinutes(10);
-            await _context.SaveChangesAsync();
-
-            // Development only: there is no email provider configured yet,
-            // so return the OTP so the local frontend can display it.
-            // When email is added, remove devOtp and send this code by email instead.
-            return Ok(new
-            {
-                message = "A 6-digit verification code was created. It expires in 10 minutes.",
-                devOtp = otp,
-                expiresAt = user.ResetPasswordExpiry
-            });
-        }
-
-        [HttpPost("reset-password")]
-        public async Task<IActionResult> ResetPassword(ResetPasswordRequest request)
+    // Always return the same response so we don't reveal
+    // whether an account exists.
+    if (user == null)
+    {
+        return Ok(new
         {
-            if (request == null || string.IsNullOrWhiteSpace(request.Email))
-            {
-                return BadRequest(new
-                {
-                    message = "Email address is required."
-                });
-            }
+            message = "If an account exists, a verification code has been sent."
+        });
+    }
 
-            if (string.IsNullOrWhiteSpace(request.Otp) || request.Otp.Length != 6 || !request.Otp.All(char.IsDigit))
-            {
-                return BadRequest(new
-                {
-                    message = "Enter the 6-digit verification code."
-                });
-            }
+    if (string.IsNullOrWhiteSpace(user.PhoneNumber))
+    {
+        return BadRequest(new
+        {
+            message = "No phone number is linked to this account."
+        });
+    }
 
-            if (string.IsNullOrWhiteSpace(request.NewPassword) || request.NewPassword.Length < 8)
-            {
-                return BadRequest(new
-                {
-                    message = "The new password must contain at least 8 characters."
-                });
-            }
+    var otp = RandomNumberGenerator
+        .GetInt32(100000, 1000000)
+        .ToString();
 
-            var email = request.Email.Trim();
-            var otp = request.Otp.Trim();
+    user.ResetPasswordToken = otp;
+    user.ResetPasswordExpiry = DateTime.UtcNow.AddMinutes(10);
 
-            var user = await _context.Users.FirstOrDefaultAsync(u =>
-                u.Email.ToLower() == email.ToLower() &&
-                u.ResetPasswordToken == otp &&
-                u.ResetPasswordExpiry.HasValue &&
-                u.ResetPasswordExpiry.Value > DateTime.UtcNow
-            );
+    await _context.SaveChangesAsync();
 
-            if (user == null)
-            {
-                return BadRequest(new
-                {
-                    message = "The verification code is invalid or has expired."
-                });
-            }
+    // TEMPORARY:
+    // This lets us test before connecting Twilio.
+    Console.WriteLine($"Password reset OTP for {user.Email}: {otp}");
 
-            user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.NewPassword);
-            user.ResetPasswordToken = null;
-            user.ResetPasswordExpiry = null;
+    return Ok(new
+    {
+        message = "A verification code has been sent.",
+        // REMOVE THIS after SMS is working.
+        otp
+    });
+}
 
-            await _context.SaveChangesAsync();
+      [HttpPost("reset-password")]
+public async Task<IActionResult> ResetPassword(ResetPasswordRequest request)
+{
+    if (request == null ||
+        string.IsNullOrWhiteSpace(request.Email) ||
+        string.IsNullOrWhiteSpace(request.ResetToken) ||
+        string.IsNullOrWhiteSpace(request.NewPassword))
+    {
+        return BadRequest(new
+        {
+            message = "Email, reset token, and new password are required."
+        });
+    }
 
-            return Ok(new
-            {
-                message = "Password reset successfully. You can now sign in with your new password."
-            });
-        }
+    if (request.NewPassword.Length < 8)
+    {
+        return BadRequest(new
+        {
+            message = "Password must contain at least 8 characters."
+        });
+    }
+
+    var email = request.Email.Trim().ToLower();
+
+    var user = await _context.Users
+        .FirstOrDefaultAsync(u => u.Email.ToLower() == email);
+
+    if (user == null ||
+        string.IsNullOrWhiteSpace(user.ResetPasswordToken) ||
+        user.ResetPasswordExpiry == null)
+    {
+        return BadRequest(new
+        {
+            message = "Invalid or expired password reset request."
+        });
+    }
+
+    if (user.ResetPasswordExpiry < DateTime.UtcNow)
+    {
+        user.ResetPasswordToken = null;
+        user.ResetPasswordExpiry = null;
+
+        await _context.SaveChangesAsync();
+
+        return BadRequest(new
+        {
+            message = "The password reset request has expired."
+        });
+    }
+
+    if (user.ResetPasswordToken != request.ResetToken)
+    {
+        return BadRequest(new
+        {
+            message = "Invalid password reset token."
+        });
+    }
+
+    user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(
+        request.NewPassword
+    );
+
+    user.ResetPasswordToken = null;
+    user.ResetPasswordExpiry = null;
+
+    await _context.SaveChangesAsync();
+
+    return Ok(new
+    {
+        message = "Password reset successfully."
+    });
+}
+
+
+        [HttpPost("verify-reset-otp")]
+public async Task<IActionResult> VerifyResetOtp(VerifyResetOtpRequest request)
+{
+    if (request == null ||
+        string.IsNullOrWhiteSpace(request.Email) ||
+        string.IsNullOrWhiteSpace(request.Otp))
+    {
+        return BadRequest(new
+        {
+            message = "Email and verification code are required."
+        });
+    }
+
+    var email = request.Email.Trim().ToLower();
+
+    var user = await _context.Users
+        .FirstOrDefaultAsync(u => u.Email.ToLower() == email);
+
+    if (user == null)
+    {
+        return BadRequest(new
+        {
+            message = "Invalid or expired verification code."
+        });
+    }
+
+    if (string.IsNullOrWhiteSpace(user.ResetPasswordToken) ||
+        user.ResetPasswordExpiry == null)
+    {
+        return BadRequest(new
+        {
+            message = "Invalid or expired verification code."
+        });
+    }
+
+    if (user.ResetPasswordExpiry < DateTime.UtcNow)
+    {
+        user.ResetPasswordToken = null;
+        user.ResetPasswordExpiry = null;
+
+        await _context.SaveChangesAsync();
+
+        return BadRequest(new
+        {
+            message = "The verification code has expired."
+        });
+    }
+
+    if (user.ResetPasswordToken != request.Otp.Trim())
+    {
+        return BadRequest(new
+        {
+            message = "Invalid verification code."
+        });
+    }
+
+    // OTP is correct.
+    // Generate a temporary token that will be required
+    // to actually change the password.
+    var resetToken = Convert.ToHexString(
+        RandomNumberGenerator.GetBytes(32)
+    );
+
+    user.ResetPasswordToken = resetToken;
+    user.ResetPasswordExpiry = DateTime.UtcNow.AddMinutes(10);
+
+    await _context.SaveChangesAsync();
+
+    return Ok(new
+    {
+        message = "Verification code confirmed.",
+        resetToken
+    });
+}
+
 
         [HttpPost("login")]
         public async Task<ActionResult<LoginResponseDto>> Login(LoginRequestDto request)

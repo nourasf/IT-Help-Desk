@@ -19,4 +19,6 @@ public class CreateUserRequestDto
 
     [Required]
     public string Role { get; set; } = string.Empty;
+
+    public String? PhoneNumber { get; set; }
 }

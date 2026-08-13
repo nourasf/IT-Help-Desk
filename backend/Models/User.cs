@@ -11,6 +11,8 @@ namespace backend.Models
 
         public String? ResetPasswordToken {get; set;}
 
+        public String? PhoneNumber {get ; set;}
+
         public DateTime? ResetPasswordExpiry {get; set;}
 
         public int RoleID { get; set; }

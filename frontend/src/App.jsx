@@ -22,6 +22,8 @@ import CreateTicket from "./pages/tickets/CreateTicket";
 import MyTickets from "./pages/tickets/MyTickets";
 import AllTickets from "./pages/tickets/AllTickets";
 import TicketDetails from "./pages/tickets/TicketDetails";
+import VerifyResetCode from "./pages/auth/VerifyResetCode";
+
 
 function normalizeRole(role) {
   return String(role || "").trim().toLowerCase().replaceAll("_", " ").replaceAll("-", " ");
@@ -83,6 +85,9 @@ function App() {
   return (
     <BrowserRouter>
       <Routes>
+        <Route path="/forgot-password" element={<ForgotPassword />} />
+<Route path="/verify-reset-code" element={<VerifyResetCode />} />
+<Route path="/reset-password" element={<ResetPassword />} />
         <Route path="/login" element={<Login />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/reset-password" element={<ResetPassword />} />

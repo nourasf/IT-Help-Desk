@@ -1,155 +1,162 @@
-import { useMemo, useState } from "react";
-import { Link, useLocation, useNavigate, useSearchParams } from "react-router-dom";
-import { resetPassword } from "../../api/auth";
-import logo from "../../assets/logo.png";
+import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import "../../styles/PasswordRecovery.css";
 
 function ResetPassword() {
   const navigate = useNavigate();
-  const location = useLocation();
-  const [searchParams] = useSearchParams();
 
-  const email = searchParams.get("email") || location.state?.email || "";
-  const devOtp = location.state?.devOtp || "";
+  const email = sessionStorage.getItem("resetEmail");
+  const resetToken = sessionStorage.getItem("passwordResetToken");
 
-  const [otp, setOtp] = useState("");
-  const [password, setPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
-  const [loading, setLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
 
-  const passwordIssue = useMemo(() => {
-    if (!password) return "";
-    if (password.length < 8) return "Use at least 8 characters.";
-    if (!/[A-Z]/.test(password)) return "Add at least one uppercase letter.";
-    if (!/[a-z]/.test(password)) return "Add at least one lowercase letter.";
-    if (!/[0-9]/.test(password)) return "Add at least one number.";
-    return "";
-  }, [password]);
-
-  function handleOtpChange(event) {
-    setOtp(event.target.value.replace(/\D/g, "").slice(0, 6));
-  }
+  useEffect(() => {
+    if (!email) {
+      navigate("/forgot-password");
+    }
+  }, [email, navigate]);
 
   async function handleSubmit(event) {
     event.preventDefault();
+
     setError("");
     setSuccess("");
 
-    if (!email) {
-      setError("Your recovery email is missing. Start again from Forgot Password.");
+    if (newPassword.length < 8) {
+      setError("Password must contain at least 8 characters.");
       return;
     }
 
-    if (otp.length !== 6) {
-      setError("Enter the 6-digit verification code.");
+    if (newPassword !== confirmPassword) {
+      setError("Passwords do not match.");
       return;
     }
 
-    if (passwordIssue) {
-      setError(passwordIssue);
-      return;
-    }
+    setIsLoading(true);
 
-    if (password !== confirmPassword) {
-      setError("The passwords do not match.");
-      return;
-    }
-
-    setLoading(true);
     try {
-      const result = await resetPassword(email, otp, password);
-      setSuccess(result.message || "Password reset successfully.");
-      setOtp("");
-      setPassword("");
-      setConfirmPassword("");
-      window.setTimeout(() => navigate("/login", { replace: true }), 1200);
-    } catch (requestError) {
-      setError(requestError.message || "The password could not be reset.");
+      const response = await fetch(
+        "http://localhost:5099/api/auth/reset-password",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            email,
+            resetToken,
+            newPassword,
+          }),
+        }
+      );
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(
+          data.message || "Unable to reset password."
+        );
+      }
+
+      setSuccess("Your password has been changed successfully.");
+
+      sessionStorage.removeItem("resetEmail");
+      sessionStorage.removeItem("passwordResetToken");
+
+      setTimeout(() => {
+        navigate("/login");
+      }, 1500);
+    } catch (err) {
+      setError(
+        err.message || "Unable to reset password."
+      );
     } finally {
-      setLoading(false);
+      setIsLoading(false);
     }
   }
 
   return (
-    <main className="password-recovery-page">
-      <section className="password-recovery-card">
-        <Link to="/forgot-password" className="password-back-link">← Request another code</Link>
-        <img src={logo} alt="SupportHub logo" className="password-recovery-logo" />
+    <main className="recovery-page">
+      <section className="recovery-card">
+        <div className="recovery-heading">
+          <div className="recovery-icon">✓</div>
 
-        <div className="password-recovery-heading">
-          <span>Verify your account</span>
-          <h1>Enter your verification code</h1>
+          <h1>Create New Password</h1>
+
           <p>
-            {email
-              ? `Enter the 6-digit code for ${email}, then choose your new password.`
-              : "Enter your verification code and choose a new password."}
+            Choose a new password for your SupportHub account.
           </p>
         </div>
 
-        {devOtp && (
-          <div className="password-dev-otp" role="status">
-            <span>Development verification code</span>
-            <strong>{devOtp}</strong>
-            <small>Email delivery is not connected yet. This code expires in 10 minutes.</small>
+        {error && (
+          <div className="recovery-message error">
+            {error}
           </div>
         )}
 
-        {!email ? (
-          <div className="password-message error" role="alert">
-            Recovery information is missing. <Link to="/forgot-password">Start again.</Link>
+        {success && (
+          <div className="recovery-message success">
+            {success}
           </div>
-        ) : (
-          <form className="password-recovery-form" onSubmit={handleSubmit}>
-            {error && <div className="password-message error" role="alert">{error}</div>}
-            {success && <div className="password-message success" role="status">{success}</div>}
+        )}
 
-            <label htmlFor="verification-code">Verification code</label>
-            <input
-              id="verification-code"
-              className="password-otp-input"
-              type="text"
-              inputMode="numeric"
-              autoComplete="one-time-code"
-              value={otp}
-              onChange={handleOtpChange}
-              placeholder="000000"
-              maxLength={6}
-              required
-            />
+        <form
+          className="recovery-form"
+          onSubmit={handleSubmit}
+        >
+          <div className="recovery-field">
+            <label htmlFor="newPassword">
+              New Password
+            </label>
 
-            <label htmlFor="new-password">New password</label>
             <input
-              id="new-password"
+              id="newPassword"
               type="password"
-              value={password}
-              onChange={(event) => setPassword(event.target.value)}
+              value={newPassword}
+              onChange={(event) =>
+                setNewPassword(event.target.value)
+              }
               placeholder="At least 8 characters"
+              minLength="8"
               autoComplete="new-password"
               required
             />
-            {passwordIssue && <small className="password-requirement warning">{passwordIssue}</small>}
+          </div>
 
-            <label htmlFor="confirm-password">Confirm new password</label>
+          <div className="recovery-field">
+            <label htmlFor="confirmPassword">
+              Confirm New Password
+            </label>
+
             <input
-              id="confirm-password"
+              id="confirmPassword"
               type="password"
               value={confirmPassword}
-              onChange={(event) => setConfirmPassword(event.target.value)}
+              onChange={(event) =>
+                setConfirmPassword(event.target.value)
+              }
               placeholder="Repeat your new password"
+              minLength="8"
               autoComplete="new-password"
               required
             />
+          </div>
 
-            <button
-              type="submit"
-              disabled={loading || otp.length !== 6 || !password || !confirmPassword || Boolean(success)}
-            >
-              {loading ? "Resetting password..." : success ? "Password changed" : "Verify & Reset Password"}
-            </button>
-          </form>
-        )}
+          <button
+            type="submit"
+            className="recovery-primary-button"
+            disabled={isLoading || success}
+          >
+            {isLoading
+              ? "Resetting Password..."
+              : "Reset Password"}
+          </button>
+        </form>
       </section>
     </main>
   );

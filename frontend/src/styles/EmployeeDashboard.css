@@ -28,13 +28,13 @@
   flex-direction: column;
   justify-content: center;
   padding: 18px;
-  border: 1px solid #ddd6ea;
+  border: 1px solid #EEEAF7;
   border-radius: 13px;
 }
 
 .employee-status-grid > div span {
   display: block;
-  color: #746d80;
+  color: #7A6DA8;
   font-size: 12px;
   font-weight: 700;
 }
@@ -42,12 +42,12 @@
 .employee-status-grid > div strong {
   display: block;
   margin-top: 7px;
-  color: #241c3e;
+  color: #383052;
   font-size: 28px;
   line-height: 1;
 }
 
-.employee-status-grid .open { background: #fff4dc; }
+.employee-status-grid .open { background: #F1EEF8; }
 .employee-status-grid .progress { background: #eef1ff; }
 .employee-status-grid .resolved { background: #e8f7ef; }
 .employee-status-grid .closed { background: #f0f1f4; }
@@ -74,7 +74,7 @@
   width: min(360px, 100%);
   min-height: 40px;
   padding: 0 13px;
-  border: 1px solid #d9d2e6;
+  border: 1px solid #E5E2EA;
   border-radius: 10px;
   background: #fbfafd;
   font: inherit;
@@ -83,17 +83,17 @@
 }
 
 .employee-product-dashboard .product-table-toolbar input:focus {
-  border-color: #8161d6;
+  border-color: #4F4673;
   box-shadow: 0 0 0 3px rgba(129, 97, 214, 0.12);
 }
 
 .employee-product-dashboard .product-text-button {
   min-height: 34px;
   padding: 0 12px;
-  border: 1px solid #d9d2e6;
+  border: 1px solid #E5E2EA;
   border-radius: 9px;
   background: #fff;
-  color: #6f50bd;
+  color: #7A6DA8;
   font: inherit;
   font-size: 11px;
   font-weight: 800;
@@ -118,10 +118,10 @@
   min-height: 72px;
   margin-bottom: 10px;
   padding: 13px 14px;
-  border: 1px solid #ddd5e9;
+  border: 1px solid #EEEAF7;
   border-radius: 12px;
   background: #fff;
-  color: #241c3e;
+  color: #383052;
   text-align: left;
   cursor: pointer;
   transition: transform 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
@@ -133,7 +133,7 @@
 
 .employee-action-panel > button:hover {
   transform: translateY(-2px);
-  border-color: #bdaee0;
+  border-color: #D6D0E6;
   box-shadow: 0 10px 22px rgba(65, 47, 99, 0.08);
 }
 
@@ -143,8 +143,8 @@
   height: 40px;
   place-items: center;
   border-radius: 11px;
-  background: #eee8fb;
-  color: #7653d2;
+  background: #F1EEF8;
+  color: #4F4673;
   font-size: 17px;
   font-weight: 800;
 }
@@ -159,18 +159,18 @@
 }
 
 .employee-action-panel > button strong {
-  color: #241c3e;
+  color: #383052;
   font-size: 13px;
 }
 
 .employee-action-panel > button small {
   margin-top: 4px;
-  color: #777083;
+  color: #8B8695;
   font-size: 10px;
 }
 
 .employee-action-panel > button b {
-  color: #8a7aa9;
+  color: #4F4673;
   font-size: 18px;
   text-align: right;
 }
@@ -189,10 +189,10 @@
   gap: 12px;
   margin-bottom: 8px;
   padding: 0 12px;
-  border: 1px solid #e0dae9;
+  border: 1px solid #EEEAF7;
   border-radius: 10px;
   background: #fff;
-  color: #342b4c;
+  color: #413A5F;
   font: inherit;
   font-size: 11px;
   text-align: left;
@@ -200,12 +200,12 @@
 }
 
 .knowledge-panel > button:hover {
-  border-color: #bcaee0;
+  border-color: #D6D0E6;
   background: #fbf9ff;
 }
 
 .knowledge-panel > button span {
-  color: #7653d2;
+  color: #4F4673;
   font-weight: 800;
 }
 
@@ -216,8 +216,8 @@
   margin: 18px auto 0;
   place-items: center;
   border-radius: 18px;
-  background: linear-gradient(135deg, #eee8fb, #e4efff);
-  color: #7653d2;
+  background: linear-gradient(135deg, #F1EEF8, #e4efff);
+  color: #4F4673;
   font-size: 26px;
 }
 

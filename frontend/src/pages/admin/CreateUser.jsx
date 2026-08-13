@@ -8,19 +8,23 @@ const roles = ["Employee", "IT Support Agent", "Manager", "Admin"];
 
 function CreateUser() {
   const navigate = useNavigate();
+
   const [form, setForm] = useState({
     fullName: "",
     email: "",
+    phoneNumber: "",
     password: "",
     confirmPassword: "",
     role: "Employee",
   });
+
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
   function handleChange(event) {
     const { name, value } = event.target;
+
     setForm((currentForm) => ({
       ...currentForm,
       [name]: value,
@@ -29,6 +33,7 @@ function CreateUser() {
 
   async function handleSubmit(event) {
     event.preventDefault();
+
     setError("");
     setSuccess("");
 
@@ -49,6 +54,7 @@ function CreateUser() {
         body: JSON.stringify({
           fullName: form.fullName,
           email: form.email,
+          phoneNumber: form.phoneNumber,
           password: form.password,
           role: form.role,
         }),
@@ -57,19 +63,27 @@ function CreateUser() {
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.message || "The user could not be created.");
+        throw new Error(
+          data.message || "The user could not be created."
+        );
       }
 
-      setSuccess(`${form.fullName} was created as ${form.role}.`);
+      setSuccess(
+        `${form.fullName} was created as ${form.role}.`
+      );
+
       setForm({
         fullName: "",
         email: "",
+        phoneNumber: "",
         password: "",
         confirmPassword: "",
         role: "Employee",
       });
     } catch (requestError) {
-      setError(requestError.message || "The user could not be created.");
+      setError(
+        requestError.message || "The user could not be created."
+      );
     } finally {
       setIsLoading(false);
     }
@@ -79,66 +93,198 @@ function CreateUser() {
     <DashboardLayout activePage="create-user">
       <div className="create-user-heading">
         <div>
-          <p className="create-user-eyebrow">User management</p>
+          <p className="create-user-eyebrow">
+            User management
+          </p>
+
           <h1>Create User</h1>
-          <p>Add an employee, support agent, manager, or administrator.</p>
+
+          <p>
+            Add an employee, support agent, manager, or administrator.
+          </p>
         </div>
       </div>
 
       <section className="create-user-card">
-        <form className="create-user-form" onSubmit={handleSubmit}>
+        <form
+          className="create-user-form"
+          onSubmit={handleSubmit}
+        >
           {error && (
-            <div className="create-user-message error" role="alert">
+            <div
+              className="create-user-message error"
+              role="alert"
+            >
               {error}
             </div>
           )}
 
           {success && (
-            <div className="create-user-message success" role="status">
+            <div
+              className="create-user-message success"
+              role="status"
+            >
               {success}
             </div>
           )}
 
           <div className="create-user-field full-width">
-            <label htmlFor="fullName">Full Name</label>
-            <input id="fullName" name="fullName" type="text" value={form.fullName} onChange={handleChange} placeholder="Enter the user's full name" autoComplete="off" required />
+            <label htmlFor="fullName">
+              Full Name
+            </label>
+
+            <input
+              id="fullName"
+              name="fullName"
+              type="text"
+              value={form.fullName}
+              onChange={handleChange}
+              placeholder="Enter the user's full name"
+              autoComplete="off"
+              required
+            />
           </div>
 
           <div className="create-user-field full-width">
-            <label htmlFor="email">Email Address</label>
-            <input id="email" name="email" type="email" value={form.email} onChange={handleChange} placeholder="user@company.com" autoComplete="off" required />
+            <label htmlFor="email">
+              Email Address
+            </label>
+
+            <input
+              id="email"
+              name="email"
+              type="email"
+              value={form.email}
+              onChange={handleChange}
+              placeholder="user@supporthub.com"
+              autoComplete="off"
+              required
+            />
           </div>
 
           <div className="create-user-field full-width">
-            <label htmlFor="role">Role</label>
-            <select id="role" name="role" value={form.role} onChange={handleChange} required>
+            <label htmlFor="phoneNumber">
+              Phone Number
+            </label>
+
+            <input
+              id="phoneNumber"
+              name="phoneNumber"
+              type="tel"
+              value={form.phoneNumber}
+              onChange={handleChange}
+              placeholder="+961 71 123 456"
+              autoComplete="tel"
+              required
+            />
+          </div>
+
+          <div className="create-user-field full-width">
+            <label htmlFor="role">
+              Role
+            </label>
+
+            <select
+              id="role"
+              name="role"
+              value={form.role}
+              onChange={handleChange}
+              required
+            >
               {roles.map((role) => (
-                <option key={role} value={role}>{role}</option>
+                <option
+                  key={role}
+                  value={role}
+                >
+                  {role}
+                </option>
               ))}
             </select>
           </div>
 
           <div className="create-user-field">
-            <label htmlFor="password">Temporary Password</label>
-            <input id="password" name="password" type="password" value={form.password} onChange={handleChange} placeholder="At least 8 characters" minLength="8" autoComplete="new-password" required />
+            <label htmlFor="password">
+              Temporary Password
+            </label>
+
+            <input
+              id="password"
+              name="password"
+              type="password"
+              value={form.password}
+              onChange={handleChange}
+              placeholder="At least 8 characters"
+              minLength="8"
+              autoComplete="new-password"
+              required
+            />
           </div>
 
           <div className="create-user-field">
-            <label htmlFor="confirmPassword">Confirm Password</label>
-            <input id="confirmPassword" name="confirmPassword" type="password" value={form.confirmPassword} onChange={handleChange} placeholder="Repeat the password" minLength="8" autoComplete="new-password" required />
+            <label htmlFor="confirmPassword">
+              Confirm Password
+            </label>
+
+            <input
+              id="confirmPassword"
+              name="confirmPassword"
+              type="password"
+              value={form.confirmPassword}
+              onChange={handleChange}
+              placeholder="Repeat the password"
+              minLength="8"
+              autoComplete="new-password"
+              required
+            />
           </div>
 
           <div className="create-user-actions full-width">
-            <button type="button" className="create-user-cancel" onClick={() => navigate("/admin-dashboard")}>Cancel</button>
-            <button type="submit" className="create-user-submit" disabled={isLoading}>{isLoading ? "Creating User..." : "Create User"}</button>
+            <button
+              type="button"
+              className="create-user-cancel"
+              onClick={() =>
+                navigate("/admin-dashboard")
+              }
+            >
+              Cancel
+            </button>
+
+            <button
+              type="submit"
+              className="create-user-submit"
+              disabled={isLoading}
+            >
+              {isLoading
+                ? "Creating User..."
+                : "Create User"}
+            </button>
           </div>
         </form>
 
         <aside className="create-user-note">
-          <span className="create-user-note-icon" aria-hidden="true">+</span>
+          <span
+            className="create-user-note-icon"
+            aria-hidden="true"
+          >
+            +
+          </span>
+
           <h2>Account access</h2>
-          <p>The new user can sign in immediately with the email and temporary password you provide.</p>
-          <p>Choose roles carefully. Managers and administrators receive additional system permissions.</p>
+
+          <p>
+            The new user can sign in immediately with the email and
+            temporary password you provide.
+          </p>
+
+          <p>
+            The phone number can be used for password recovery and
+            verification.
+          </p>
+
+          <p>
+            Choose roles carefully. Managers and administrators receive
+            additional system permissions.
+          </p>
         </aside>
       </section>
     </DashboardLayout>

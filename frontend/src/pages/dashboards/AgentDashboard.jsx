@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import DashboardLayout from "../../components/DashboardLayout";
+import ConfirmModal from "../../components/ConfirmModal";
 import { getAgentDashboard } from "../../api/dashboard";
 import { takeTicket } from "../../api/ticket";
 import "../../styles/AgentDashboard.css";
@@ -24,6 +25,7 @@ function AgentDashboard() {
   const [search, setSearch] = useState("");
   const [takingTicketId, setTakingTicketId] = useState(null);
   const [message, setMessage] = useState("");
+  const [pendingTicket, setPendingTicket] = useState(null);
 
   async function loadDashboard() {
     try {
@@ -68,6 +70,7 @@ function AgentDashboard() {
       setMessage(requestError.message || "The ticket could not be assigned.");
     } finally {
       setTakingTicketId(null);
+      setPendingTicket(null);
     }
   }
 
@@ -154,7 +157,7 @@ function AgentDashboard() {
                     type="button"
                     className="agent-take-ticket-button"
                     disabled={takingTicketId === ticket.id}
-                    onClick={() => handleTakeTicket(ticket.id)}
+                    onClick={() => setPendingTicket(ticket)}
                   >
                     {takingTicketId === ticket.id ? "Taking..." : "Take Ticket"}
                   </button>
@@ -167,6 +170,19 @@ function AgentDashboard() {
 
           {message && <p className="product-inline-message agent-take-message">{message}</p>}
         </section>
+
+        <ConfirmModal
+          open={Boolean(pendingTicket)}
+          eyebrow="Ticket assignment"
+          title={pendingTicket ? `Take ${pendingTicket.ticketNumber}?` : ""}
+          message={pendingTicket ? `You'll become the assigned agent for "${pendingTicket.subject}". You can start the work session from the ticket page.` : ""}
+          confirmLabel="Take Ticket"
+          cancelLabel="Cancel"
+          tone="primary"
+          loading={takingTicketId === pendingTicket?.id}
+          onCancel={() => setPendingTicket(null)}
+          onConfirm={() => handleTakeTicket(pendingTicket.id)}
+        />
 
         {criticalTickets.length > 0 && (
           <section className="product-panel product-alert-panel">

@@ -56,8 +56,10 @@ namespace backend.Controllers
                 FullName = request.FullName.Trim(),
                 Email = email,
                 PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.Password),
-                RoleID = role.ID
+                RoleID = role.ID,
+                PhoneNumber = request.PhoneNumber
             };
+
 
             _context.Users.Add(user);
             await _context.SaveChangesAsync();

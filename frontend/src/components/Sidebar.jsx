@@ -1,6 +1,8 @@
+import { useState } from "react";
 import { NavLink, useNavigate } from "react-router-dom";
 import logo from "../assets/logo.png";
 import { getStoredRole } from "../utils/authStorage";
+import ConfirmModal from "./ConfirmModal";
 
 function SidebarIcon({ name }) {
   const icons = {
@@ -21,6 +23,7 @@ function SidebarIcon({ name }) {
 function Sidebar({ activePage, collapsed, onToggle }) {
   const navigate = useNavigate();
   const role = getStoredRole()?.trim().toLowerCase();
+  const [logoutOpen, setLogoutOpen] = useState(false);
 
   function handleLogout() {
     localStorage.removeItem("token");
@@ -73,8 +76,20 @@ function Sidebar({ activePage, collapsed, onToggle }) {
       </nav>
       <div className="sidebar-bottom">
         <NavLink to="/profile" className="nav-item" title={collapsed ? "My Profile" : undefined}><span className="nav-icon"><SidebarIcon name="profile" /></span><span className="nav-label">My Profile</span></NavLink>
-        <button type="button" className="nav-item logout-button" onClick={handleLogout} title={collapsed ? "Log Out" : undefined}><span className="nav-icon"><SidebarIcon name="logout" /></span><span className="nav-label">Log Out</span></button>
+        <button type="button" className="nav-item logout-button" onClick={() => setLogoutOpen(true)} title={collapsed ? "Log Out" : undefined}><span className="nav-icon"><SidebarIcon name="logout" /></span><span className="nav-label">Log Out</span></button>
       </div>
+
+      <ConfirmModal
+        open={logoutOpen}
+        eyebrow="Session"
+        title="Log out of SupportHub?"
+        message="You'll need to sign in again to access your tickets and dashboard."
+        confirmLabel="Log Out"
+        cancelLabel="Stay Signed In"
+        tone="danger"
+        onCancel={() => setLogoutOpen(false)}
+        onConfirm={handleLogout}
+      />
     </aside>
   );
 }

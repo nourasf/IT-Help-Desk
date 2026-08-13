@@ -62,7 +62,7 @@ function Login() {
             <div className="form-group"><label htmlFor="password">Password</label><input id="password" type="password" placeholder="••••••••••••••" value={password} onChange={(event) => setPassword(event.target.value)} autoComplete="current-password" required /></div>
             <div className="login-options">
               <label className="remember-option"><input type="checkbox" checked={rememberMe} onChange={(event) => setRememberMe(event.target.checked)} /><span className="custom-checkbox"></span><span>Remember me</span></label>
-              <Link to="/forgot-password" className="forgot-password-link">Forgot Password?</Link>
+              <Link to="/forgot-password" className="forgot-password-link" onClick={()=>navigate ("/forgot-password")}>Forgot Password?</Link>
             </div>
             <button type="submit" className="sign-in-button" disabled={isLoading}>{isLoading ? "Signing In..." : "Sign In"}</button>
           </form>

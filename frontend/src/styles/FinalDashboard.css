@@ -1,13 +1,13 @@
 :root {
-  --fd-bg: #f3f0f8;
+  --fd-bg: #F8F7FB;
   --fd-surface: #ffffff;
   --fd-surface-soft: #faf9fd;
-  --fd-border: #dcd5e8;
-  --fd-border-strong: #cec4df;
-  --fd-text: #241c3e;
-  --fd-muted: #766f82;
-  --fd-purple: #7452d6;
-  --fd-purple-soft: #eee8fb;
+  --fd-border: #EEEAF7;
+  --fd-border-strong: #E5E2EA;
+  --fd-text: #383052;
+  --fd-muted: #8B8695;
+  --fd-purple: #4F4673;
+  --fd-purple-soft: #F1EEF8;
   --fd-blue: #4f83cf;
   --fd-blue-soft: #eaf2fd;
   --fd-green: #2f9566;
@@ -81,7 +81,7 @@
 .admin-panel-heading p {
   display: block;
   margin: 0 0 6px;
-  color: #795fc0;
+  color: #4F4673;
   font-size: 10px;
   font-weight: 850;
   letter-spacing: 0.1em;
@@ -101,7 +101,7 @@
   padding: 0 17px;
   border: 0;
   border-radius: 11px;
-  background: linear-gradient(135deg, #825de0, #663dc8);
+  background: linear-gradient(135deg, #4F4673, #7A6DA8);
   color: #fff;
   font: inherit;
   font-size: 12px;
@@ -152,7 +152,7 @@
   gap: 14px;
   margin-bottom: 16px;
   padding-bottom: 14px;
-  border-bottom: 1px solid #e9e4f0;
+  border-bottom: 1px solid #F1EEF8;
 }
 
 .product-panel-heading h2,
@@ -171,7 +171,7 @@
   padding: 0 9px;
   border-radius: 999px;
   background: var(--fd-purple-soft);
-  color: #6c50ae;
+  color: #7A6DA8;
   font-size: 10px;
   font-weight: 800;
 }
@@ -311,7 +311,7 @@
 
 .agent-workload-panel,
 .admin-role-overview {
-  border-color: #d8ccec;
+  border-color: #E5E2EA;
   background: linear-gradient(180deg, #ffffff 0%, #faf7ff 100%);
 }
 
@@ -325,7 +325,7 @@
 .manager-quick-actions,
 .admin-quick-actions,
 .employee-action-panel {
-  border-color: #ddd1ee;
+  border-color: #EEEAF7;
   background: linear-gradient(180deg, #ffffff 0%, #fbf8ff 100%);
 }
 
@@ -339,7 +339,7 @@
 .product-table-wrap,
 .admin-table-wrapper {
   overflow: hidden;
-  border: 1px solid #ddd7e7;
+  border: 1px solid #EEEAF7;
   border-radius: 12px;
   background: #fff;
 }
@@ -355,8 +355,8 @@
 .admin-activity-table th,
 .admin-activity-table td {
   padding: 12px 11px;
-  border-bottom: 1px solid #ece7f1;
-  color: #625b6e;
+  border-bottom: 1px solid #F1EEF8;
+  color: #5B4F87;
   font-size: 11px;
   text-align: left;
   vertical-align: middle;
@@ -364,8 +364,8 @@
 
 .product-table th,
 .admin-activity-table th {
-  background: #f4f1f8;
-  color: #8b8299;
+  background: #F8F7FB;
+  color: #4F4673;
   font-size: 9px;
   font-weight: 850;
   letter-spacing: 0.06em;
@@ -425,17 +425,17 @@
 
 .status-open,
 .admin-table-badge.status {
-  color: #7152b3;
-  background: #eee8fb;
+  color: #7A6DA8;
+  background: #F1EEF8;
 }
 .status-in-progress { color: #3f72b5; background: #e8f1fc; }
 .status-resolved { color: #267c56; background: #e5f5ec; }
 .status-closed { color: #626c7a; background: #edf0f4; }
-.status-pending { color: #946718; background: #fcf2d9; }
+.status-pending { color: #946718; background: #F1EEF8; }
 .priority-critical,
 .priority-high,
 .admin-table-badge.priority { color: #b23f53; background: #fbe7eb; }
-.priority-medium { color: #9b6819; background: #fbf0d9; }
+.priority-medium { color: #9b6819; background: #F1EEF8; }
 .priority-low { color: #3978a3; background: #e7f2fa; }
 
 /* ---------- Manager ---------- */
@@ -508,14 +508,14 @@
   height: 7px;
   overflow: hidden;
   border-radius: 99px;
-  background: #e9e4ef;
+  background: #F1EEF8;
 }
 
 .workload-bar span {
   display: block;
   height: 100%;
   border-radius: inherit;
-  background: linear-gradient(90deg, #8c67df, #6943c9);
+  background: linear-gradient(90deg, #6C5FA0, #7A6DA8);
 }
 
 .manager-quick-actions,
@@ -540,7 +540,7 @@
   align-items: center;
   gap: 10px;
   padding: 12px;
-  border: 1px solid #ddd6e8;
+  border: 1px solid #EEEAF7;
   border-radius: 11px;
   background: #fff;
   color: var(--fd-text);
@@ -551,7 +551,7 @@
 .manager-quick-actions > button:hover:not(:disabled),
 .admin-action-grid > a:hover,
 .employee-action-panel > button:hover {
-  border-color: #bba9dc;
+  border-color: #D6D0E6;
   background: #faf7ff;
 }
 
@@ -580,12 +580,12 @@
 .employee-status-grid > div {
   min-height: 72px;
   padding: 12px;
-  border: 1px solid #e6e0ed;
+  border: 1px solid #EEEAF7;
   border-radius: 11px;
   background: #faf9fc;
 }
 
-.product-mini-metrics > div:nth-child(1) { background: #f4effd; }
+.product-mini-metrics > div:nth-child(1) { background: #F8F7FB; }
 .product-mini-metrics > div:nth-child(2) { background: #edf4fd; }
 .product-mini-metrics > div:nth-child(3) { background: #eaf7f0; }
 .product-mini-metrics > div:nth-child(4) { background: #fcecef; }
@@ -645,7 +645,7 @@
   align-items: center;
   gap: 11px;
   padding: 9px 0;
-  border-bottom: 1px solid #ece7f1;
+  border-bottom: 1px solid #F1EEF8;
 }
 
 .admin-feed-item:last-child {
@@ -789,7 +789,7 @@
   min-height: 92px;
   place-content: center;
   padding: 18px;
-  border: 1px dashed #d9d1e4;
+  border: 1px dashed #E5E2EA;
   border-radius: 11px;
   background: rgba(255, 255, 255, 0.7);
   text-align: center;
@@ -894,7 +894,7 @@
 .agent-workload-list > div > div:nth-child(2) strong {
   display: block;
   width: 100%;
-  color: #2f2948;
+  color: #413A5F;
   font-size: 13px;
   line-height: 1.25;
   white-space: nowrap;
@@ -904,7 +904,7 @@
 
 .agent-workload-list > div > div:nth-child(2) small {
   display: block;
-  color: #81798c;
+  color: #8B8695;
   font-size: 10px;
   line-height: 1.3;
   white-space: nowrap;
@@ -912,6 +912,6 @@
 
 .agent-workload-list > div > b {
   justify-self: end;
-  color: #302746;
+  color: #413A5F;
   font-size: 13px;
 }
