@@ -33,12 +33,15 @@ async function publicRequest(path, body) {
 }
 
 export function forgotPassword(email) {
-  return publicRequest("forgot-password", { email: String(email || "").trim() });
+  return publicRequest("forgot-password", {
+    email: String(email || "").trim(),
+  });
 }
 
-export function resetPassword(token, newPassword) {
+export function resetPassword(email, otp, newPassword) {
   return publicRequest("reset-password", {
-    token: String(token || "").trim(),
+    email: String(email || "").trim(),
+    otp: String(otp || "").trim(),
     newPassword,
   });
 }
