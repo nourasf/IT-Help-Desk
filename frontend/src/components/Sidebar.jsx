@@ -45,6 +45,9 @@ function Sidebar({ activePage, collapsed, onToggle }) {
       { name: "admin-tickets", label: "All Tickets", path: "/admin/tickets", icon: "tickets" },
       { name: "create-user", label: "Create User", path: "/admin/users/create", icon: "create" },
     ] : []),
+    ...(role === "manager" ? [
+      { name: "all-tickets", label: "All Tickets", path: "/tickets/all", icon: "tickets" },
+    ] : []),
     ...(role === "employee" ? [
       { name: "tickets", label: "My Tickets", path: "/my-tickets", icon: "tickets" },
       { name: "create-ticket", label: "Create Ticket", path: "/create-ticket", icon: "create" },
