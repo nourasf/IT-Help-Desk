@@ -1,0 +1,115 @@
+/* Final ticket action polish: makes More Actions closable and confirmation dialogs easier to use. */
+.ticket-more-actions-wrap .ticket-toolbar-button.primary[aria-expanded="true"] {
+  position: fixed;
+  z-index: 9300;
+  top: calc(50% - 252px);
+  left: calc(50% + 244px);
+  width: 38px;
+  min-width: 38px;
+  height: 38px;
+  min-height: 38px;
+  padding: 0;
+  border: 0;
+  border-radius: 11px;
+  background: #f2eef8;
+  box-shadow: none;
+  color: transparent;
+  font-size: 0;
+}
+.ticket-more-actions-wrap .ticket-toolbar-button.primary[aria-expanded="true"] > span { display:none; }
+.ticket-more-actions-wrap .ticket-toolbar-button.primary[aria-expanded="true"]::after {
+  content: "×";
+  display:grid;
+  place-items:center;
+  color:#765fa6;
+  font-size:23px;
+  font-weight:500;
+  line-height:1;
+}
+.ticket-more-actions-wrap .ticket-toolbar-button.primary[aria-expanded="true"]:hover { background:#ebe5f4; transform:none; }
+
+.ticket-more-actions-menu {
+  width: min(590px, calc(100vw - 44px));
+  padding: 22px;
+  border-radius: 24px;
+  box-shadow: 0 0 0 100vmax rgba(39,29,58,.38), 0 30px 80px rgba(47,31,79,.26);
+}
+.ticket-more-actions-heading { padding: 2px 52px 17px 2px; }
+.ticket-more-actions-heading strong { font-size: 22px; }
+.ticket-more-actions-heading small { font-size: 12px; }
+.ticket-more-actions-menu .ticket-action {
+  position:relative;
+  min-height:78px;
+  padding:15px 42px 15px 18px;
+  border-radius:15px;
+}
+.ticket-more-actions-menu .ticket-action::after {
+  content:"›";
+  position:absolute;
+  right:17px;
+  top:50%;
+  transform:translateY(-50%);
+  color:#77688f;
+  font-size:24px;
+}
+.ticket-more-actions-menu .ticket-action strong { font-size:14px; }
+.ticket-more-actions-menu .ticket-action span { font-size:11px; }
+
+.ticket-action-modal-backdrop { padding: 18px; }
+.ticket-action-modal.ticket-action-modal-large {
+  width:min(620px, calc(100vw - 36px));
+  padding:30px 32px 28px;
+  border-radius:24px;
+  background:#fff;
+  box-shadow:0 32px 86px rgba(44,31,73,.26);
+  overflow:visible;
+}
+.ticket-action-modal-large > header { align-items:flex-start; margin-bottom:24px; }
+.ticket-action-modal-large > header span { font-size:10px; letter-spacing:.11em; }
+.ticket-action-modal-large > header h3 { margin-top:6px; font-size:26px; line-height:1.15; color:#352b4c; }
+.ticket-action-modal-large > header > button {
+  width:40px;
+  height:40px;
+  flex-basis:40px;
+  border-radius:12px;
+  background:#f3eff9;
+  color:#8068b2;
+  font-size:23px;
+  cursor:pointer;
+}
+.ticket-action-modal-large > header > button:hover { background:#eae3f4; color:#60458f; }
+.ticket-action-modal-large textarea {
+  min-height:190px;
+  max-height:190px;
+  padding:18px;
+  border:1px solid #ded6e9;
+  border-radius:16px;
+  background:#fdfcff;
+  font-size:14px;
+  line-height:1.6;
+  resize:none;
+}
+.ticket-action-modal-large textarea:focus {
+  border-color:#866abf;
+  box-shadow:0 0 0 4px rgba(117,84,185,.10);
+}
+.ticket-action-modal-large > footer { margin-top:24px; gap:12px; }
+.ticket-action-modal-large > footer button {
+  min-width:128px;
+  min-height:46px;
+  border-radius:12px;
+  font-size:12px;
+}
+.ticket-action-modal-large > footer .secondary { background:#fff; border-color:#ddd6e6; }
+.ticket-action-modal-large > footer .primary { background:linear-gradient(135deg,#62518f,#7257ad); box-shadow:0 10px 22px rgba(92,63,153,.20); }
+
+@media (max-width: 700px) {
+  .ticket-more-actions-wrap .ticket-toolbar-button.primary[aria-expanded="true"] {
+    top: calc(50% - 249px);
+    left: auto;
+    right: calc(50% - min(295px, calc((100vw - 44px)/2)) + 10px);
+  }
+  .ticket-more-actions-menu { padding:18px; }
+  .ticket-action-modal.ticket-action-modal-large { padding:24px 20px 22px; }
+  .ticket-action-modal-large textarea { min-height:160px; max-height:160px; }
+}
