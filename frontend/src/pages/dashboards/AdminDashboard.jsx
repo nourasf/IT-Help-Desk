@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
+import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import DashboardLayout from "../../components/DashboardLayout";
 import AdminActionsModal from "../../components/AdminActionsModal";
 import { getAdminDashboard, getAdminResolvedAnalytics } from "../../api/dashboard";
@@ -28,17 +29,22 @@ function formatActivityDate(value) {
 }
 
 function ResolutionChart({ analytics }) {
-  const points = analytics?.points || [];
-  const max = Math.max(1, ...points.map((point) => Number(point.count || 0)));
+  const points = (analytics?.points || []).map((point) => ({ ...point, count: Number(point.count || 0) }));
   return (
     <article className="admin-panel" style={{ marginBottom: 22 }}>
       <div className="admin-panel-heading"><div><p>Last 30 days</p><h2>Resolved Ticket Analytics</h2></div><span>{analytics?.total || 0} resolved</span></div>
-      <div style={{ display: "flex", alignItems: "flex-end", gap: 5, height: 190, padding: "20px 6px 4px", borderBottom: "1px solid #ebe6f2" }} aria-label="Tickets resolved in the last 30 days">
-        {points.map((point, index) => (
-          <div key={point.date || index} title={`${point.label}: ${point.count}`} style={{ flex: 1, minWidth: 4, height: `${Math.max(5, (Number(point.count || 0) / max) * 100)}%`, borderRadius: "6px 6px 2px 2px", background: "linear-gradient(180deg,#8d6bd5,#b681d7)", opacity: point.count ? 1 : .2 }} />
-        ))}
+      <div style={{ width: "100%", height: 230, paddingTop: 14 }} aria-label="Tickets resolved in the last 30 days">
+        <ResponsiveContainer width="100%" height="100%">
+          <AreaChart data={points} margin={{ top: 8, right: 10, left: -20, bottom: 0 }}>
+            <defs><linearGradient id="resolvedTicketFill" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#8d6bd5" stopOpacity={0.34} /><stop offset="95%" stopColor="#8d6bd5" stopOpacity={0.03} /></linearGradient></defs>
+            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#eee9f4" />
+            <XAxis dataKey="label" axisLine={false} tickLine={false} minTickGap={28} tick={{ fill: "#938aa0", fontSize: 10 }} />
+            <YAxis allowDecimals={false} axisLine={false} tickLine={false} tick={{ fill: "#938aa0", fontSize: 10 }} />
+            <Tooltip contentStyle={{ borderRadius: 12, border: "1px solid #e5deed", boxShadow: "0 10px 28px rgba(62,44,102,.10)", fontSize: 12 }} formatter={(value) => [`${value} ticket${Number(value) === 1 ? "" : "s"}`, "Resolved"]} />
+            <Area type="monotone" dataKey="count" stroke="#7d5bc5" strokeWidth={3} fill="url(#resolvedTicketFill)" activeDot={{ r: 5 }} />
+          </AreaChart>
+        </ResponsiveContainer>
       </div>
-      <div style={{ display: "flex", justifyContent: "space-between", paddingTop: 9, color: "#938aa0", fontSize: 10 }}><span>{points[0]?.label || "30 days ago"}</span><span>{points[Math.floor(points.length / 2)]?.label || ""}</span><span>{points.at(-1)?.label || "Today"}</span></div>
     </article>
   );
 }
@@ -77,30 +83,11 @@ function AdminDashboard() {
   return (
     <DashboardLayout activePage="dashboard">
       <main className="admin-product-dashboard">
-        <header className="admin-dashboard-header">
-          <div><p className="admin-eyebrow">Administration workspace</p><h1>Admin Control Center</h1><p>Monitor users, tickets, analytics and system activity.</p></div>
-          <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}><Link className="admin-create-user-button" to="/admin/tickets">View All Tickets</Link><Link className="admin-create-user-button" to="/admin/users/create"><span>+</span>Create New User</Link></div>
-        </header>
-
-        <section className="admin-metrics-grid" aria-label="System metrics">
-          <MetricCard icon="users" label="Total Users" value={dashboard.totalUsers} detail={`${dashboard.supportAgents} support agents`} tone="purple" />
-          <MetricCard icon="tickets" label="Open Tickets" value={dashboard.activeTickets} detail={`${dashboard.unassignedTickets} unassigned`} tone="red" />
-          <MetricCard icon="resolved" label="Resolved Tickets" value={dashboard.resolvedTickets} detail={`${dashboard.totalTickets} total tickets`} tone="green" />
-          <MetricCard icon="clock" label="Critical Tickets" value={dashboard.criticalTickets} detail="Needs attention" tone="blue" />
-        </section>
-
+        <header className="admin-dashboard-header"><div><p className="admin-eyebrow">Administration workspace</p><h1>Admin Control Center</h1><p>Monitor users, tickets, analytics and system activity.</p></div><div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}><Link className="admin-create-user-button" to="/admin/tickets">View All Tickets</Link><Link className="admin-create-user-button" to="/admin/users/create"><span>+</span>Create New User</Link></div></header>
+        <section className="admin-metrics-grid" aria-label="System metrics"><MetricCard icon="users" label="Total Users" value={dashboard.totalUsers} detail={`${dashboard.supportAgents} support agents`} tone="purple" /><MetricCard icon="tickets" label="Open Tickets" value={dashboard.activeTickets} detail={`${dashboard.unassignedTickets} unassigned`} tone="red" /><MetricCard icon="resolved" label="Resolved Tickets" value={dashboard.resolvedTickets} detail={`${dashboard.totalTickets} total tickets`} tone="green" /><MetricCard icon="clock" label="Critical Tickets" value={dashboard.criticalTickets} detail="Needs attention" tone="blue" /></section>
         <ResolutionChart analytics={analytics} />
-
-        <section className="admin-command-grid">
-          <article className="admin-panel admin-activity-feed"><div className="admin-panel-heading"><div><p>Live updates</p><h2>Recent Activity</h2></div><span>{activity.length}</span></div><div className="admin-feed-list">{activity.length ? activity.slice(0, 6).map((item, index) => <div className="admin-feed-item" key={`${item.target}-${index}`}><span className={`admin-feed-icon tone-${index % 4}`}><AdminIcon name={index % 2 ? "tickets" : "activity"} /></span><div><strong>{item.subject || item.target}</strong><small>{item.user} · {item.role}</small></div><time>{formatActivityDate(item.date)}</time></div>) : <p className="admin-empty-state">No recent activity yet.</p>}</div></article>
-          <article className="admin-panel admin-role-overview"><div className="admin-panel-heading"><div><p>People</p><h2>User Roles Overview</h2></div></div><div className="admin-role-chart-wrap"><div className="admin-role-donut" style={{ background: roleChart }}><div><strong>{dashboard.totalUsers}</strong><span>Total Users</span></div></div><div className="admin-role-legend">{roles.map((role, index) => <div key={role.name}><span><i style={{ background: roleColors[index % roleColors.length] }} />{role.name}</span><strong>{role.count}</strong></div>)}</div></div></article>
-          <article className="admin-panel admin-system-snapshot"><div className="admin-panel-heading"><div><p>Operations</p><h2>System Snapshot</h2></div><span className="admin-health-pill">Live</span></div><div className="admin-system-list"><div><span><AdminIcon name="users" />Support Agents</span><strong>{dashboard.supportAgents}</strong></div><div><span><AdminIcon name="tickets" />Unassigned Tickets</span><strong>{dashboard.unassignedTickets}</strong></div><div><span><AdminIcon name="activity" />Active Tickets</span><strong>{dashboard.activeTickets}</strong></div><div><span><AdminIcon name="resolved" />Resolved Tickets</span><strong>{dashboard.resolvedTickets}</strong></div></div></article>
-        </section>
-
-        <section className="admin-bottom-grid">
-          <article className="admin-panel admin-recent-tickets"><div className="admin-panel-heading"><div><p>Latest requests</p><h2>Recent Tickets</h2></div><Link to="/admin/tickets">See all</Link></div><div className="admin-table-wrapper"><table className="admin-activity-table"><thead><tr><th>Ticket</th><th>Requester</th><th>Status</th><th>Priority</th><th>Updated</th></tr></thead><tbody>{activity.length ? activity.slice(0, 7).map((item, index) => <tr key={`${item.target}-${index}`}><td><strong>{item.target}</strong><span>{item.subject}</span></td><td><strong>{item.user}</strong><span>{item.role}</span></td><td><span className="admin-table-badge status">{item.status}</span></td><td><span className="admin-table-badge priority">{item.priority}</span></td><td>{formatActivityDate(item.date)}</td></tr>) : <tr><td className="admin-empty-table" colSpan="5">No recent tickets yet.</td></tr>}</tbody></table></div></article>
-          <aside className="admin-panel admin-quick-actions"><div className="admin-panel-heading"><div><p>Shortcuts</p><h2>Quick Actions</h2></div></div><div className="admin-actions-launch"><div className="admin-actions-launch-copy"><span>Action center</span><strong>Manage the help desk</strong><small>Open one clean action menu instead of showing every shortcut at once.</small></div><button type="button" className="admin-actions-open-button" onClick={() => setActionsOpen(true)}>Open Actions</button></div></aside>
-        </section>
+        <section className="admin-command-grid"><article className="admin-panel admin-activity-feed"><div className="admin-panel-heading"><div><p>Live updates</p><h2>Recent Activity</h2></div><span>{activity.length}</span></div><div className="admin-feed-list">{activity.length ? activity.slice(0, 6).map((item, index) => <div className="admin-feed-item" key={`${item.target}-${index}`}><span className={`admin-feed-icon tone-${index % 4}`}><AdminIcon name={index % 2 ? "tickets" : "activity"} /></span><div><strong>{item.subject || item.target}</strong><small>{item.user} · {item.role}</small></div><time>{formatActivityDate(item.date)}</time></div>) : <p className="admin-empty-state">No recent activity yet.</p>}</div></article><article className="admin-panel admin-role-overview"><div className="admin-panel-heading"><div><p>People</p><h2>User Roles Overview</h2></div></div><div className="admin-role-chart-wrap"><div className="admin-role-donut" style={{ background: roleChart }}><div><strong>{dashboard.totalUsers}</strong><span>Total Users</span></div></div><div className="admin-role-legend">{roles.map((role, index) => <div key={role.name}><span><i style={{ background: roleColors[index % roleColors.length] }} />{role.name}</span><strong>{role.count}</strong></div>)}</div></div></article><article className="admin-panel admin-system-snapshot"><div className="admin-panel-heading"><div><p>Operations</p><h2>System Snapshot</h2></div><span className="admin-health-pill">Live</span></div><div className="admin-system-list"><div><span><AdminIcon name="users" />Support Agents</span><strong>{dashboard.supportAgents}</strong></div><div><span><AdminIcon name="tickets" />Unassigned Tickets</span><strong>{dashboard.unassignedTickets}</strong></div><div><span><AdminIcon name="activity" />Active Tickets</span><strong>{dashboard.activeTickets}</strong></div><div><span><AdminIcon name="resolved" />Resolved Tickets</span><strong>{dashboard.resolvedTickets}</strong></div></div></article></section>
+        <section className="admin-bottom-grid"><article className="admin-panel admin-recent-tickets"><div className="admin-panel-heading"><div><p>Latest requests</p><h2>Recent Tickets</h2></div><Link to="/admin/tickets">See all</Link></div><div className="admin-table-wrapper"><table className="admin-activity-table"><thead><tr><th>Ticket</th><th>Requester</th><th>Status</th><th>Priority</th><th>Updated</th></tr></thead><tbody>{activity.length ? activity.slice(0, 7).map((item, index) => <tr key={`${item.target}-${index}`}><td><strong>{item.target}</strong><span>{item.subject}</span></td><td><strong>{item.user}</strong><span>{item.role}</span></td><td><span className="admin-table-badge status">{item.status}</span></td><td><span className="admin-table-badge priority">{item.priority}</span></td><td>{formatActivityDate(item.date)}</td></tr>) : <tr><td className="admin-empty-table" colSpan="5">No recent tickets yet.</td></tr>}</tbody></table></div></article><aside className="admin-panel admin-quick-actions"><div className="admin-panel-heading"><div><p>Shortcuts</p><h2>Quick Actions</h2></div></div><div className="admin-actions-launch"><div className="admin-actions-launch-copy"><span>Action center</span><strong>Manage the help desk</strong><small>Open one clean action menu instead of showing every shortcut at once.</small></div><button type="button" className="admin-actions-open-button" onClick={() => setActionsOpen(true)}>Open Actions</button></div></aside></section>
       </main>
       <AdminActionsModal open={actionsOpen} onClose={() => setActionsOpen(false)} />
     </DashboardLayout>
