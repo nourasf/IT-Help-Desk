@@ -94,7 +94,7 @@ function Reports() {
   const [error, setError] = useState("");
   const [exporting, setExporting] = useState("");
 
-  const loadReport = useCallback(async (nextFrom = from, nextTo = to, signal) => {
+  const loadReport = useCallback(async (nextFrom, nextTo, signal) => {
     try {
       setLoading(true);
       setError("");
@@ -107,7 +107,7 @@ function Reports() {
     } finally {
       if (!signal?.aborted) setLoading(false);
     }
-  }, [from, to]);
+  }, []);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -155,22 +155,27 @@ function Reports() {
   }
 
   async function exportPdf() {
-    if (!reportRef.current || !report) return;
+    const reportElement = reportRef.current;
+    if (!reportElement || !report) return;
+
     try {
       setExporting("pdf");
-      const [{ default: html2canvas }, { default: jsPDF }] = await Promise.all([
-        import("html2canvas"),
-        import("jspdf"),
-      ]);
+      reportElement.classList.add("export-mode");
+      await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
 
-      const canvas = await html2canvas(reportRef.current, {
+      const html2canvasModule = await import("html2canvas");
+      const jsPdfModule = await import("jspdf");
+      const html2canvas = html2canvasModule.default;
+      const JsPdf = jsPdfModule.jsPDF || jsPdfModule.default;
+
+      const canvas = await html2canvas(reportElement, {
         scale: 2,
         useCORS: true,
         backgroundColor: "#ffffff",
         logging: false,
       });
 
-      const pdf = new jsPDF("p", "mm", "a4");
+      const pdf = new JsPdf("p", "mm", "a4");
       const pageWidth = pdf.internal.pageSize.getWidth();
       const pageHeight = pdf.internal.pageSize.getHeight();
       const margin = 8;
@@ -194,6 +199,7 @@ function Reports() {
     } catch (exportError) {
       setError(exportError.message || "The PDF could not be generated.");
     } finally {
+      reportElement.classList.remove("export-mode");
       setExporting("");
     }
   }
@@ -274,7 +280,7 @@ function Reports() {
   if (error && !report) {
     return (
       <DashboardLayout activePage="reports">
-        <div className="reports-state-card error"><h2>Reports unavailable</h2><p>{error}</p><button type="button" onClick={() => loadReport()}>Try Again</button></div>
+        <div className="reports-state-card error"><h2>Reports unavailable</h2><p>{error}</p><button type="button" onClick={() => loadReport(from, to)}>Try Again</button></div>
       </DashboardLayout>
     );
   }
@@ -327,7 +333,7 @@ function Reports() {
           <div className="reports-period-chip"><span>Reporting period</span><strong>{formatDate(report?.from)} — {formatDate(report?.to)}</strong>{loading && <small>Refreshing...</small>}</div>
         </section>
 
-        {error && report && <div className="reports-inline-error"><span>{error}</span><button type="button" onClick={() => { setError(""); loadReport(); }}>Retry</button></div>}
+        {error && report && <div className="reports-inline-error"><span>{error}</span><button type="button" onClick={() => { setError(""); loadReport(from, to); }}>Retry</button></div>}
 
         {!hasTickets && <div className="reports-no-activity"><strong>No ticket activity was recorded during this period.</strong><p>Choose another date range to view historical activity.</p></div>}
 
