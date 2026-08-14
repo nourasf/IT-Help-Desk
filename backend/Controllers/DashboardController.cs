@@ -23,21 +23,23 @@ namespace backend.Controllers
         {
             var userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
 
-            var tickets = await _context.Tickets
-                .Include(t => t.Status)
-                .Include(t => t.Priority)
-                .Include(t => t.Category)
-                .Where(t => t.CreatedByUserId == userId && !t.IsDeleted)
-                .OrderByDescending(t => t.CreatedAt)
-                .ToListAsync();
+            var ticketsQuery = _context.Tickets
+                .AsNoTracking()
+                .Where(t => t.CreatedByUserId == userId && !t.IsDeleted);
 
-            var result = new
-            {
-                OpenTickets = tickets.Count(t => t.Status.StatusName == "Open"),
-                PendingTickets = tickets.Count(t => t.Status.StatusName == "Pending"),
-                ResolvedTickets = tickets.Count(t => t.Status.StatusName == "Resolved"),
-                CriticalTickets = tickets.Count(t => t.Status.StatusName == "Critical"),
-                RecentTickets = tickets.Take(5).Select(t => new
+            var openTickets = await ticketsQuery.CountAsync(t => t.Status.StatusName == "Open");
+            var pendingTickets = await ticketsQuery.CountAsync(t => t.Status.StatusName == "Pending");
+            var resolvedTickets = await ticketsQuery.CountAsync(t => t.Status.StatusName == "Resolved");
+            var criticalTickets = await ticketsQuery.CountAsync(t =>
+                t.Priority.Name == "Critical" &&
+                t.Status.StatusName != "Resolved" &&
+                t.Status.StatusName != "Closed" &&
+                t.Status.StatusName != "Cancelled");
+
+            var recentTickets = await ticketsQuery
+                .OrderByDescending(t => t.CreatedAt)
+                .Take(10)
+                .Select(t => new
                 {
                     t.Id,
                     t.TicketNumber,
@@ -47,76 +49,81 @@ namespace backend.Controllers
                     Category = t.Category.Name,
                     t.CreatedAt
                 })
-            };
+                .ToListAsync();
 
-            return Ok(result);
+            return Ok(new
+            {
+                OpenTickets = openTickets,
+                PendingTickets = pendingTickets,
+                ResolvedTickets = resolvedTickets,
+                CriticalTickets = criticalTickets,
+                RecentTickets = recentTickets
+            });
         }
 
         [HttpGet("admin")]
         [Authorize(Roles = "Admin")]
         public async Task<IActionResult> GetAdminDashboard()
         {
-            var users = await _context.Users
-                .Include(u => u.Role)
+            var usersQuery = _context.Users.AsNoTracking();
+            var ticketsQuery = _context.Tickets.AsNoTracking().Where(t => !t.IsDeleted);
+
+            var totalUsers = await usersQuery.CountAsync();
+            var supportAgents = await usersQuery.CountAsync(u =>
+                u.Role != null &&
+                (u.Role.Name == "IT Support Agent" || u.Role.Name == "Agent" || u.Role.Name == "IT"));
+
+            var totalTickets = await ticketsQuery.CountAsync();
+            var activeTickets = await ticketsQuery.CountAsync(t =>
+                t.Status.StatusName == "Open" ||
+                t.Status.StatusName == "In Progress" ||
+                t.Status.StatusName == "Pending" ||
+                t.Status.StatusName == "Reopened");
+
+            var resolvedTickets = await ticketsQuery.CountAsync(t =>
+                t.Status.StatusName == "Resolved" ||
+                t.Status.StatusName == "Closed");
+
+            var criticalTickets = await ticketsQuery.CountAsync(t =>
+                t.Priority.Name == "Critical" &&
+                t.Status.StatusName != "Resolved" &&
+                t.Status.StatusName != "Closed" &&
+                t.Status.StatusName != "Cancelled");
+
+            var unassignedTickets = await ticketsQuery.CountAsync(t =>
+                t.AssignedToUserId == null &&
+                t.Status.StatusName != "Resolved" &&
+                t.Status.StatusName != "Closed" &&
+                t.Status.StatusName != "Cancelled");
+
+            var ticketsByStatus = await ticketsQuery
+                .GroupBy(t => t.Status.StatusName)
+                .Select(group => new { Name = group.Key, Count = group.Count() })
+                .OrderByDescending(item => item.Count)
                 .ToListAsync();
 
-            var tickets = await _context.Tickets
-                .Include(t => t.Status)
-                .Include(t => t.Priority)
-                .Include(t => t.Category)
-                .Include(t => t.CreatedByUser)
-                    .ThenInclude(u => u.Role)
-                .Where(t => !t.IsDeleted)
+            var ticketsByPriority = await ticketsQuery
+                .GroupBy(t => t.Priority.Name)
+                .Select(group => new { Name = group.Key, Count = group.Count() })
+                .OrderByDescending(item => item.Count)
+                .ToListAsync();
+
+            var ticketsByCategory = await ticketsQuery
+                .GroupBy(t => t.Category.Name)
+                .Select(group => new { Name = group.Key, Count = group.Count() })
+                .OrderByDescending(item => item.Count)
+                .ToListAsync();
+
+            var usersByRole = await usersQuery
+                .GroupBy(u => u.Role != null ? u.Role.Name : "No Role")
+                .Select(group => new { Name = group.Key, Count = group.Count() })
+                .OrderByDescending(item => item.Count)
+                .ToListAsync();
+
+            var recentActivity = await ticketsQuery
                 .OrderByDescending(t => t.CreatedAt)
-                .ToListAsync();
-
-            var result = new
-            {
-                TotalUsers = users.Count,
-                SupportAgents = users.Count(u =>
-                    u.Role != null &&
-                    (u.Role.Name == "IT Support Agent" || u.Role.Name == "Agent")),
-                TotalTickets = tickets.Count,
-                ActiveTickets = tickets.Count(t =>
-                    t.Status.StatusName == "Open" ||
-                    t.Status.StatusName == "In Progress" ||
-                    t.Status.StatusName == "Pending" ||
-                    t.Status.StatusName == "Reopened"),
-                ResolvedTickets = tickets.Count(t =>
-                    t.Status.StatusName == "Resolved" ||
-                    t.Status.StatusName == "Closed"),
-                CriticalTickets = tickets.Count(t =>
-                    t.Priority.Name == "Critical" &&
-                    t.Status.StatusName != "Resolved" &&
-                    t.Status.StatusName != "Closed" &&
-                    t.Status.StatusName != "Cancelled"),
-                UnassignedTickets = tickets.Count(t =>
-                    t.AssignedToUserId == null &&
-                    t.Status.StatusName != "Resolved" &&
-                    t.Status.StatusName != "Closed" &&
-                    t.Status.StatusName != "Cancelled"),
-
-                TicketsByStatus = tickets
-                    .GroupBy(t => t.Status.StatusName)
-                    .Select(group => new { Name = group.Key, Count = group.Count() })
-                    .OrderByDescending(item => item.Count),
-
-                TicketsByPriority = tickets
-                    .GroupBy(t => t.Priority.Name)
-                    .Select(group => new { Name = group.Key, Count = group.Count() })
-                    .OrderByDescending(item => item.Count),
-
-                TicketsByCategory = tickets
-                    .GroupBy(t => t.Category.Name)
-                    .Select(group => new { Name = group.Key, Count = group.Count() })
-                    .OrderByDescending(item => item.Count),
-
-                UsersByRole = users
-                    .GroupBy(u => u.Role?.Name ?? "No Role")
-                    .Select(group => new { Name = group.Key, Count = group.Count() })
-                    .OrderByDescending(item => item.Count),
-
-                RecentActivity = tickets.Take(6).Select(t => new
+                .Take(10)
+                .Select(t => new
                 {
                     User = t.CreatedByUser.FullName,
                     Role = t.CreatedByUser.Role != null ? t.CreatedByUser.Role.Name : "No Role",
@@ -127,9 +134,23 @@ namespace backend.Controllers
                     Priority = t.Priority.Name,
                     Date = t.CreatedAt
                 })
-            };
+                .ToListAsync();
 
-            return Ok(result);
+            return Ok(new
+            {
+                TotalUsers = totalUsers,
+                SupportAgents = supportAgents,
+                TotalTickets = totalTickets,
+                ActiveTickets = activeTickets,
+                ResolvedTickets = resolvedTickets,
+                CriticalTickets = criticalTickets,
+                UnassignedTickets = unassignedTickets,
+                TicketsByStatus = ticketsByStatus,
+                TicketsByPriority = ticketsByPriority,
+                TicketsByCategory = ticketsByCategory,
+                UsersByRole = usersByRole,
+                RecentActivity = recentActivity
+            });
         }
 
         [HttpGet("admin/resolved-last-30-days")]
@@ -239,7 +260,7 @@ namespace backend.Controllers
                     t.Status.StatusName != "Cancelled")
                 .OrderByDescending(t => t.Priority.Name == "Critical")
                 .ThenBy(t => t.CreatedAt)
-                .Take(5)
+                .Take(10)
                 .Select(t => new
                 {
                     id = t.Id,
@@ -268,63 +289,70 @@ namespace backend.Controllers
         [Authorize(Roles = "Manager")]
         public async Task<IActionResult> GetManagerDashboard()
         {
-            var tickets = await _context.Tickets
-                .Include(t => t.Status)
-                .Include(t => t.Priority)
-                .Include(t => t.Category)
-                .Include(t => t.CreatedByUser)
-                .Include(t => t.AssignedToUser)
-                .Where(t => !t.IsDeleted)
-                .OrderByDescending(t => t.CreatedAt)
-                .ToListAsync();
-
-            var supportAgents = await _context.Users
-                .Include(u => u.Role)
+            var ticketsQuery = _context.Tickets.AsNoTracking().Where(t => !t.IsDeleted);
+            var supportAgentsQuery = _context.Users
+                .AsNoTracking()
                 .Where(u => u.Role != null &&
                     (u.Role.Name == "IT Support Agent" ||
                      u.Role.Name == "Agent" ||
-                     u.Role.Name == "IT"))
+                     u.Role.Name == "IT"));
+
+            var teamTickets = await ticketsQuery.CountAsync();
+            var openTickets = await ticketsQuery.CountAsync(t =>
+                t.Status.StatusName == "Open" ||
+                t.Status.StatusName == "In Progress" ||
+                t.Status.StatusName == "Pending" ||
+                t.Status.StatusName == "Reopened");
+
+            var overdueTickets = await ticketsQuery.CountAsync(t =>
+                (t.Status.StatusName == "Open" ||
+                 t.Status.StatusName == "In Progress" ||
+                 t.Status.StatusName == "Pending" ||
+                 t.Status.StatusName == "Reopened") &&
+                t.CreatedAt < DateTime.UtcNow.AddDays(-3));
+
+            var resolvedTickets = await ticketsQuery.CountAsync(t =>
+                t.Status.StatusName == "Resolved" ||
+                t.Status.StatusName == "Closed");
+
+            var unassignedTickets = await ticketsQuery.CountAsync(t =>
+                t.AssignedToUserId == null &&
+                t.Status.StatusName != "Resolved" &&
+                t.Status.StatusName != "Closed" &&
+                t.Status.StatusName != "Cancelled");
+
+            var criticalTickets = await ticketsQuery.CountAsync(t =>
+                t.Priority.Name == "Critical" &&
+                t.Status.StatusName != "Resolved" &&
+                t.Status.StatusName != "Closed" &&
+                t.Status.StatusName != "Cancelled");
+
+            var supportAgents = await supportAgentsQuery
+                .Select(agent => new { agent.ID, agent.FullName })
                 .ToListAsync();
 
-            var activeTickets = tickets
+            var resolutionDurations = await ticketsQuery
                 .Where(t =>
-                    t.Status.StatusName == "Open" ||
-                    t.Status.StatusName == "In Progress" ||
-                    t.Status.StatusName == "Pending" ||
-                    t.Status.StatusName == "Reopened")
-                .ToList();
+                    (t.Status.StatusName == "Resolved" || t.Status.StatusName == "Closed") &&
+                    (t.ResolvedAt.HasValue || t.ClosedAt.HasValue))
+                .Select(t => EF.Functions.DateDiffMinute(t.CreatedAt, t.ResolvedAt ?? t.ClosedAt!.Value))
+                .Where(minutes => minutes >= 0)
+                .ToListAsync();
 
-            var resolvedTickets = tickets
-                .Where(t =>
-                    t.Status.StatusName == "Resolved" ||
-                    t.Status.StatusName == "Closed")
-                .ToList();
+            var averageResolutionTime = resolutionDurations.Count == 0
+                ? 0
+                : Math.Round(resolutionDurations.Average() / 60.0, 1);
 
-            var resolutionDurations = resolvedTickets
-                .Where(t => t.ClosedAt.HasValue || t.UpdatedAt.HasValue)
-                .Select(t => ((t.ClosedAt ?? t.UpdatedAt)!.Value - t.CreatedAt).TotalHours)
-                .Where(hours => hours >= 0)
-                .ToList();
+            var ticketsByStatus = await ticketsQuery
+                .GroupBy(t => t.Status.StatusName)
+                .Select(group => new { Name = group.Key, Count = group.Count() })
+                .OrderByDescending(item => item.Count)
+                .ToListAsync();
 
-            var result = new
-            {
-                TeamTickets = tickets.Count,
-                OpenTickets = activeTickets.Count,
-                OverdueTickets = activeTickets.Count(t => t.CreatedAt < DateTime.UtcNow.AddDays(-3)),
-                ResolvedTickets = resolvedTickets.Count,
-                UnassignedTickets = activeTickets.Count(t => t.AssignedToUserId == null),
-                CriticalTickets = activeTickets.Count(t => t.Priority.Name == "Critical"),
-                SupportAgents = supportAgents.Count,
-                AverageResolutionTime = resolutionDurations.Any()
-                    ? Math.Round(resolutionDurations.Average(), 1)
-                    : 0,
-
-                TicketsByStatus = tickets
-                    .GroupBy(t => t.Status.StatusName)
-                    .Select(group => new { Name = group.Key, Count = group.Count() })
-                    .OrderByDescending(item => item.Count),
-
-                RecentTickets = tickets.Take(6).Select(t => new
+            var recentTickets = await ticketsQuery
+                .OrderByDescending(t => t.CreatedAt)
+                .Take(10)
+                .Select(t => new
                 {
                     t.Id,
                     t.TicketNumber,
@@ -335,49 +363,66 @@ namespace backend.Controllers
                     Priority = t.Priority.Name,
                     Category = t.Category.Name,
                     t.CreatedAt
-                }),
-
-                AgentPerformance = supportAgents.Select(agent =>
-                {
-                    var assignedTickets = tickets
-                        .Where(t => t.AssignedToUserId == agent.ID)
-                        .ToList();
-
-                    var agentResolvedTickets = assignedTickets
-                        .Where(t => t.Status.StatusName == "Resolved" || t.Status.StatusName == "Closed")
-                        .ToList();
-
-                    var agentResolutionDurations = agentResolvedTickets
-                        .Where(t => t.ClosedAt.HasValue || t.UpdatedAt.HasValue)
-                        .Select(t => ((t.ClosedAt ?? t.UpdatedAt)!.Value - t.CreatedAt).TotalHours)
-                        .Where(hours => hours >= 0)
-                        .ToList();
-
-                    var averageResolutionHours = agentResolutionDurations.Any()
-                        ? agentResolutionDurations.Average()
-                        : 0;
-
-                    var resolutionRate = assignedTickets.Any()
-                        ? (double)agentResolvedTickets.Count / assignedTickets.Count * 100
-                        : 0;
-
-                    return new
-                    {
-                        Agent = agent.FullName,
-                        Assigned = assignedTickets.Count,
-                        Resolved = agentResolvedTickets.Count,
-                        Open = assignedTickets.Count(t =>
-                            t.Status.StatusName == "Open" ||
-                            t.Status.StatusName == "In Progress" ||
-                            t.Status.StatusName == "Pending" ||
-                            t.Status.StatusName == "Reopened"),
-                        AverageResolutionTime = Math.Round(averageResolutionHours, 1),
-                        ResolutionRate = Math.Round(resolutionRate, 0)
-                    };
                 })
-            };
+                .ToListAsync();
 
-            return Ok(result);
+            var agentPerformance = new List<object>();
+
+            foreach (var agent in supportAgents)
+            {
+                var assigned = await ticketsQuery.CountAsync(t => t.AssignedToUserId == agent.ID);
+                var resolved = await ticketsQuery.CountAsync(t =>
+                    t.AssignedToUserId == agent.ID &&
+                    (t.Status.StatusName == "Resolved" || t.Status.StatusName == "Closed"));
+                var open = await ticketsQuery.CountAsync(t =>
+                    t.AssignedToUserId == agent.ID &&
+                    (t.Status.StatusName == "Open" ||
+                     t.Status.StatusName == "In Progress" ||
+                     t.Status.StatusName == "Pending" ||
+                     t.Status.StatusName == "Reopened"));
+
+                var agentDurations = await ticketsQuery
+                    .Where(t =>
+                        t.AssignedToUserId == agent.ID &&
+                        (t.Status.StatusName == "Resolved" || t.Status.StatusName == "Closed") &&
+                        (t.ResolvedAt.HasValue || t.ClosedAt.HasValue))
+                    .Select(t => EF.Functions.DateDiffMinute(t.CreatedAt, t.ResolvedAt ?? t.ClosedAt!.Value))
+                    .Where(minutes => minutes >= 0)
+                    .ToListAsync();
+
+                var averageResolutionHours = agentDurations.Count == 0
+                    ? 0
+                    : agentDurations.Average() / 60.0;
+
+                var resolutionRate = assigned == 0
+                    ? 0
+                    : (double)resolved / assigned * 100;
+
+                agentPerformance.Add(new
+                {
+                    Agent = agent.FullName,
+                    Assigned = assigned,
+                    Resolved = resolved,
+                    Open = open,
+                    AverageResolutionTime = Math.Round(averageResolutionHours, 1),
+                    ResolutionRate = Math.Round(resolutionRate, 0)
+                });
+            }
+
+            return Ok(new
+            {
+                TeamTickets = teamTickets,
+                OpenTickets = openTickets,
+                OverdueTickets = overdueTickets,
+                ResolvedTickets = resolvedTickets,
+                UnassignedTickets = unassignedTickets,
+                CriticalTickets = criticalTickets,
+                SupportAgents = supportAgents.Count,
+                AverageResolutionTime = averageResolutionTime,
+                TicketsByStatus = ticketsByStatus,
+                RecentTickets = recentTickets,
+                AgentPerformance = agentPerformance
+            });
         }
     }
 }
