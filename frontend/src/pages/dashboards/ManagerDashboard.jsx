@@ -224,7 +224,7 @@ function ManagerDashboard() {
             <div className="product-panel-heading"><div><span>Shortcuts</span><h2>Quick Actions</h2></div></div>
             <button onClick={() => document.querySelector(".manager-needs-attention")?.scrollIntoView({ behavior: "smooth" })}><span>＋</span><strong>Assign Tickets</strong></button>
             <button onClick={() => navigate("/tickets/all")}><span>▣</span><strong>View All Tickets</strong></button>
-            <button><span>▤</span><strong>View Reports</strong></button>
+            <button onClick={() => navigate("/reports")}><span>▤</span><strong>View Reports</strong></button>
             <button onClick={loadData}><span>↻</span><strong>Refresh Data</strong></button>
           </aside>
         </section>
