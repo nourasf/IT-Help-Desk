@@ -6,7 +6,6 @@ import {
   Bar,
   BarChart,
   CartesianGrid,
-  Cell,
   ResponsiveContainer,
   Tooltip,
   XAxis,
@@ -15,8 +14,6 @@ import {
 import DashboardLayout from "../components/DashboardLayout";
 import { getReport } from "../api/reports";
 import "../styles/Reports.css";
-
-const CHART_COLORS = ["#6C5FA0", "#8B7AB8", "#A89BC9", "#C0B6D9", "#D7D0E7", "#4F4673"];
 
 function toInputDate(date) {
   return date.toISOString().slice(0, 10);
@@ -37,7 +34,13 @@ function formatDateTime(value) {
   if (!value) return "—";
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return "—";
-  return date.toLocaleString([], { month: "short", day: "numeric", year: "numeric", hour: "2-digit", minute: "2-digit" });
+  return date.toLocaleString([], {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
 }
 
 function formatMinutes(value) {
@@ -66,7 +69,12 @@ function ReportIcon({ type }) {
     export: <><path d="M12 3v12" /><path d="m7 10 5 5 5-5" /><path d="M5 21h14" /></>,
     sheet: <><path d="M6 3h9l4 4v14H6z" /><path d="M15 3v5h5" /><path d="M9 12h7" /><path d="M9 16h7" /></>,
   };
-  return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">{paths[type]}</svg>;
+
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      {paths[type]}
+    </svg>
+  );
 }
 
 function EmptyChart({ message = "No data for this period." }) {
@@ -90,6 +98,7 @@ function Reports() {
   const [customFrom, setCustomFrom] = useState(defaultFrom);
   const [customTo, setCustomTo] = useState(defaultTo);
   const [activePreset, setActivePreset] = useState("30days");
+  const [breakdownFilter, setBreakdownFilter] = useState("status");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [exporting, setExporting] = useState("");
@@ -129,15 +138,9 @@ function Reports() {
     let nextFrom = new Date(now);
     const nextTo = toInputDate(now);
 
-    if (preset === "today") {
-      nextFrom = now;
-    } else if (preset === "7days") {
-      nextFrom.setDate(nextFrom.getDate() - 6);
-    } else if (preset === "30days") {
-      nextFrom.setDate(nextFrom.getDate() - 29);
-    } else if (preset === "month") {
-      nextFrom = startOfMonth(now);
-    }
+    if (preset === "7days") nextFrom.setDate(nextFrom.getDate() - 6);
+    if (preset === "30days") nextFrom.setDate(nextFrom.getDate() - 29);
+    if (preset === "month") nextFrom = startOfMonth(now);
 
     applyRange(toInputDate(nextFrom), nextTo, preset);
   }
@@ -182,9 +185,9 @@ function Reports() {
       const usableWidth = pageWidth - margin * 2;
       const imageHeight = (canvas.height * usableWidth) / canvas.width;
       const imageData = canvas.toDataURL("image/png");
-
       let heightLeft = imageHeight;
       let position = margin;
+
       pdf.addImage(imageData, "PNG", margin, position, usableWidth, imageHeight, undefined, "FAST");
       heightLeft -= pageHeight - margin * 2;
 
@@ -206,6 +209,7 @@ function Reports() {
 
   async function exportExcel() {
     if (!report) return;
+
     try {
       setExporting("excel");
       const XLSX = await import("xlsx");
@@ -213,8 +217,8 @@ function Reports() {
       const charts = report.charts || {};
       const agents = report.agentPerformance || [];
       const recentTickets = report.recentTickets || [];
-
       const workbook = XLSX.utils.book_new();
+
       const summaryRows = [
         { Metric: "Reporting Period", Value: `${formatDate(report.from)} - ${formatDate(report.to)}` },
         { Metric: "Total Tickets", Value: summary.totalTickets || 0 },
@@ -234,7 +238,7 @@ function Reports() {
         Email: agent.email,
         Assigned: agent.assignedTickets,
         Resolved: agent.resolvedTickets,
-        Active: agent.activeTickets,
+        "Current Active": agent.activeTickets,
         "Resolution Rate (%)": agent.assignedTickets ? Math.round((agent.resolvedTickets / agent.assignedTickets) * 100) : 0,
         "Total Work Minutes": agent.totalWorkMinutes,
         "Average Work Minutes": agent.averageWorkMinutes,
@@ -272,7 +276,11 @@ function Reports() {
   if (loading && !report) {
     return (
       <DashboardLayout activePage="reports">
-        <div className="reports-state-card"><div className="reports-loader" /><h2>Building your report</h2><p>Loading ticket trends and team performance...</p></div>
+        <div className="reports-state-card">
+          <div className="reports-loader" />
+          <h2>Building your report</h2>
+          <p>Loading ticket trends and team performance...</p>
+        </div>
       </DashboardLayout>
     );
   }
@@ -280,7 +288,11 @@ function Reports() {
   if (error && !report) {
     return (
       <DashboardLayout activePage="reports">
-        <div className="reports-state-card error"><h2>Reports unavailable</h2><p>{error}</p><button type="button" onClick={() => loadReport(from, to)}>Try Again</button></div>
+        <div className="reports-state-card error">
+          <h2>Reports unavailable</h2>
+          <p>{error}</p>
+          <button type="button" onClick={() => loadReport(from, to)}>Try Again</button>
+        </div>
       </DashboardLayout>
     );
   }
@@ -300,6 +312,32 @@ function Reports() {
 
   const maxWorkload = Math.max(1, ...agentRows.map((agent) => Number(agent.activeTickets || 0)));
 
+  const breakdownOptions = {
+    status: {
+      label: "Status",
+      eyebrow: "Workflow",
+      title: "Tickets by Status",
+      description: "See how tickets are distributed across the workflow.",
+      data: charts.ticketsByStatus || [],
+    },
+    priority: {
+      label: "Priority",
+      eyebrow: "Urgency",
+      title: "Tickets by Priority",
+      description: "Compare ticket urgency during the selected period.",
+      data: charts.ticketsByPriority || [],
+    },
+    category: {
+      label: "Category",
+      eyebrow: "Problem areas",
+      title: "Tickets by Category",
+      description: "Compare the types of requests generating the most support demand.",
+      data: charts.ticketsByCategory || [],
+    },
+  };
+
+  const breakdown = breakdownOptions[breakdownFilter];
+
   return (
     <DashboardLayout activePage="reports">
       <main className="reports-page">
@@ -310,8 +348,14 @@ function Reports() {
             <p>Monitor help desk performance, ticket trends, and team workload.</p>
           </div>
           <div className="reports-export-actions">
-            <button type="button" className="report-export-button" onClick={exportPdf} disabled={Boolean(exporting)}><ReportIcon type="export" />{exporting === "pdf" ? "Generating PDF..." : "Export PDF"}</button>
-            <button type="button" className="report-export-button primary" onClick={exportExcel} disabled={Boolean(exporting)}><ReportIcon type="sheet" />{exporting === "excel" ? "Building Excel..." : "Export Excel"}</button>
+            <button type="button" className="report-export-button" onClick={exportPdf} disabled={Boolean(exporting)}>
+              <ReportIcon type="export" />
+              {exporting === "pdf" ? "Generating PDF..." : "Export PDF"}
+            </button>
+            <button type="button" className="report-export-button primary" onClick={exportExcel} disabled={Boolean(exporting)}>
+              <ReportIcon type="sheet" />
+              {exporting === "excel" ? "Building Excel..." : "Export Excel"}
+            </button>
           </div>
         </header>
 
@@ -330,22 +374,43 @@ function Reports() {
             <button type="button" onClick={applyCustomRange}>Apply</button>
           </div>
 
-          <div className="reports-period-chip"><span>Reporting period</span><strong>{formatDate(report?.from)} — {formatDate(report?.to)}</strong>{loading && <small>Refreshing...</small>}</div>
+          <div className="reports-period-chip">
+            <span>Reporting period</span>
+            <strong>{formatDate(report?.from)} — {formatDate(report?.to)}</strong>
+            {loading && <small>Refreshing...</small>}
+          </div>
         </section>
 
-        {error && report && <div className="reports-inline-error"><span>{error}</span><button type="button" onClick={() => { setError(""); loadReport(from, to); }}>Retry</button></div>}
+        {error && report && (
+          <div className="reports-inline-error">
+            <span>{error}</span>
+            <button type="button" onClick={() => { setError(""); loadReport(from, to); }}>Retry</button>
+          </div>
+        )}
 
-        {!hasTickets && <div className="reports-no-activity"><strong>No ticket activity was recorded during this period.</strong><p>Choose another date range to view historical activity.</p></div>}
+        {!hasTickets && (
+          <div className="reports-no-activity">
+            <strong>No ticket activity was recorded during this period.</strong>
+            <p>Choose another date range to view historical activity.</p>
+          </div>
+        )}
 
         <div id="report-export-area" ref={reportRef} className="report-export-area">
           <div className="report-document-heading">
-            <div><span>SupportHub</span><h2>IT Help Desk Performance Report</h2><p>{formatDate(report?.from)} — {formatDate(report?.to)}</p></div>
-            <div><small>Generated</small><strong>{formatDateTime(generatedAt)}</strong></div>
+            <div>
+              <span>SupportHub</span>
+              <h2>IT Help Desk Performance Report</h2>
+              <p>{formatDate(report?.from)} — {formatDate(report?.to)}</p>
+            </div>
+            <div>
+              <small>Generated</small>
+              <strong>{formatDateTime(generatedAt)}</strong>
+            </div>
           </div>
 
           <section className="report-kpi-grid">
             <article><div className="report-kpi-icon"><ReportIcon type="tickets" /></div><div><span>Total Tickets</span><strong>{summary.totalTickets || 0}</strong><small>Created in this period</small></div></article>
-            <article><div className="report-kpi-icon"><ReportIcon type="active" /></div><div><span>Active Tickets</span><strong>{summary.openTickets || 0}</strong><small>Open, pending or in progress</small></div></article>
+            <article><div className="report-kpi-icon"><ReportIcon type="active" /></div><div><span>Active Tickets</span><strong>{summary.openTickets || 0}</strong><small>From tickets created in this period</small></div></article>
             <article><div className="report-kpi-icon"><ReportIcon type="resolved" /></div><div><span>Resolved</span><strong>{summary.resolvedTickets || 0}</strong><small>{summary.closedTickets || 0} additionally closed</small></div></article>
             <article><div className="report-kpi-icon"><ReportIcon type="unassigned" /></div><div><span>Unassigned</span><strong>{summary.unassignedTickets || 0}</strong><small>Waiting for ownership</small></div></article>
             <article><div className="report-kpi-icon warning"><ReportIcon type="critical" /></div><div><span>Critical</span><strong>{summary.criticalTickets || 0}</strong><small>Needs close monitoring</small></div></article>
@@ -353,12 +418,19 @@ function Reports() {
           </section>
 
           <section className="report-panel report-volume-panel">
-            <div className="report-panel-heading"><div><span>Demand trend</span><h2>Ticket Volume</h2><p>New tickets created throughout the selected period.</p></div></div>
+            <div className="report-panel-heading">
+              <div><span>Demand trend</span><h2>Ticket Volume</h2><p>New tickets created throughout the selected period.</p></div>
+            </div>
             <div className="report-chart-large">
               {(charts.ticketsByDay || []).length ? (
                 <ResponsiveContainer width="100%" height="100%">
                   <AreaChart data={charts.ticketsByDay} margin={{ top: 12, right: 18, left: -12, bottom: 0 }}>
-                    <defs><linearGradient id="ticketVolumeFill" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#6C5FA0" stopOpacity="0.24" /><stop offset="100%" stopColor="#6C5FA0" stopOpacity="0.02" /></linearGradient></defs>
+                    <defs>
+                      <linearGradient id="ticketVolumeFill" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="#6C5FA0" stopOpacity="0.24" />
+                        <stop offset="100%" stopColor="#6C5FA0" stopOpacity="0.02" />
+                      </linearGradient>
+                    </defs>
                     <CartesianGrid strokeDasharray="4 4" vertical={false} stroke="#EEEAF4" />
                     <XAxis dataKey="label" tick={{ fill: "#8B8695", fontSize: 11 }} axisLine={false} tickLine={false} minTickGap={28} />
                     <YAxis allowDecimals={false} tick={{ fill: "#8B8695", fontSize: 11 }} axisLine={false} tickLine={false} />
@@ -370,31 +442,48 @@ function Reports() {
             </div>
           </section>
 
-          <section className="report-distribution-grid">
-            <article className="report-panel">
-              <div className="report-panel-heading"><div><span>Workflow</span><h2>Tickets by Status</h2></div></div>
-              <div className="report-chart-medium">
-                {(charts.ticketsByStatus || []).length ? <ResponsiveContainer width="100%" height="100%"><BarChart data={charts.ticketsByStatus} margin={{ top: 8, right: 10, left: -18, bottom: 0 }}><CartesianGrid strokeDasharray="4 4" vertical={false} stroke="#EEEAF4" /><XAxis dataKey="name" tick={{ fill: "#8B8695", fontSize: 10 }} axisLine={false} tickLine={false} /><YAxis allowDecimals={false} tick={{ fill: "#8B8695", fontSize: 10 }} axisLine={false} tickLine={false} /><Tooltip /><Bar dataKey="count" name="Tickets" radius={[6, 6, 0, 0]} fill="#7A6DA8" /></BarChart></ResponsiveContainer> : <EmptyChart />}
+          <section className="report-panel report-breakdown-panel">
+            <div className="report-panel-heading report-breakdown-heading">
+              <div>
+                <span>{breakdown.eyebrow}</span>
+                <h2>{breakdown.title}</h2>
+                <p>{breakdown.description}</p>
               </div>
-            </article>
-
-            <article className="report-panel">
-              <div className="report-panel-heading"><div><span>Urgency</span><h2>Tickets by Priority</h2></div></div>
-              <div className="report-chart-medium">
-                {(charts.ticketsByPriority || []).length ? <ResponsiveContainer width="100%" height="100%"><BarChart data={charts.ticketsByPriority} margin={{ top: 8, right: 10, left: -18, bottom: 0 }}><CartesianGrid strokeDasharray="4 4" vertical={false} stroke="#EEEAF4" /><XAxis dataKey="name" tick={{ fill: "#8B8695", fontSize: 10 }} axisLine={false} tickLine={false} /><YAxis allowDecimals={false} tick={{ fill: "#8B8695", fontSize: 10 }} axisLine={false} tickLine={false} /><Tooltip /><Bar dataKey="count" name="Tickets" radius={[6, 6, 0, 0]}>{(charts.ticketsByPriority || []).map((entry, index) => <Cell key={`${entry.name}-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />)}</Bar></BarChart></ResponsiveContainer> : <EmptyChart />}
+              <div className="report-breakdown-filter" aria-label="Ticket breakdown filter">
+                {Object.entries(breakdownOptions).map(([key, option]) => (
+                  <button
+                    key={key}
+                    type="button"
+                    className={breakdownFilter === key ? "active" : ""}
+                    onClick={() => setBreakdownFilter(key)}
+                  >
+                    {option.label}
+                  </button>
+                ))}
               </div>
-            </article>
-          </section>
+            </div>
 
-          <section className="report-panel">
-            <div className="report-panel-heading"><div><span>Problem areas</span><h2>Tickets by Category</h2><p>Compare the types of requests generating the most support demand.</p></div></div>
-            <div className="report-chart-category">
-              {(charts.ticketsByCategory || []).length ? <ResponsiveContainer width="100%" height="100%"><BarChart data={charts.ticketsByCategory} layout="vertical" margin={{ top: 4, right: 24, left: 20, bottom: 0 }}><CartesianGrid strokeDasharray="4 4" horizontal={false} stroke="#EEEAF4" /><XAxis type="number" allowDecimals={false} tick={{ fill: "#8B8695", fontSize: 10 }} axisLine={false} tickLine={false} /><YAxis dataKey="name" type="category" width={90} tick={{ fill: "#5D5670", fontSize: 11 }} axisLine={false} tickLine={false} /><Tooltip /><Bar dataKey="count" name="Tickets" fill="#6C5FA0" radius={[0, 7, 7, 0]} /></BarChart></ResponsiveContainer> : <EmptyChart />}
+            <div className="report-chart-breakdown">
+              {breakdown.data.length ? (
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={breakdown.data} layout="vertical" margin={{ top: 4, right: 30, left: 20, bottom: 0 }}>
+                    <CartesianGrid strokeDasharray="4 4" horizontal={false} stroke="#EEEAF4" />
+                    <XAxis type="number" allowDecimals={false} tick={{ fill: "#8B8695", fontSize: 10 }} axisLine={false} tickLine={false} />
+                    <YAxis dataKey="name" type="category" width={105} tick={{ fill: "#5D5670", fontSize: 11 }} axisLine={false} tickLine={false} />
+                    <Tooltip />
+                    <Bar dataKey="count" name="Tickets" fill="#6C5FA0" radius={[0, 7, 7, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              ) : <EmptyChart message={`No ${breakdown.label.toLowerCase()} data for this period.`} />}
             </div>
           </section>
 
           <section className="report-service-section">
-            <div className="report-section-heading"><span>Efficiency</span><h2>Service Performance</h2><p>How quickly the help desk is moving work through the selected period.</p></div>
+            <div className="report-section-heading">
+              <span>Efficiency</span>
+              <h2>Service Performance</h2>
+              <p>How quickly the help desk moved work during the selected period.</p>
+            </div>
             <div className="report-service-grid">
               <article><span>Average Resolution Time</span><strong>{formatMinutes(summary.averageResolutionMinutes)}</strong><small>Elapsed time from ticket creation to resolution</small></article>
               <article><span>Average Actual Work Time</span><strong>{formatMinutes(summary.averageWorkMinutes)}</strong><small>Average completed work-session duration</small></article>
@@ -403,49 +492,95 @@ function Reports() {
             </div>
           </section>
 
-          <section className="report-agent-grid">
-            <article className="report-panel report-agent-table-panel">
-              <div className="report-panel-heading"><div><span>Team operations</span><h2>IT Agent Performance</h2><p>Monitor workload, productivity, and ticket handling during the selected period.</p></div></div>
-              <div className="report-table-wrap">
-                <table className="report-table">
-                  <thead><tr><th>Agent</th><th>Assigned</th><th>Resolved</th><th>Active</th><th>Resolution Rate</th><th>Total Work</th><th>Avg. Work</th><th>Activity</th><th>Reassignments</th></tr></thead>
-                  <tbody>
-                    {agentRows.length ? agentRows.map((agent) => (
-                      <tr key={agent.agentId}>
-                        <td><div className="report-agent-cell"><span>{String(agent.name || "A").charAt(0)}</span><div><strong>{agent.name}</strong><small>{agent.email}</small></div></div></td>
-                        <td>{agent.assignedTickets || 0}</td><td>{agent.resolvedTickets || 0}</td><td><span className={`report-workload-pill ${Number(agent.activeTickets || 0) >= Math.max(4, Math.ceil(maxWorkload * .75)) ? "high" : ""}`}>{agent.activeTickets || 0}</span></td><td>{agent.resolutionRate}%</td><td>{formatMinutes(agent.totalWorkMinutes)}</td><td>{formatMinutes(agent.averageWorkMinutes)}</td><td>{agent.totalActivity}</td><td>{agent.reassignments || 0}</td>
-                      </tr>
-                    )) : <tr><td colSpan="9" className="report-table-empty">No agent activity was recorded during this period.</td></tr>}
-                  </tbody>
-                </table>
+          <section className="report-panel report-agent-table-panel">
+            <div className="report-panel-heading report-agent-heading">
+              <div>
+                <span>Team operations</span>
+                <h2>IT Agent Performance</h2>
+                <p>Period metrics are date-filtered. Current Active is the agent's live workload right now.</p>
               </div>
-            </article>
+              <span className="report-live-chip">Live workload</span>
+            </div>
 
-            <article className="report-panel report-workload-panel">
-              <div className="report-panel-heading"><div><span>Capacity</span><h2>Current Agent Workload</h2><p>Active tickets currently owned by each support agent.</p></div></div>
-              <div className="report-workload-chart">
-                {agentRows.length ? <ResponsiveContainer width="100%" height="100%"><BarChart data={agentRows} layout="vertical" margin={{ top: 5, right: 28, left: 15, bottom: 0 }}><CartesianGrid strokeDasharray="4 4" horizontal={false} stroke="#EEEAF4" /><XAxis type="number" allowDecimals={false} tick={{ fill: "#8B8695", fontSize: 10 }} axisLine={false} tickLine={false} /><YAxis dataKey="name" type="category" width={85} tick={{ fill: "#5D5670", fontSize: 10 }} axisLine={false} tickLine={false} /><Tooltip /><Bar dataKey="activeTickets" name="Active Tickets" fill="#7A6DA8" radius={[0, 7, 7, 0]} /></BarChart></ResponsiveContainer> : <EmptyChart message="No support agents found." />}
-              </div>
-            </article>
+            <div className="report-table-wrap">
+              <table className="report-table">
+                <thead>
+                  <tr>
+                    <th>Agent</th>
+                    <th>Assigned</th>
+                    <th>Resolved</th>
+                    <th>Current Active</th>
+                    <th>Resolution Rate</th>
+                    <th>Total Work</th>
+                    <th>Avg. Work</th>
+                    <th>Activity</th>
+                    <th>Reassignments</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {agentRows.length ? agentRows.map((agent) => {
+                    const workloadPercent = Math.min(100, (Number(agent.activeTickets || 0) / maxWorkload) * 100);
+                    return (
+                      <tr key={agent.agentId}>
+                        <td>
+                          <div className="report-agent-cell">
+                            <span>{String(agent.name || "A").charAt(0)}</span>
+                            <div><strong>{agent.name}</strong><small>{agent.email}</small></div>
+                          </div>
+                        </td>
+                        <td>{agent.assignedTickets || 0}</td>
+                        <td>{agent.resolvedTickets || 0}</td>
+                        <td>
+                          <div className="report-inline-workload">
+                            <strong>{agent.activeTickets || 0}</strong>
+                            <span><i style={{ width: `${workloadPercent}%` }} /></span>
+                          </div>
+                        </td>
+                        <td>{agent.resolutionRate}%</td>
+                        <td>{formatMinutes(agent.totalWorkMinutes)}</td>
+                        <td>{formatMinutes(agent.averageWorkMinutes)}</td>
+                        <td>{agent.totalActivity}</td>
+                        <td>{agent.reassignments || 0}</td>
+                      </tr>
+                    );
+                  }) : (
+                    <tr><td colSpan="9" className="report-table-empty">No support agents are available.</td></tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
           </section>
 
           <section className="report-panel report-recent-panel">
-            <div className="report-panel-heading"><div><span>Latest requests</span><h2>Recent Tickets</h2><p>The 10 most recent tickets created in the selected period.</p></div></div>
+            <div className="report-panel-heading">
+              <div><span>Latest requests</span><h2>Recent Tickets</h2><p>The 10 most recent tickets created in the selected period.</p></div>
+            </div>
             <div className="report-table-wrap">
               <table className="report-table report-ticket-table">
                 <thead><tr><th>Ticket</th><th>Subject</th><th>Category</th><th>Priority</th><th>Status</th><th>Created</th><th>Assigned Agent</th></tr></thead>
                 <tbody>
                   {recentTickets.length ? recentTickets.map((ticket) => (
                     <tr key={ticket.id}>
-                      <td><button type="button" className="report-ticket-link" onClick={() => navigate(`/tickets/${ticket.id}`)}>{ticket.ticketNumber}</button></td><td><strong>{ticket.subject}</strong></td><td>{ticket.category}</td><td><span className={`report-badge priority-${normalize(ticket.priority)}`}>{ticket.priority}</span></td><td><span className={`report-badge status-${normalize(ticket.status)}`}>{ticket.status}</span></td><td>{formatDate(ticket.createdAt)}</td><td>{ticket.assignedTo || "Unassigned"}</td>
+                      <td><button type="button" className="report-ticket-link" onClick={() => navigate(`/tickets/${ticket.id}`)}>{ticket.ticketNumber}</button></td>
+                      <td><strong>{ticket.subject}</strong></td>
+                      <td>{ticket.category}</td>
+                      <td><span className={`report-badge priority-${normalize(ticket.priority)}`}>{ticket.priority}</span></td>
+                      <td><span className={`report-badge status-${normalize(ticket.status)}`}>{ticket.status}</span></td>
+                      <td>{formatDate(ticket.createdAt)}</td>
+                      <td>{ticket.assignedTo || "Unassigned"}</td>
                     </tr>
-                  )) : <tr><td colSpan="7" className="report-table-empty">No recent tickets for this period.</td></tr>}
+                  )) : (
+                    <tr><td colSpan="7" className="report-table-empty">No recent tickets for this period.</td></tr>
+                  )}
                 </tbody>
               </table>
             </div>
           </section>
 
-          <footer className="report-document-footer"><span>SupportHub · IT Help Desk Performance Report</span><span>Generated {formatDateTime(generatedAt)}</span></footer>
+          <footer className="report-document-footer">
+            <span>SupportHub · IT Help Desk Performance Report</span>
+            <span>{formatDate(report?.from)} — {formatDate(report?.to)}</span>
+          </footer>
         </div>
       </main>
     </DashboardLayout>
