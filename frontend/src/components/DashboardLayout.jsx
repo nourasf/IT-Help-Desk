@@ -2,15 +2,17 @@ import { useState } from "react";
 import Sidebar from "./Sidebar";
 import Topbar from "./Topbar";
 import "../styles/dashboard/Dashboard.css";
-import "../styles/dashboard/FinalDashboard.css";
-import "../styles/dashboard/DashboardAtmosphere.css";
 
 function DashboardLayout({ children, activePage }) {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
   return (
     <div className={`dashboard-shell ${sidebarCollapsed ? "sidebar-is-collapsed" : ""}`}>
-      <Sidebar activePage={activePage} collapsed={sidebarCollapsed} onToggle={() => setSidebarCollapsed((currentValue) => !currentValue)} />
+      <Sidebar
+        activePage={activePage}
+        collapsed={sidebarCollapsed}
+        onToggle={() => setSidebarCollapsed((currentValue) => !currentValue)}
+      />
       <main className="dashboard-main">
         <Topbar />
         <section className="dashboard-content">{children}</section>
