@@ -1,6 +1,6 @@
-import "./styles/Auth.css";
-import "./styles/TicketDetailsEnhancements.css";
-import "./styles/TicketActionPolish.css";
+import "./styles/auth/Auth.css";
+import "./styles/tickets/TicketDetails.css";
+import "./styles/tickets/TicketOverrides.css";
 import "./utils/globalDashboardFixes.js";
 import { BrowserRouter, Navigate, Route, Routes, useNavigate } from "react-router-dom";
 import Notifications from "./pages/notifications/Notifications";
