@@ -73,8 +73,6 @@ public class AiController : ControllerBase
             priorities
         );
 
-        // Extra safety:
-        // Never accept a category or priority invented by the model.
         var validCategory = categories.FirstOrDefault(
             c => string.Equals(
                 c,
@@ -105,5 +103,24 @@ public class AiController : ControllerBase
         result.Priority = validPriority;
 
         return Ok(result);
+    }
+
+    [HttpPost("chat")]
+    public async Task<IActionResult> Chat([FromBody] AiChatRequest request)
+    {
+        if (request == null || string.IsNullOrWhiteSpace(request.Message))
+        {
+            return BadRequest(new
+            {
+                message = "Message is required."
+            });
+        }
+
+        var reply = await _ollamaService.ChatAsync(request.Message);
+
+        return Ok(new
+        {
+            reply
+        });
     }
 }
