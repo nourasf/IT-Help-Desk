@@ -5,7 +5,7 @@ import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YA
 import DashboardLayout from "../../components/DashboardLayout";
 import AdminActionsModal from "../../components/AdminActionsModal";
 import { getAdminDashboard, getAdminResolvedAnalytics } from "../../api/dashboard";
-import "../../styles/AdminDashboard.css";
+import "../../styles/dashboard/AdminDashboard.css";
 
 const roleColors = ["#6f4bd8", "#9877ea", "#89a6f7", "#f4a5b5"];
 
@@ -52,10 +52,8 @@ function ResolutionChart({ analytics }) {
 
 function AdminDashboard() {
   const [actionsOpen, setActionsOpen] = useState(false);
-
   const dashboardQuery = useQuery({ queryKey: ["dashboard", "admin"], queryFn: getAdminDashboard });
   const analyticsQuery = useQuery({ queryKey: ["dashboard", "admin", "resolved-analytics"], queryFn: getAdminResolvedAnalytics });
-
   const dashboard = dashboardQuery.data;
   const analytics = analyticsQuery.data;
   const isLoading = dashboardQuery.isLoading || analyticsQuery.isLoading;
