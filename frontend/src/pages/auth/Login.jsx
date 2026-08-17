@@ -55,24 +55,76 @@ function Login() {
       <section className="login-form-section">
         <div className="login-form-container">
           <img src={logo} alt="SupportHub logo" className="supporthub-logo" />
-          <div className="login-heading"><h1>Welcome Back</h1><p>Sign in to continue to your account.</p></div>
+
+          <div className="login-heading">
+            <h1>Welcome Back</h1>
+            <p>Sign in to continue to your account.</p>
+          </div>
+
           <form className="login-form" onSubmit={handleSubmit}>
             {error && <div className="login-error" role="alert">{error}</div>}
-            <div className="form-group"><label htmlFor="email">Email Address</label><input id="email" type="email" placeholder="you@example.com" value={email} onChange={(event) => setEmail(event.target.value)} autoComplete="email" required /></div>
-            <div className="form-group"><label htmlFor="password">Password</label><input id="password" type="password" placeholder="••••••••••••••" value={password} onChange={(event) => setPassword(event.target.value)} autoComplete="current-password" required /></div>
-            <div className="login-options">
-              <label className="remember-option"><input type="checkbox" checked={rememberMe} onChange={(event) => setRememberMe(event.target.checked)} /><span className="custom-checkbox"></span><span>Remember me</span></label>
-              <Link to="/forgot-password" className="forgot-password-link" onClick={()=>navigate ("/forgot-password")}>Forgot Password?</Link>
+
+            <div className="form-group">
+              <label htmlFor="email">Email Address</label>
+              <input
+                id="email"
+                type="email"
+                placeholder="you@example.com"
+                value={email}
+                onChange={(event) => setEmail(event.target.value)}
+                autoComplete="email"
+                required
+              />
             </div>
-            <button type="submit" className="sign-in-button" disabled={isLoading}>{isLoading ? "Signing In..." : "Sign In"}</button>
+
+            <div className="form-group">
+              <label htmlFor="password">Password</label>
+              <input
+                id="password"
+                type="password"
+                placeholder="••••••••••••••"
+                value={password}
+                onChange={(event) => setPassword(event.target.value)}
+                autoComplete="current-password"
+                required
+              />
+            </div>
+
+            <div className="login-options">
+              <label className="remember-option">
+                <input
+                  type="checkbox"
+                  checked={rememberMe}
+                  onChange={(event) => setRememberMe(event.target.checked)}
+                />
+                <span className="custom-checkbox"></span>
+                <span>Remember me</span>
+              </label>
+
+              <Link to="/forgot-password" className="forgot-password-link">
+                Forgot Password?
+              </Link>
+            </div>
+
+            <button type="submit" className="sign-in-button" disabled={isLoading}>
+              {isLoading ? "Signing In..." : "Sign In"}
+            </button>
           </form>
         </div>
       </section>
+
       <section className="login-visual-section">
         <div className="visual-content">
-          <div className="visual-heading"><h2>IT Support Made Simple</h2><p>Resolve tickets faster and collaborate with your team.</p></div>
-          <img src={loginIllustration} alt="IT support illustration" className="login-illustration" />
-          <div className="ticket-notification"><div className="ticket-icon">🎫</div><div className="ticket-information"><strong>New Ticket</strong><span>Printer Not Working</span><div className="priority-badge">High Priority</div></div></div>
+          <div className="visual-heading">
+            <h2>IT Support Made Simple</h2>
+            <p>Resolve tickets faster and collaborate with your team.</p>
+          </div>
+
+          <img
+            src={loginIllustration}
+            alt="IT support illustration"
+            className="login-illustration"
+          />
         </div>
       </section>
     </main>
