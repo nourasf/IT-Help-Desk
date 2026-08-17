@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import DashboardLayout from "../../components/DashboardLayout";
 import { getEmployeeDashboard } from "../../api/dashboard";
-import "../../styles/EmployeeDashboard.css";
+import "../../styles/dashboard/EmployeeDashboard.css";
 
 function normalize(value) {
   return String(value || "").trim().toLowerCase().replaceAll(" ", "-");
