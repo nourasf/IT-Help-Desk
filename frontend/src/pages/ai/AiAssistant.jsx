@@ -9,7 +9,7 @@ import {
   sendAiChatMessage,
 } from "../../api/ai";
 import { getStoredRole } from "../../utils/authStorage";
-import "../../styles/AiAssistant.css";
+import "../../styles/ai/AiAssistant.css";
 
 function normalizeRole(role) {
   return String(role || "").trim().toLowerCase().replaceAll("_", " ").replaceAll("-", " ");
@@ -82,23 +82,13 @@ function AiAssistant() {
   const [isHistoryLoading, setIsHistoryLoading] = useState(true);
   const [error, setError] = useState("");
 
-  useEffect(() => {
-    loadConversations();
-  }, []);
-
-  useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages, isSending]);
+  useEffect(() => { loadConversations(); }, []);
+  useEffect(() => { messagesEndRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages, isSending]);
 
   async function loadConversations() {
-    try {
-      setIsHistoryLoading(true);
-      setConversations(await getAiConversations());
-    } catch (requestError) {
-      console.error("AI history error:", requestError);
-    } finally {
-      setIsHistoryLoading(false);
-    }
+    try { setIsHistoryLoading(true); setConversations(await getAiConversations()); }
+    catch (requestError) { console.error("AI history error:", requestError); }
+    finally { setIsHistoryLoading(false); }
   }
 
   async function openConversation(id) {
@@ -107,14 +97,9 @@ function AiAssistant() {
       setError("");
       const data = await getAiConversation(id);
       setConversationId(data.id);
-      setMessages([
-        createGreeting(roleConfig),
-        ...(Array.isArray(data.messages) ? data.messages : []),
-      ]);
+      setMessages([createGreeting(roleConfig), ...(Array.isArray(data.messages) ? data.messages : [])]);
       setMessage("");
-    } catch (requestError) {
-      setError(requestError.message || "Could not open that conversation.");
-    }
+    } catch (requestError) { setError(requestError.message || "Could not open that conversation."); }
   }
 
   function newConversation() {
@@ -126,66 +111,36 @@ function AiAssistant() {
 
   async function removeConversation(event, id) {
     event.stopPropagation();
-    try {
-      await deleteAiConversation(id);
-      if (conversationId === id) newConversation();
-      await loadConversations();
-    } catch (requestError) {
-      setError(requestError.message || "Could not delete that conversation.");
-    }
+    try { await deleteAiConversation(id); if (conversationId === id) newConversation(); await loadConversations(); }
+    catch (requestError) { setError(requestError.message || "Could not delete that conversation."); }
   }
 
   async function clearHistory() {
     if (conversations.length === 0) return;
-    try {
-      await clearAiConversations();
-      newConversation();
-      setConversations([]);
-    } catch (requestError) {
-      setError(requestError.message || "Could not clear chat history.");
-    }
+    try { await clearAiConversations(); newConversation(); setConversations([]); }
+    catch (requestError) { setError(requestError.message || "Could not clear chat history."); }
   }
 
   async function submitMessage(text) {
     const cleanMessage = String(text || "").trim();
     if (!cleanMessage || isSending) return;
-
     setError("");
     setMessage("");
     setMessages((current) => [...current, { id: `u-${Date.now()}`, role: "user", text: cleanMessage }]);
     setIsSending(true);
-
     try {
       const result = await sendAiChatMessage(cleanMessage, conversationId);
       setConversationId(result.conversationId);
-      setMessages((current) => [
-        ...current,
-        {
-          id: `a-${Date.now()}`,
-          role: "assistant",
-          text: result.reply || "I couldn't generate a useful response. Try describing the issue with a little more detail.",
-        },
-      ]);
+      setMessages((current) => [...current, { id: `a-${Date.now()}`, role: "assistant", text: result.reply || "I couldn't generate a useful response. Try describing the issue with a little more detail." }]);
       await loadConversations();
     } catch (requestError) {
       console.error("AI chat error:", requestError);
       setError(requestError.message || "The AI assistant could not respond right now.");
-    } finally {
-      setIsSending(false);
-    }
+    } finally { setIsSending(false); }
   }
 
-  function handleSubmit(event) {
-    event.preventDefault();
-    submitMessage(message);
-  }
-
-  function handleKeyDown(event) {
-    if (event.key === "Enter" && !event.shiftKey) {
-      event.preventDefault();
-      submitMessage(message);
-    }
-  }
+  function handleSubmit(event) { event.preventDefault(); submitMessage(message); }
+  function handleKeyDown(event) { if (event.key === "Enter" && !event.shiftKey) { event.preventDefault(); submitMessage(message); } }
 
   const hasConversation = messages.some((item) => !item.isGreeting);
   const lastMessage = messages[messages.length - 1];
@@ -194,142 +149,18 @@ function AiAssistant() {
   return (
     <DashboardLayout activePage="ai-assistant">
       <main className="ai-chat-page">
-        <section className="ai-chat-header">
-          <div>
-            <span className="ai-chat-eyebrow">SupportHub intelligence</span>
-            <h1>AI Assistant</h1>
-            <p>{roleConfig.description}</p>
-          </div>
-          <button type="button" className="ai-chat-clear" onClick={newConversation}>+ New conversation</button>
-        </section>
-
+        <section className="ai-chat-header"><div><span className="ai-chat-eyebrow">SupportHub intelligence</span><h1>AI Assistant</h1><p>{roleConfig.description}</p></div><button type="button" className="ai-chat-clear" onClick={newConversation}>+ New conversation</button></section>
         <section className="ai-chat-workspace">
-          <aside className="ai-chat-history-panel">
-            <div className="ai-chat-history-header">
-              <div>
-                <span>History</span>
-                <strong>Recent chats</strong>
-              </div>
-              {conversations.length > 0 && <button type="button" onClick={clearHistory}>Clear all</button>}
-            </div>
-
-            <div className="ai-chat-history-list">
-              {isHistoryLoading && <p className="ai-history-empty">Loading chats...</p>}
-              {!isHistoryLoading && conversations.length === 0 && <p className="ai-history-empty">No saved conversations yet.</p>}
-              {!isHistoryLoading && conversations.map((conversation) => (
-                <button
-                  type="button"
-                  key={conversation.id}
-                  className={`ai-history-item ${conversationId === conversation.id ? "active" : ""}`}
-                  onClick={() => openConversation(conversation.id)}
-                >
-                  <span className="ai-history-icon">✦</span>
-                  <span className="ai-history-copy">
-                    <strong>{conversation.title}</strong>
-                    <small>{conversation.messageCount} messages</small>
-                  </span>
-                  <span
-                    role="button"
-                    tabIndex={0}
-                    className="ai-history-delete"
-                    onClick={(event) => removeConversation(event, conversation.id)}
-                    onKeyDown={(event) => {
-                      if (event.key === "Enter" || event.key === " ") removeConversation(event, conversation.id);
-                    }}
-                    aria-label={`Delete ${conversation.title}`}
-                  >×</span>
-                </button>
-              ))}
-            </div>
-          </aside>
-
+          <aside className="ai-chat-history-panel"><div className="ai-chat-history-header"><div><span>History</span><strong>Recent chats</strong></div>{conversations.length > 0 && <button type="button" onClick={clearHistory}>Clear all</button>}</div><div className="ai-chat-history-list">{isHistoryLoading && <p className="ai-history-empty">Loading chats...</p>}{!isHistoryLoading && conversations.length === 0 && <p className="ai-history-empty">No saved conversations yet.</p>}{!isHistoryLoading && conversations.map((conversation) => <button type="button" key={conversation.id} className={`ai-history-item ${conversationId === conversation.id ? "active" : ""}`} onClick={() => openConversation(conversation.id)}><span className="ai-history-icon">✦</span><span className="ai-history-copy"><strong>{conversation.title}</strong><small>{conversation.messageCount} messages</small></span><span role="button" tabIndex={0} className="ai-history-delete" onClick={(event) => removeConversation(event, conversation.id)} onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") removeConversation(event, conversation.id); }} aria-label={`Delete ${conversation.title}`}>×</span></button>)}</div></aside>
           <section className="ai-chat-shell">
-            <aside className="ai-chat-info-card">
-              <div className="ai-chat-mascot" aria-hidden="true">
-                <span className="ai-chat-mascot-antenna" />
-                <div className="ai-chat-mascot-face"><span /><span /></div>
-              </div>
-              <div className="ai-chat-info-copy">
-                <span className="ai-chat-ready"><i /> Online locally</span>
-                <h2>Ask SupportHub</h2>
-                <span className="ai-chat-role-badge">{roleConfig.label}</span>
-                <p>Ask a normal question, describe an IT issue, or continue a saved conversation.</p>
-              </div>
-            </aside>
-
+            <aside className="ai-chat-info-card"><div className="ai-chat-mascot" aria-hidden="true"><span className="ai-chat-mascot-antenna" /><div className="ai-chat-mascot-face"><span /><span /></div></div><div className="ai-chat-info-copy"><span className="ai-chat-ready"><i /> Online locally</span><h2>Ask SupportHub</h2><span className="ai-chat-role-badge">{roleConfig.label}</span><p>Ask a normal question, describe an IT issue, or continue a saved conversation.</p></div></aside>
             <section className="ai-chat-card">
-              <div className="ai-chat-card-topbar">
-                <div>
-                  <span className="ai-chat-card-status"><i /> AI ready</span>
-                  <strong>SupportHub Assistant</strong>
-                </div>
-                <span className="ai-chat-model">{roleConfig.label}</span>
-              </div>
-
-              <div className="ai-chat-messages" aria-live="polite">
-                {messages.map((chatMessage) => (
-                  <div key={chatMessage.id} className={`ai-chat-message-row ${chatMessage.role}`}>
-                    {chatMessage.role === "assistant" && <div className="ai-chat-avatar" aria-hidden="true">✦</div>}
-                    <div className="ai-chat-message-bubble">
-                      {String(chatMessage.text || "").split("\n").map((line, index) => (
-                        <p key={`${chatMessage.id}-${index}`}>{line || " "}</p>
-                      ))}
-                    </div>
-                  </div>
-                ))}
-
-                {isSending && (
-                  <div className="ai-chat-message-row assistant">
-                    <div className="ai-chat-avatar" aria-hidden="true">✦</div>
-                    <div className="ai-chat-message-bubble thinking"><span /><span /><span /></div>
-                  </div>
-                )}
-                <div ref={messagesEndRef} />
-              </div>
-
-              {!hasConversation && (
-                <div className="ai-chat-quick-prompts">
-                  <span>Try an example</span>
-                  <div>
-                    {roleConfig.prompts.map((prompt) => (
-                      <button key={prompt} type="button" onClick={() => submitMessage(prompt)} disabled={isSending}>{prompt}</button>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {showEmployeeEscalation && (
-                <div className="ai-chat-escalation">
-                  <div>
-                    <span className="ai-chat-escalation-eyebrow">Still need help?</span>
-                    <strong>Contact an IT agent</strong>
-                    <p>If the troubleshooting didn’t solve it, create a support ticket and an IT agent can take it from here.</p>
-                  </div>
-                  <button type="button" onClick={() => navigate("/create-ticket")}>Create a Ticket</button>
-                </div>
-              )}
-
+              <div className="ai-chat-card-topbar"><div><span className="ai-chat-card-status"><i /> AI ready</span><strong>SupportHub Assistant</strong></div><span className="ai-chat-model">{roleConfig.label}</span></div>
+              <div className="ai-chat-messages" aria-live="polite">{messages.map((chatMessage) => <div key={chatMessage.id} className={`ai-chat-message-row ${chatMessage.role}`}>{chatMessage.role === "assistant" && <div className="ai-chat-avatar" aria-hidden="true">✦</div>}<div className="ai-chat-message-bubble">{String(chatMessage.text || "").split("\n").map((line, index) => <p key={`${chatMessage.id}-${index}`}>{line || " "}</p>)}</div></div>)}{isSending && <div className="ai-chat-message-row assistant"><div className="ai-chat-avatar" aria-hidden="true">✦</div><div className="ai-chat-message-bubble thinking"><span /><span /><span /></div></div>}<div ref={messagesEndRef} /></div>
+              {!hasConversation && <div className="ai-chat-quick-prompts"><span>Try an example</span><div>{roleConfig.prompts.map((prompt) => <button key={prompt} type="button" onClick={() => submitMessage(prompt)} disabled={isSending}>{prompt}</button>)}</div></div>}
+              {showEmployeeEscalation && <div className="ai-chat-escalation"><div><span className="ai-chat-escalation-eyebrow">Still need help?</span><strong>Contact an IT agent</strong><p>If the troubleshooting didn’t solve it, create a support ticket and an IT agent can take it from here.</p></div><button type="button" onClick={() => navigate("/create-ticket")}>Create a Ticket</button></div>}
               {error && <div className="ai-chat-error" role="alert"><span>{error}</span></div>}
-
-              <form className="ai-chat-composer" onSubmit={handleSubmit}>
-                <textarea
-                  value={message}
-                  onChange={(event) => setMessage(event.target.value)}
-                  onKeyDown={handleKeyDown}
-                  placeholder="Message SupportHub AI..."
-                  rows={1}
-                  maxLength={2000}
-                  disabled={isSending}
-                  aria-label="Message SupportHub AI Assistant"
-                />
-                <div className="ai-chat-composer-bottom">
-                  <span>Enter to send · Shift + Enter for a new line</span>
-                  <button type="submit" disabled={!message.trim() || isSending}>
-                    {isSending ? "Thinking..." : "Send"}<span aria-hidden="true">↗</span>
-                  </button>
-                </div>
-              </form>
-
+              <form className="ai-chat-composer" onSubmit={handleSubmit}><textarea value={message} onChange={(event) => setMessage(event.target.value)} onKeyDown={handleKeyDown} placeholder="Message SupportHub AI..." rows={1} maxLength={2000} disabled={isSending} aria-label="Message SupportHub AI Assistant" /><div className="ai-chat-composer-bottom"><span>Enter to send · Shift + Enter for a new line</span><button type="submit" disabled={!message.trim() || isSending}>{isSending ? "Thinking..." : "Send"}<span aria-hidden="true">↗</span></button></div></form>
               <p className="ai-chat-disclaimer">Your 10 most recent conversations are saved to your SupportHub account and can be deleted anytime.</p>
             </section>
           </section>
