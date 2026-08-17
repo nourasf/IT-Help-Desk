@@ -3,6 +3,7 @@ namespace backend.DTOs.Ai;
 public class AiChatRequest
 {
     public string Message { get; set; } = string.Empty;
+    public int? ConversationId { get; set; }
     public List<AiChatHistoryMessage> History { get; set; } = new();
 }
 
