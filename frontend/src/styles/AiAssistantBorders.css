@@ -1,0 +1,67 @@
+.ai-chat-info-card,
+.ai-chat-card {
+  border: 1.5px solid #b9add4 !important;
+  box-shadow:
+    0 28px 65px rgba(62, 42, 103, 0.16),
+    0 8px 24px rgba(62, 42, 103, 0.08),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.45) !important;
+}
+
+.ai-chat-card-topbar {
+  border-bottom: 1.5px solid #d8cfe7 !important;
+}
+
+.ai-chat-messages {
+  border-top: 1px solid #eee8f6;
+  border-bottom: 1px solid #ddd4eb;
+}
+
+.ai-chat-message-bubble {
+  border: 1.5px solid #d7cee7 !important;
+  box-shadow: 0 10px 24px rgba(63, 42, 103, 0.1) !important;
+}
+
+.ai-chat-message-row.user .ai-chat-message-bubble {
+  border: 1.5px solid #6549ad !important;
+}
+
+.ai-chat-avatar {
+  border: 1px solid #cbbde4;
+}
+
+.ai-chat-tips div,
+.ai-chat-role-badge,
+.ai-chat-quick-prompts button {
+  border-color: #cbbfe0 !important;
+}
+
+.ai-chat-escalation {
+  border: 1.5px solid #baa7dc !important;
+  box-shadow: 0 10px 24px rgba(69, 45, 111, 0.1) !important;
+}
+
+.ai-chat-composer {
+  border: 1.5px solid #bdb1d4 !important;
+  box-shadow:
+    0 10px 26px rgba(63, 42, 103, 0.11),
+    inset 0 0 0 1px rgba(248, 246, 252, 0.8) !important;
+}
+
+.ai-chat-composer:focus-within {
+  border-color: #7c5bc3 !important;
+  box-shadow:
+    0 0 0 4px rgba(124, 91, 195, 0.1),
+    0 12px 28px rgba(63, 42, 103, 0.13) !important;
+}
+
+.ai-chat-composer-bottom {
+  border-top: 1px solid #ddd5e8 !important;
+}
+
+.ai-chat-clear {
+  border: 1.5px solid #c7badc !important;
+}
+
+.ai-chat-error {
+  border-width: 1.5px !important;
+}
