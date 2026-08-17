@@ -1,5 +1,6 @@
 using System.Net.Http.Json;
 using System.Text.Json;
+using System.Text.RegularExpressions;
 using backend.DTOs.Ai;
 
 namespace backend.Services;
@@ -102,17 +103,20 @@ Ticket Description:
         }
 
         var prompt = $$"""
-You are SupportHub AI, a professional IT help desk assistant.
+You are SupportHub AI, a concise IT help desk assistant.
 
-Your job is to help employees troubleshoot common IT problems before a ticket is escalated.
+Help the employee troubleshoot the issue below.
 
-Rules:
-- Keep the answer concise and practical.
-- Use simple language.
-- Prefer 3 to 5 troubleshooting steps when steps are appropriate.
+STRICT RESPONSE RULES:
+- Never reveal internal reasoning, chain-of-thought, analysis, planning, or <think> content.
+- Output only the final answer that should be shown to the employee.
+- Keep the entire answer under 120 words.
+- Use at most 4 short troubleshooting steps.
+- Skip long introductions and explanations.
+- Use simple, practical language.
 - Do not invent company-specific policies, passwords, server names, or procedures.
-- If the problem may involve security, data loss, hardware damage, administrator permissions, or needs an IT technician, clearly recommend contacting IT support.
-- Do not claim that a step definitely fixed the issue unless the employee confirms it.
+- If the issue may require administrator access, security review, hardware repair, or the steps do not solve it, end with one short sentence recommending IT support.
+- Do not claim a step fixed the issue unless the employee confirms it.
 - Stay focused on IT support.
 
 Employee message:
@@ -124,7 +128,12 @@ Employee message:
             model = "qwen3:4b",
             prompt,
             stream = false,
-            think = false
+            think = false,
+            options = new
+            {
+                num_predict = 180,
+                temperature = 0.2
+            }
         };
 
         var response = await _httpClient.PostAsJsonAsync(
@@ -134,7 +143,28 @@ Employee message:
 
         response.EnsureSuccessStatusCode();
 
-        return await ReadOllamaTextAsync(response);
+        var responseText = await ReadOllamaTextAsync(response);
+        return CleanChatResponse(responseText);
+    }
+
+    private static string CleanChatResponse(string text)
+    {
+        if (string.IsNullOrWhiteSpace(text))
+            return string.Empty;
+
+        var cleaned = Regex.Replace(
+            text,
+            @"<think>[\s\S]*?</think>",
+            string.Empty,
+            RegexOptions.IgnoreCase
+        ).Trim();
+
+        if (cleaned.StartsWith("Final answer:", StringComparison.OrdinalIgnoreCase))
+        {
+            cleaned = cleaned["Final answer:".Length..].Trim();
+        }
+
+        return cleaned;
     }
 
     private static async Task<string> ReadOllamaTextAsync(HttpResponseMessage response)
