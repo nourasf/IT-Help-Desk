@@ -12,21 +12,23 @@ async function readResponse(response) {
   }
 }
 
-export async function analyzeTicket(subject, description) {
+function requireToken() {
   const token = getStoredToken();
   if (!token) throw new Error("Your session has expired. Please sign in again.");
+  return token;
+}
 
-  const response = await fetch(`${API_URL}/analyze-ticket`, {
+async function postAi(path, body) {
+  const token = requireToken();
+
+  const response = await fetch(`${API_URL}${path}`, {
     method: "POST",
     headers: {
       Accept: "application/json",
       "Content-Type": "application/json",
       Authorization: `Bearer ${token}`,
     },
-    body: JSON.stringify({
-      subject: subject.trim(),
-      description: description.trim(),
-    }),
+    body: JSON.stringify(body),
   });
 
   const data = await readResponse(response);
@@ -40,8 +42,23 @@ export async function analyzeTicket(subject, description) {
   }
 
   if (!response.ok) {
-    throw new Error(data.message || `AI analysis failed. Error ${response.status}.`);
+    throw new Error(data.message || `AI request failed. Error ${response.status}.`);
   }
 
   return data;
+}
+
+export async function analyzeTicket(subject, description) {
+  return postAi("/analyze-ticket", {
+    subject: subject.trim(),
+    description: description.trim(),
+  });
+}
+
+export async function sendAiChatMessage(message) {
+  const data = await postAi("/chat", {
+    message: message.trim(),
+  });
+
+  return data.reply || "";
 }
