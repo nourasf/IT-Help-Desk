@@ -23,8 +23,8 @@ namespace backend.Data
         public DbSet<TicketActivityLog> TicketActivityLogs { get; set; }
         public DbSet<Notification> Notifications { get; set; }
         public DbSet<FileAttachment> FileAttachments { get; set; }
-
-  
+        public DbSet<AiConversation> AiConversations { get; set; }
+        public DbSet<AiConversationMessage> AiConversationMessages { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -66,11 +66,11 @@ namespace backend.Data
                 .HasForeignKey(c => c.TicketID)
                 .OnDelete(DeleteBehavior.Cascade);
 
-                modelBuilder.Entity<TicketComment>()
-    .HasOne(c => c.ParentComment)
-    .WithMany(c => c.Replies)
-    .HasForeignKey(c => c.ParentCommentID)
-    .OnDelete(DeleteBehavior.Restrict);
+            modelBuilder.Entity<TicketComment>()
+                .HasOne(c => c.ParentComment)
+                .WithMany(c => c.Replies)
+                .HasForeignKey(c => c.ParentCommentID)
+                .OnDelete(DeleteBehavior.Restrict);
 
             modelBuilder.Entity<TicketAssignment>()
                 .HasOne(a => a.Ticket)
@@ -145,11 +145,11 @@ namespace backend.Data
                 .HasForeignKey(a => a.TicketId)
                 .OnDelete(DeleteBehavior.Cascade);
 
-         modelBuilder.Entity<FileAttachment>()
-    .HasOne(a => a.TicketComment)
-    .WithMany(c => c.Attachments)
-    .HasForeignKey(a => a.TicketCommentId)
-    .OnDelete(DeleteBehavior.SetNull);
+            modelBuilder.Entity<FileAttachment>()
+                .HasOne(a => a.TicketComment)
+                .WithMany(c => c.Attachments)
+                .HasForeignKey(a => a.TicketCommentId)
+                .OnDelete(DeleteBehavior.SetNull);
 
             modelBuilder.Entity<FileAttachment>()
                 .HasOne(a => a.UploadedByUser)
@@ -159,6 +159,24 @@ namespace backend.Data
 
             modelBuilder.Entity<FileAttachment>()
                 .HasIndex(a => new { a.TicketId, a.UploadedAt });
+
+            modelBuilder.Entity<AiConversation>()
+                .HasOne(c => c.User)
+                .WithMany()
+                .HasForeignKey(c => c.UserID)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<AiConversation>()
+                .HasIndex(c => new { c.UserID, c.UpdatedAt });
+
+            modelBuilder.Entity<AiConversationMessage>()
+                .HasOne(m => m.Conversation)
+                .WithMany(c => c.Messages)
+                .HasForeignKey(m => m.ConversationID)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<AiConversationMessage>()
+                .HasIndex(m => new { m.ConversationID, m.CreatedAt });
         }
     }
 }
