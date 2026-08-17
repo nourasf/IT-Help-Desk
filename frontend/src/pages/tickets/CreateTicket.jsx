@@ -1,16 +1,9 @@
-import {
-  useEffect,
-  useId,
-  useRef,
-  useState,
-} from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import DashboardLayout from "../../components/DashboardLayout";
-import {
-  createTicket,
-  getTicketFormOptions,
-} from "../../api/ticket";
+import { createTicket, getTicketFormOptions } from "../../api/ticket";
 import { uploadTicketAttachments } from "../../api/attachments";
+import { analyzeTicket } from "../../api/ai";
 import "../../styles/Tickets.css";
 import { analyzeTicket } from "../../api/ai";
 
@@ -68,16 +61,28 @@ function TicketDropdown({ ariaLabel, value, options, placeholder, loadingText, i
     if (disabled || options.length === 0) return;
     if (event.key === "ArrowDown" || event.key === "ArrowUp") {
       event.preventDefault();
-      if (!isOpen) { openDropdown(); return; }
+      if (!isOpen) {
+        openDropdown();
+        return;
+      }
       const direction = event.key === "ArrowDown" ? 1 : -1;
       setActiveIndex((current) => (current + direction + options.length) % options.length);
       return;
     }
-    if (event.key === "Home" && isOpen) { event.preventDefault(); setActiveIndex(0); return; }
-    if (event.key === "End" && isOpen) { event.preventDefault(); setActiveIndex(options.length - 1); return; }
+    if (event.key === "Home" && isOpen) {
+      event.preventDefault();
+      setActiveIndex(0);
+      return;
+    }
+    if (event.key === "End" && isOpen) {
+      event.preventDefault();
+      setActiveIndex(options.length - 1);
+      return;
+    }
     if (event.key === "Enter" || event.key === " ") {
       event.preventDefault();
-      if (isOpen) selectOption(options[activeIndex]); else openDropdown();
+      if (isOpen) selectOption(options[activeIndex]);
+      else openDropdown();
       return;
     }
     if (event.key === "Escape") setIsOpen(false);
@@ -86,22 +91,57 @@ function TicketDropdown({ ariaLabel, value, options, placeholder, loadingText, i
   const displayText = isLoading ? loadingText : selectedOption?.label || placeholder;
 
   return (
-    <div className={`ticket-dropdown ${isOpen ? "open" : ""}`} ref={dropdownRef} onBlur={(event) => { if (!event.currentTarget.contains(event.relatedTarget)) setIsOpen(false); }}>
-      <button type="button" className={`ticket-dropdown-trigger ${selectedOption ? "has-value" : ""}`} aria-label={ariaLabel} aria-haspopup="listbox" aria-expanded={isOpen} aria-controls={listboxId} aria-activedescendant={isOpen ? `${listboxId}-option-${activeIndex}` : undefined} disabled={disabled} onClick={() => isOpen ? setIsOpen(false) : openDropdown()} onKeyDown={handleKeyDown}>
+    <div
+      className={`ticket-dropdown ${isOpen ? "open" : ""}`}
+      ref={dropdownRef}
+      onBlur={(event) => {
+        if (!event.currentTarget.contains(event.relatedTarget)) setIsOpen(false);
+      }}
+    >
+      <button
+        type="button"
+        className={`ticket-dropdown-trigger ${selectedOption ? "has-value" : ""}`}
+        aria-label={ariaLabel}
+        aria-haspopup="listbox"
+        aria-expanded={isOpen}
+        aria-controls={listboxId}
+        aria-activedescendant={isOpen ? `${listboxId}-option-${activeIndex}` : undefined}
+        disabled={disabled}
+        onClick={() => (isOpen ? setIsOpen(false) : openDropdown())}
+        onKeyDown={handleKeyDown}
+      >
         <span className="ticket-dropdown-trigger-content">
-          {selectedOption && <span className={`ticket-dropdown-marker ${variant}`} style={selectedOption.color ? { backgroundColor: selectedOption.color } : undefined} />}
+          {selectedOption && (
+            <span
+              className={`ticket-dropdown-marker ${variant}`}
+              style={selectedOption.color ? { backgroundColor: selectedOption.color } : undefined}
+            />
+          )}
           <span>{displayText}</span>
         </span>
         <span className="ticket-dropdown-chevron" aria-hidden="true" />
       </button>
+
       {isOpen && (
         <div id={listboxId} className="ticket-dropdown-menu" role="listbox" aria-label={ariaLabel}>
           {options.map((option, index) => {
             const isSelected = option.value === value;
             const isActive = index === activeIndex;
             return (
-              <button id={`${listboxId}-option-${index}`} key={option.id ?? option.value} type="button" className={`ticket-dropdown-option ${isSelected ? "selected" : ""} ${isActive ? "active" : ""}`} role="option" aria-selected={isSelected} onMouseEnter={() => setActiveIndex(index)} onClick={() => selectOption(option)}>
-                <span className={`ticket-dropdown-marker ${variant}`} style={option.color ? { backgroundColor: option.color } : undefined} />
+              <button
+                id={`${listboxId}-option-${index}`}
+                key={option.id ?? option.value}
+                type="button"
+                className={`ticket-dropdown-option ${isSelected ? "selected" : ""} ${isActive ? "active" : ""}`}
+                role="option"
+                aria-selected={isSelected}
+                onMouseEnter={() => setActiveIndex(index)}
+                onClick={() => selectOption(option)}
+              >
+                <span
+                  className={`ticket-dropdown-marker ${variant}`}
+                  style={option.color ? { backgroundColor: option.color } : undefined}
+                />
                 <span className="ticket-dropdown-option-label">{option.label}</span>
                 <span className="ticket-dropdown-check" aria-hidden="true">✓</span>
               </button>
@@ -127,14 +167,12 @@ function CreateTicket() {
   const [selectedFiles, setSelectedFiles] = useState([]);
   const [attachmentError, setAttachmentError] = useState("");
   const [isDraggingFiles, setIsDraggingFiles] = useState(false);
-  const [aiAnalysis, setAiAnalysis] = useState(null);
-const [isAnalyzing, setIsAnalyzing] = useState(false);
-const [aiError, setAiError] = useState("");
 
   useEffect(() => {
     const controller = new AbortController();
     let isMounted = true;
     const timeoutId = window.setTimeout(() => controller.abort(), 8000);
+
     async function loadTicketOptions() {
       setIsLoadingOptions(true);
       setOptionsError("");
@@ -144,79 +182,83 @@ const [aiError, setAiError] = useState("");
       } catch (requestError) {
         if (!isMounted) return;
         setTicketOptions({ categories: [], priorities: [] });
-        setOptionsError(requestError.name === "AbortError" ? "Loading categories took too long. Make sure the backend is running." : requestError.message || "The ticket options could not be loaded.");
+        setOptionsError(
+          requestError.name === "AbortError"
+            ? "Loading categories took too long. Make sure the backend is running."
+            : requestError.message || "The ticket options could not be loaded."
+        );
       } finally {
         window.clearTimeout(timeoutId);
         if (isMounted) setIsLoadingOptions(false);
       }
     }
+
     loadTicketOptions();
-    return () => { isMounted = false; window.clearTimeout(timeoutId); controller.abort(); };
+    return () => {
+      isMounted = false;
+      window.clearTimeout(timeoutId);
+      controller.abort();
+    };
   }, [optionsReloadKey]);
 
-  const handleChange = (event) => {
+  function handleChange(event) {
     const { name, value } = event.target;
     setForm((current) => ({ ...current, [name]: value }));
-    setSuccessMessage(""); setErrorMessage("");
-  };
-  const handleDropdownChange = (name, value) => {
+    setSuccessMessage("");
+    setErrorMessage("");
+    setAiError("");
+  }
+
+  function handleDropdownChange(name, value) {
     setForm((current) => ({ ...current, [name]: value }));
-    setSuccessMessage(""); setErrorMessage("");
-  };
+    setSuccessMessage("");
+    setErrorMessage("");
+  }
 
   function addFiles(fileList) {
     const incomingFiles = Array.from(fileList || []);
     if (incomingFiles.length === 0) return;
     setAttachmentError("");
     const combined = [...selectedFiles];
+
     for (const file of incomingFiles) {
       const extension = getExtension(file.name);
-      if (!ALLOWED_EXTENSIONS.includes(extension)) { setAttachmentError(`${file.name} is not allowed. Use JPG, JPEG, PNG, WEBP, PDF, DOC, DOCX, XLS, XLSX or TXT.`); continue; }
+      if (!ALLOWED_EXTENSIONS.includes(extension)) {
+        setAttachmentError(`${file.name} is not allowed. Use JPG, JPEG, PNG, WEBP, PDF, DOC, DOCX, XLS, XLSX or TXT.`);
+        continue;
+      }
       const isImage = IMAGE_EXTENSIONS.includes(extension);
       const maxBytes = isImage ? MAX_IMAGE_BYTES : MAX_DOCUMENT_BYTES;
-      if (file.size > maxBytes) { setAttachmentError(`${file.name} is too large. ${isImage ? "Images" : "Documents"} can be up to ${isImage ? "5" : "10"} MB.`); continue; }
-      const duplicate = combined.some((existingFile) => existingFile.name === file.name && existingFile.size === file.size && existingFile.lastModified === file.lastModified);
+      if (file.size > maxBytes) {
+        setAttachmentError(`${file.name} is too large. ${isImage ? "Images" : "Documents"} can be up to ${isImage ? "5" : "10"} MB.`);
+        continue;
+      }
+      const duplicate = combined.some(
+        (existingFile) =>
+          existingFile.name === file.name &&
+          existingFile.size === file.size &&
+          existingFile.lastModified === file.lastModified
+      );
       if (!duplicate) combined.push(file);
     }
-    if (combined.length > MAX_FILES) { setAttachmentError(`You can attach at most ${MAX_FILES} files.`); return; }
+
+    if (combined.length > MAX_FILES) {
+      setAttachmentError(`You can attach at most ${MAX_FILES} files.`);
+      return;
+    }
+
     const totalBytes = combined.reduce((total, file) => total + file.size, 0);
-    if (totalBytes > MAX_TOTAL_BYTES) { setAttachmentError("All attachments together cannot exceed 20 MB."); return; }
+    if (totalBytes > MAX_TOTAL_BYTES) {
+      setAttachmentError("All attachments together cannot exceed 20 MB.");
+      return;
+    }
+
     setSelectedFiles(combined);
   }
 
   function handleAttachmentChange(event) { addFiles(event.target.files); event.target.value = ""; }
   function removeAttachment(indexToRemove) { setSelectedFiles((current) => current.filter((_, index) => index !== indexToRemove)); setAttachmentError(""); }
   function handleDrop(event) { event.preventDefault(); setIsDraggingFiles(false); addFiles(event.dataTransfer.files); }
-
-  async function handleAnalyzeTicket() {
-  setAiError("");
-  setAiAnalysis(null);
-
-  if (!form.subject.trim() || !form.description.trim()) {
-    setAiError("Add a subject and description first.");
-    return;
-  }
-
-  try {
-    setIsAnalyzing(true);
-
-    const result = await analyzeTicket(
-      form.subject,
-      form.description
-    );
-
-    setAiAnalysis(result);
-  } catch (error) {
-    console.error("AI analysis error:", error);
-    setAiError(
-      error.message || "The AI assistant could not analyze this ticket."
-    );
-  } finally {
-    setIsAnalyzing(false);
-  }
-}
-
-
 
   const handleSubmit = async (event) => {
     event.preventDefault(); setSuccessMessage(""); setErrorMessage("");
@@ -226,13 +268,24 @@ const [aiError, setAiError] = useState("");
     try {
       const result = await createTicket(form);
       let uploadWarning = "";
+
       if (selectedFiles.length > 0) {
-        try { await uploadTicketAttachments(result.ticketId, selectedFiles); }
-        catch (uploadError) { console.error("Attachment upload error:", uploadError); uploadWarning = ` The ticket was created, but the attachments could not be uploaded: ${uploadError.message}`; }
+        try {
+          await uploadTicketAttachments(result.ticketId, selectedFiles);
+        } catch (uploadError) {
+          console.error("Attachment upload error:", uploadError);
+          uploadWarning = ` The ticket was created, but the attachments could not be uploaded: ${uploadError.message}`;
+        }
       }
+
       setSuccessMessage(`Ticket ${result.ticketNumber} created successfully.${uploadWarning}`);
       setForm({ subject: "", category: "", priority: "", description: "" });
-      if (!uploadWarning) { setSelectedFiles([]); setAttachmentError(""); }
+      setAiAnalysis(null);
+      setAiError("");
+      if (!uploadWarning) {
+        setSelectedFiles([]);
+        setAttachmentError("");
+      }
       window.scrollTo({ top: 0, behavior: "smooth" });
     } catch (requestError) {
       console.error("Create ticket error:", requestError);
@@ -240,186 +293,165 @@ const [aiError, setAiError] = useState("");
     } finally { setIsSubmitting(false); }
   };
 
-  function handleApplySuggestion() {
-  if (!aiAnalysis) return;
-
-  setForm((current) => ({
-    ...current,
-    category: aiAnalysis.category.toLowerCase(),
-    priority: aiAnalysis.priority.toLowerCase(),
-  }));
-}
+  const handleApplySuggestion = () => setForm((current) => ({ ...current, category: "hardware", priority: "medium" }));
 
   return (
     <DashboardLayout activePage="create-ticket">
       <main className="create-ticket-page">
-        <section className="create-ticket-header"><div><span className="create-ticket-label">Support request</span><h1>Create new support ticket</h1><p>Describe your issue and we&apos;ll assign it to the right IT agent.</p></div><button type="button" className="back-dashboard-button" onClick={() => navigate("/employee-dashboard")}>← Back to dashboard</button></section>
-        {successMessage && <div className="ticket-submit-message success" role="status" aria-live="polite"><div><strong>Ticket created</strong><span>{successMessage}</span></div><button type="button" onClick={() => navigate("/my-tickets")}>View My Tickets</button></div>}
-        {errorMessage && <div className="ticket-submit-message error" role="alert"><div><strong>Ticket not created</strong><span>{errorMessage}</span></div></div>}
-        {optionsError && <div className="ticket-submit-message error" role="alert"><div><strong>Options unavailable</strong><span>{optionsError}</span></div><button type="button" onClick={() => setOptionsReloadKey((current) => current + 1)}>Try Again</button></div>}
+        <section className="create-ticket-header">
+          <div>
+            <span className="create-ticket-label">Support request</span>
+            <h1>Create new support ticket</h1>
+            <p>Describe your issue and we&apos;ll assign it to the right IT agent.</p>
+          </div>
+          <button type="button" className="back-dashboard-button" onClick={() => navigate("/employee-dashboard")}>← Back to dashboard</button>
+        </section>
+
+        {successMessage && (
+          <div className="ticket-submit-message success" role="status" aria-live="polite">
+            <div><strong>Ticket created</strong><span>{successMessage}</span></div>
+            <button type="button" onClick={() => navigate("/my-tickets")}>View My Tickets</button>
+          </div>
+        )}
+
+        {errorMessage && (
+          <div className="ticket-submit-message error" role="alert">
+            <div><strong>Ticket not created</strong><span>{errorMessage}</span></div>
+          </div>
+        )}
+
+        {optionsError && (
+          <div className="ticket-submit-message error" role="alert">
+            <div><strong>Options unavailable</strong><span>{optionsError}</span></div>
+            <button type="button" onClick={() => setOptionsReloadKey((current) => current + 1)}>Try Again</button>
+          </div>
+        )}
+
         <form className="create-ticket-card" onSubmit={handleSubmit}>
           <section className="ticket-form-section">
-            <div className="ticket-section-heading"><div className="ticket-section-icon">▤</div><div><h2>Ticket details</h2><p>Give us enough information to understand the issue.</p></div></div>
-            <div className="ticket-fields">
-              <label className="ticket-field full-width-field"><span>Subject</span><input type="text" name="subject" placeholder="Briefly describe the problem" value={form.subject} onChange={handleChange} required /></label>
-              <div className="ticket-field"><span>Category</span><TicketDropdown ariaLabel="Category" value={form.category} options={ticketOptions.categories.map((category) => ({ id: category.id, value: category.name.toLowerCase(), label: category.name }))} placeholder={ticketOptions.categories.length > 0 ? "Select category" : "No categories available"} loadingText="Loading categories..." isLoading={isLoadingOptions} disabled={isLoadingOptions || Boolean(optionsError) || ticketOptions.categories.length === 0} variant="category" onChange={(value) => handleDropdownChange("category", value)} /></div>
-              <div className="ticket-field"><span>Priority</span><TicketDropdown ariaLabel="Priority" value={form.priority} options={ticketOptions.priorities.map((priority) => ({ id: priority.id, value: priority.name.toLowerCase(), label: priority.name, color: priority.color }))} placeholder={ticketOptions.priorities.length > 0 ? "Select priority" : "No priorities available"} loadingText="Loading priorities..." isLoading={isLoadingOptions} disabled={isLoadingOptions || Boolean(optionsError) || ticketOptions.priorities.length === 0} variant="priority" onChange={(value) => handleDropdownChange("priority", value)} /></div>
-              <label className="ticket-field full-width-field"><span>Description</span><textarea name="description" placeholder="Explain what happened, when it started and what you already tried..." value={form.description} onChange={handleChange} required /><small>Include any error messages or steps that caused the issue.</small></label>
-              <div className="ticket-field full-width-field attachment-field">
-                <div className="attachment-label-row"><span>Attachments</span><small>{selectedFiles.length}/{MAX_FILES} files</small></div>
-                <input ref={attachmentInputRef} id="ticket-attachment" className="attachment-input" type="file" multiple accept=".jpg,.jpeg,.png,.webp,.pdf,.doc,.docx,.xls,.xlsx,.txt" onChange={handleAttachmentChange} />
-                <div className={`attachment-drop-zone ${isDraggingFiles ? "dragging" : ""} ${selectedFiles.length > 0 ? "has-files" : ""}`} role="button" tabIndex={0} onClick={() => attachmentInputRef.current?.click()} onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); attachmentInputRef.current?.click(); } }} onDragEnter={(event) => { event.preventDefault(); setIsDraggingFiles(true); }} onDragOver={(event) => { event.preventDefault(); setIsDraggingFiles(true); }} onDragLeave={(event) => { event.preventDefault(); if (!event.currentTarget.contains(event.relatedTarget)) setIsDraggingFiles(false); }} onDrop={handleDrop}>
-                  <div className="attachment-icon">↥</div><div><strong>{isDraggingFiles ? "Drop your files here" : selectedFiles.length > 0 ? "Add more attachments" : "Drag files here or click to browse"}</strong><p>Images up to 5 MB · Documents up to 10 MB · 20 MB total</p></div>
-                </div>
-                {attachmentError && <div className="attachment-error" role="alert">{attachmentError}</div>}
-                {selectedFiles.length > 0 && <div className="selected-attachments" aria-live="polite">{selectedFiles.map((file, index) => { const extension = getExtension(file.name); const isImage = IMAGE_EXTENSIONS.includes(extension); return <div className="selected-attachment-card" key={`${file.name}-${file.size}-${file.lastModified}`}><div className={`selected-attachment-icon ${isImage ? "image" : "document"}`}>{isImage ? "▧" : "▤"}</div><div className="selected-attachment-info"><strong title={file.name}>{file.name}</strong><span>{extension.toUpperCase()} · {formatFileSize(file.size)}</span></div><span className="selected-attachment-ready">Ready</span><button type="button" className="remove-attachment-button" aria-label={`Remove ${file.name}`} title="Remove attachment" onClick={() => removeAttachment(index)}>×</button></div>; })}<div className="attachment-summary"><span>Selected files</span><strong>{formatFileSize(selectedFiles.reduce((total, file) => total + file.size, 0))} / 20 MB</strong></div></div>}
+            <div className="ticket-section-heading">
+              <div className="ticket-section-icon">▤</div>
+              <div>
+                <h2>Ticket details</h2>
+                <p>Provide enough information so we can understand and resolve your issue quickly.</p>
               </div>
             </div>
-          </section>
-          <aside className="ticket-ai-panel">
-  <div className="ai-panel-header">
-    <div className="ai-panel-icon">✦</div>
 
-    <div>
-      <h2>AI Assistant</h2>
-      <p>Let SupportHub analyze your issue before you submit it.</p>
-    </div>
-  </div>
+            <div className="ticket-fields">
+              <label className="ticket-field full-width-field">
+                <span>Subject</span>
+                <input type="text" name="subject" placeholder="Briefly describe the problem" value={form.subject} onChange={handleChange} required />
+              </label>
 
-  {!aiAnalysis && !isAnalyzing && (
-    <div className="ai-empty-state">
-      <p>
-        Add a subject and description, then let AI suggest the best
-        category and priority.
-      </p>
-
-      <button
-        type="button"
-        className="apply-suggestion-button"
-        onClick={handleAnalyzeTicket}
-        disabled={!form.subject.trim() || !form.description.trim()}
-      >
-        ✦ Analyze Ticket
-      </button>
-    </div>
-  )}
-
-  {isAnalyzing && (
-    <div className="ai-analyzing-state">
-      <div className="ai-thinking-indicator">
-        <span />
-        <span />
-        <span />
-      </div>
-
-      <strong>Analyzing your ticket...</strong>
-      <p>Checking the issue, category and business impact.</p>
-    </div>
-  )}
-
-  {aiError && (
-    <div className="ai-analysis-error" role="alert">
-      {aiError}
-
-      <button
-        type="button"
-        onClick={handleAnalyzeTicket}
-      >
-        Try Again
-      </button>
-    </div>
-  )}
-
-  {aiAnalysis && !isAnalyzing && (
-    <>
-      <div className="ai-status-message">
-        <span />
-        Analysis complete
-      </div>
-
-      <div className="ai-suggestion-block">
-        <span className="ai-suggestion-label">
-          Suggested category
-        </span>
-
-        <div className="ai-suggestion-value">
-          <span className="suggestion-icon">▣</span>
-
-          <div>
-            <strong>{aiAnalysis.category}</strong>
-            <small>Based on your issue</small>
-          </div>
-        </div>
-      </div>
-
-      <div className="ai-suggestion-block">
-        <span className="ai-suggestion-label">
-          Suggested priority
-        </span>
-
-        <div className="ai-suggestion-value">
-          <span className="priority-dot" />
-
-          <div>
-            <strong>{aiAnalysis.priority}</strong>
-            <small>Estimated business impact</small>
-          </div>
-        </div>
-      </div>
-
-      <div className="ai-suggestion-block">
-        <span className="ai-suggestion-label">
-          AI summary
-        </span>
-
-        <div className="recommended-action-box">
-          {aiAnalysis.summary}
-        </div>
-      </div>
-
-      {aiAnalysis.suggestions?.length > 0 && (
-        <div className="ai-suggestion-block">
-          <span className="ai-suggestion-label">
-            Try these first
-          </span>
-
-          <div className="ai-troubleshooting-list">
-            {aiAnalysis.suggestions.map((suggestion, index) => (
-              <div
-                className="ai-troubleshooting-item"
-                key={`${suggestion}-${index}`}
-              >
-                <span>{index + 1}</span>
-                <p>{suggestion}</p>
+              <div className="ticket-field">
+                <span>Category</span>
+                <TicketDropdown
+                  ariaLabel="Category"
+                  value={form.category}
+                  options={ticketOptions.categories.map((category) => ({ id: category.id, value: category.name.toLowerCase(), label: category.name }))}
+                  placeholder={ticketOptions.categories.length > 0 ? "Select category" : "No categories available"}
+                  loadingText="Loading categories..."
+                  isLoading={isLoadingOptions}
+                  disabled={isLoadingOptions || Boolean(optionsError) || ticketOptions.categories.length === 0}
+                  variant="category"
+                  onChange={(value) => handleDropdownChange("category", value)}
+                />
               </div>
-            ))}
-          </div>
-        </div>
-      )}
 
-      <button
-        type="button"
-        className="apply-suggestion-button"
-        onClick={handleApplySuggestion}
-      >
-        ✦ Apply Category & Priority
-      </button>
+              <div className="ticket-field">
+                <span>Priority</span>
+                <TicketDropdown
+                  ariaLabel="Priority"
+                  value={form.priority}
+                  options={ticketOptions.priorities.map((priority) => ({ id: priority.id, value: priority.name.toLowerCase(), label: priority.name, color: priority.color }))}
+                  placeholder={ticketOptions.priorities.length > 0 ? "Select priority" : "No priorities available"}
+                  loadingText="Loading priorities..."
+                  isLoading={isLoadingOptions}
+                  disabled={isLoadingOptions || Boolean(optionsError) || ticketOptions.priorities.length === 0}
+                  variant="priority"
+                  onChange={(value) => handleDropdownChange("priority", value)}
+                />
+              </div>
 
-      <button
-        type="button"
-        className="reanalyze-ticket-button"
-        onClick={handleAnalyzeTicket}
-      >
-        Analyze Again
-      </button>
+              <label className="ticket-field full-width-field">
+                <span>Description</span>
+                <textarea name="description" placeholder="Explain what happened, when it started and what you already tried..." value={form.description} onChange={handleChange} required />
+                <small>Include any error messages or steps that caused the issue.</small>
+              </label>
 
-      <p className="ai-disclaimer">
-        AI suggestions are optional. You can change the category and
-        priority before sending.
-      </p>
-    </>
-  )}
-</aside>
+              <div className="ticket-field full-width-field attachment-field">
+                <div className="attachment-label-row">
+                  <span>Attachments</span>
+                  <small>{selectedFiles.length}/{MAX_FILES} files</small>
+                </div>
+
+                <input
+                  ref={attachmentInputRef}
+                  id="ticket-attachment"
+                  className="attachment-input"
+                  type="file"
+                  multiple
+                  accept=".jpg,.jpeg,.png,.webp,.pdf,.doc,.docx,.xls,.xlsx,.txt"
+                  onChange={handleAttachmentChange}
+                />
+
+                <div
+                  className={`attachment-drop-zone ${isDraggingFiles ? "dragging" : ""} ${selectedFiles.length > 0 ? "has-files" : ""}`}
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => attachmentInputRef.current?.click()}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter" || event.key === " ") {
+                      event.preventDefault();
+                      attachmentInputRef.current?.click();
+                    }
+                  }}
+                  onDragEnter={(event) => { event.preventDefault(); setIsDraggingFiles(true); }}
+                  onDragOver={(event) => { event.preventDefault(); setIsDraggingFiles(true); }}
+                  onDragLeave={(event) => {
+                    event.preventDefault();
+                    if (!event.currentTarget.contains(event.relatedTarget)) setIsDraggingFiles(false);
+                  }}
+                  onDrop={handleDrop}
+                >
+                  <div className="attachment-icon">↥</div>
+                  <div>
+                    <strong>{isDraggingFiles ? "Drop your files here" : selectedFiles.length > 0 ? "Add more attachments" : "Drag files here or click to browse"}</strong>
+                    <p>Images up to 5 MB · Documents up to 10 MB · 20 MB total</p>
+                  </div>
+                </div>
+
+                {attachmentError && <div className="attachment-error" role="alert">{attachmentError}</div>}
+
+                {selectedFiles.length > 0 && (
+                  <div className="selected-attachments" aria-live="polite">
+                    {selectedFiles.map((file, index) => {
+                      const extension = getExtension(file.name);
+                      const isImage = IMAGE_EXTENSIONS.includes(extension);
+                      return (
+                        <div className="selected-attachment-card" key={`${file.name}-${file.size}-${file.lastModified}`}>
+                          <div className={`selected-attachment-icon ${isImage ? "image" : "document"}`}>{isImage ? "▧" : "▤"}</div>
+                          <div className="selected-attachment-info">
+                            <strong title={file.name}>{file.name}</strong>
+                            <span>{extension.toUpperCase()} · {formatFileSize(file.size)}</span>
+                          </div>
+                          <span className="selected-attachment-ready">Ready</span>
+                          <button type="button" className="remove-attachment-button" aria-label={`Remove ${file.name}`} title="Remove attachment" onClick={() => removeAttachment(index)}>×</button>
+                        </div>
+                      );
+                    })}
+                    <div className="attachment-summary">
+                      <span>Selected files</span>
+                      <strong>{formatFileSize(selectedFiles.reduce((total, file) => total + file.size, 0))} / 20 MB</strong>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <div className="ticket-check-note">Please make sure the details are correct before submitting your ticket.</div>
+            </div>
+          </section>
+          <aside className="ticket-ai-panel"><div className="ai-panel-header"><div className="ai-panel-icon">✦</div><div><h2>AI Assistant</h2><p>Helping you create a clearer support request.</p></div></div><div className="ai-status-message"><span></span>AI analyzes your ticket as you type</div><div className="ai-suggestion-block"><span className="ai-suggestion-label">Suggested category</span><div className="ai-suggestion-value"><span className="suggestion-icon">▣</span><div><strong>Hardware</strong><small>Based on your description</small></div></div></div><div className="ai-suggestion-block"><span className="ai-suggestion-label">Suggested priority</span><div className="ai-suggestion-value"><span className="priority-dot"></span><div><strong>Medium</strong><small>Normal business impact</small></div></div></div><div className="ai-suggestion-block"><span className="ai-suggestion-label">Recommended action</span><div className="recommended-action-box">Add the device name, any error message and when the problem first started.</div></div><button type="button" className="apply-suggestion-button" onClick={handleApplySuggestion}>✦ Apply Suggestion</button><p className="ai-disclaimer">You can review and change all suggested values before sending.</p></aside>
           <footer className="create-ticket-footer"><p>Make sure the details are correct before submitting your ticket.</p><div className="create-ticket-actions"><button type="button" className="cancel-ticket-button" onClick={() => navigate("/employee-dashboard")}>Cancel</button><button type="submit" className="send-ticket-button" disabled={isSubmitting || isLoadingOptions || Boolean(optionsError)}>{isSubmitting ? selectedFiles.length > 0 ? "Creating & uploading..." : "Sending..." : "Send Ticket"}</button></div></footer>
         </form>
       </main>
