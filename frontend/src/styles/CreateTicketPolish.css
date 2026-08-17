@@ -10,3 +10,95 @@
 .create-ticket-footer{grid-area:footer;display:flex;align-items:center;justify-content:space-between;gap:24px;padding:6px 6px 2px}.supporthub-footer-brand{display:flex;align-items:center;gap:11px;color:#281e50}.supporthub-footer-brand>span{display:grid;width:38px;height:38px;place-items:center;border-radius:12px;background:#e0d5f5;color:#6131ce;font-size:20px;box-shadow:0 7px 16px rgba(81,49,147,.13)}.supporthub-footer-brand strong,.supporthub-footer-brand small{display:block}.supporthub-footer-brand strong{font-size:13px}.supporthub-footer-brand small{margin-top:2px;color:#746d80;font-size:9px}.create-ticket-actions{display:flex;align-items:center;gap:12px}.cancel-ticket-button,.send-ticket-button{min-width:132px!important;height:49px!important;border-radius:14px!important;font-family:inherit;font-size:13px!important;font-weight:850!important;cursor:pointer}.cancel-ticket-button{border:1px solid #d7cfe4!important;background:#fff!important;color:#504176!important;box-shadow:0 10px 22px rgba(58,39,95,.1)!important}.send-ticket-button{border:0!important;background:linear-gradient(135deg,#5d24d7,#8c48eb)!important;color:#fff!important;box-shadow:0 13px 26px rgba(80,36,181,.3)!important}.send-ticket-button:hover:not(:disabled){transform:translateY(-1px);box-shadow:0 17px 31px rgba(80,36,181,.35)!important}.send-ticket-button:disabled{cursor:not-allowed;opacity:.58}
 @media(max-width:1120px){.create-ticket-page{padding:32px 28px 48px}.create-ticket-card{grid-template-columns:1fr;grid-template-areas:"form" "right" "footer";padding:20px}.ticket-right-column{display:grid;grid-template-columns:1fr 1fr}.ticket-ai-panel,.ai-benefits-card{height:auto}}
 @media(max-width:760px){.create-ticket-page{padding:24px 15px 38px}.create-ticket-header{align-items:flex-start;flex-direction:column}.create-ticket-header h1{font-size:32px}.create-ticket-card{padding:14px;border-radius:22px}.ticket-form-section{padding:22px 18px}.ticket-fields{grid-template-columns:1fr}.ticket-field{grid-column:1/-1}.ticket-right-column{grid-template-columns:1fr}.create-ticket-footer{align-items:stretch;flex-direction:column}.create-ticket-actions{justify-content:flex-end}}
+.ticket-ai-column {
+  grid-area: ai;
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+  align-self: start;
+}
+
+.ticket-ai-column .ticket-ai-panel {
+  grid-area: unset;
+  margin: 0;
+}
+
+.why-ai-card {
+  padding: 24px 22px;
+  border: 1px solid rgba(104, 76, 160, 0.16);
+  border-radius: 20px;
+
+  background:
+    linear-gradient(
+      145deg,
+      rgba(231, 225, 243, 0.98),
+      rgba(219, 211, 235, 0.96)
+    );
+
+  box-shadow:
+    0 18px 36px rgba(63, 42, 103, 0.14),
+    0 6px 16px rgba(63, 42, 103, 0.06),
+    inset 0 1px 0 rgba(255, 255, 255, 0.8);
+}
+
+.why-ai-card h3 {
+  margin: 0 0 18px;
+  padding-bottom: 14px;
+
+  border-bottom: 1px solid rgba(92, 68, 140, 0.12);
+
+  color: #261d54;
+  font-size: 18px;
+  font-weight: 800;
+}
+
+.why-ai-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+}
+
+.why-ai-item + .why-ai-item {
+  margin-top: 20px;
+}
+
+.why-ai-item > span {
+  display: grid;
+  width: 44px;
+  height: 44px;
+  flex: 0 0 44px;
+  place-items: center;
+
+  border-radius: 50%;
+
+  background:
+    linear-gradient(
+      145deg,
+      #e8dcff,
+      #d8c8f5
+    );
+
+  color: #6030cf;
+  font-size: 19px;
+
+  box-shadow:
+    0 8px 18px rgba(89, 55, 157, 0.14),
+    inset 0 1px 0 rgba(255, 255, 255, 0.85);
+}
+
+.why-ai-item strong {
+  display: block;
+  margin: 2px 0 4px;
+
+  color: #2d2457;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.why-ai-item p {
+  margin: 0;
+
+  color: #6f6782;
+  font-size: 11.5px;
+  line-height: 1.5;
+}
