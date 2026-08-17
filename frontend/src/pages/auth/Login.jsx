@@ -3,8 +3,23 @@ import { Link, useNavigate } from "react-router-dom";
 import "../../styles/Auth.css";
 import { saveAuthentication } from "../../utils/authStorage";
 
-import logo from "../../assets/logo.png";
 import loginIllustration from "../../assets/login-illustration.png";
+
+function SupportHubBrand() {
+  return (
+    <div className="login-brand" aria-label="SupportHub">
+      <svg className="login-brand-mark" viewBox="0 0 88 76" fill="none" aria-hidden="true">
+        <path d="M44 7C24.1 7 8 20.7 8 37.6c0 8.2 3.8 15.7 10.1 21.2L13.5 70l15.2-6.2c4.7 2.4 9.9 3.7 15.3 3.7 19.9 0 36-13.4 36-29.9S63.9 7 44 7Z" stroke="currentColor" strokeWidth="4.8" strokeLinejoin="round"/>
+        <circle cx="27.5" cy="35" r="5.2" fill="currentColor"/>
+        <circle cx="60.5" cy="35" r="5.2" fill="currentColor"/>
+        <circle cx="44" cy="31" r="8" fill="currentColor"/>
+        <path d="M31.5 51.7c1.8-7.6 6.1-11.4 12.5-11.4s10.7 3.8 12.5 11.4c.5 2.2-1.1 4.3-3.4 4.3H34.9c-2.3 0-3.9-2.1-3.4-4.3Z" fill="currentColor"/>
+      </svg>
+      <div className="login-brand-name">SUPPORTHUB</div>
+      <div className="login-brand-year">SINCE 2026</div>
+    </div>
+  );
+}
 
 function Login() {
   const navigate = useNavigate();
@@ -54,7 +69,7 @@ function Login() {
     <main className="login-page">
       <section className="login-form-section">
         <div className="login-form-container">
-          <img src={logo} alt="SupportHub logo" className="supporthub-logo" />
+          <SupportHubBrand />
 
           <div className="login-heading">
             <h1>Welcome Back</h1>
