@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import DashboardLayout from "../../components/DashboardLayout";
 import { getAllTickets } from "../../api/ticket";
-import "../../styles/AdminDashboard.css";
+import "../../styles/dashboard/AdminDashboard.css";
 
 const inputStyle = {
   minHeight: 44,

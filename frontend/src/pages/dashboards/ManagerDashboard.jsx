@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import DashboardLayout from "../../components/DashboardLayout";
 import { getManagerDashboard } from "../../api/dashboard";
 import { assignTicket, getAssignmentOptions } from "../../api/ticket";
-import "../../styles/ManagerDashboard.css";
+import "../../styles/dashboard/ManagerDashboard.css";
 
 function formatDate(value) {
   if (!value) return "—";
@@ -127,46 +127,20 @@ function ManagerDashboard() {
                   return (
                     <div key={ticket.id} className="manager-assignment-row">
                       <div className="manager-queue-ticket">
-                        <div className="manager-queue-title">
-                          <span>{ticket.ticketNumber}</span>
-                          <strong>{ticket.subject}</strong>
-                        </div>
-                        <div className="manager-queue-meta">
-                          <span>{ticket.category}</span>
-                          <span>{formatDate(ticket.createdAt)}</span>
-                          <span className={`product-badge priority-${normalize(ticket.priority)}`}>{ticket.priority}</span>
-                        </div>
+                        <div className="manager-queue-title"><span>{ticket.ticketNumber}</span><strong>{ticket.subject}</strong></div>
+                        <div className="manager-queue-meta"><span>{ticket.category}</span><span>{formatDate(ticket.createdAt)}</span><span className={`product-badge priority-${normalize(ticket.priority)}`}>{ticket.priority}</span></div>
                       </div>
-
                       <div className="manager-queue-actions">
                         <div className="manager-manual-assignment">
                           <span className="manager-action-label">Manual assignment</span>
                           <div className="manager-manual-controls">
-                            <select
-                              aria-label={`Choose agent for ${ticket.ticketNumber}`}
-                              value={selectedAgents[ticket.id] || leastBusyAgent?.id || ""}
-                              onChange={(event) => setSelectedAgents((current) => ({ ...current, [ticket.id]: event.target.value }))}
-                              disabled={agents.length === 0 || assigningTicketId === ticket.id}
-                            >
-                              {agents.map((agent) => (
-                                <option key={agent.id} value={agent.id}>{agent.name} · {agent.activeTickets} active</option>
-                              ))}
+                            <select aria-label={`Choose agent for ${ticket.ticketNumber}`} value={selectedAgents[ticket.id] || leastBusyAgent?.id || ""} onChange={(event) => setSelectedAgents((current) => ({ ...current, [ticket.id]: event.target.value }))} disabled={agents.length === 0 || assigningTicketId === ticket.id}>
+                              {agents.map((agent) => <option key={agent.id} value={agent.id}>{agent.name} · {agent.activeTickets} active</option>)}
                             </select>
-                            <button className="manager-manual-button" disabled={assigningTicketId === ticket.id || agents.length === 0} onClick={() => handleAssign(ticket.id)}>
-                              {assigningTicketId === ticket.id ? "Working..." : "Assign"}
-                            </button>
+                            <button className="manager-manual-button" disabled={assigningTicketId === ticket.id || agents.length === 0} onClick={() => handleAssign(ticket.id)}>{assigningTicketId === ticket.id ? "Working..." : "Assign"}</button>
                           </div>
                         </div>
-
-                        <div className="manager-auto-assignment">
-                          <div>
-                            <span className="manager-action-label">Smart assignment</span>
-                            <small>{leastBusyAgent ? `${leastBusyAgent.name} has the lightest workload (${leastBusyAgent.activeTickets} active).` : "No agent is currently available."}</small>
-                          </div>
-                          <button className="manager-auto-button" disabled={assigningTicketId === ticket.id || agents.length === 0} onClick={() => handleAutoAssign(ticket.id)}>
-                            <span>✦</span>{assigningTicketId === ticket.id ? "Assigning..." : "Auto Assign"}
-                          </button>
-                        </div>
+                        <div className="manager-auto-assignment"><div><span className="manager-action-label">Smart assignment</span><small>{leastBusyAgent ? `${leastBusyAgent.name} has the lightest workload (${leastBusyAgent.activeTickets} active).` : "No agent is currently available."}</small></div><button className="manager-auto-button" disabled={assigningTicketId === ticket.id || agents.length === 0} onClick={() => handleAutoAssign(ticket.id)}><span>✦</span>{assigningTicketId === ticket.id ? "Assigning..." : "Auto Assign"}</button></div>
                       </div>
                     </div>
                   );
@@ -176,57 +150,12 @@ function ManagerDashboard() {
             {message && <p className="product-inline-message manager-assignment-feedback">{message}</p>}
           </article>
 
-          <article className="product-panel agent-workload-panel">
-            <div className="product-panel-heading"><div><span>Team capacity</span><h2>Agent Workload</h2></div></div>
-            <div className="agent-workload-list">
-              {(performance.length ? performance : agents).slice(0, 6).map((agent, index) => {
-                const name = agent.agent || agent.name;
-                const active = Number(agent.open ?? agent.activeTickets ?? 0);
-                const max = Math.max(5, ...agents.map((item) => Number(item.activeTickets || 0)));
-                return (
-                  <div key={name || index}>
-                    <span className="workload-avatar">{String(name || "A").charAt(0)}</span>
-                    <div><strong>{name}</strong><small>{active} active tickets</small></div>
-                    <div className="workload-bar"><span style={{ width: `${Math.min(100, (active / max) * 100)}%` }} /></div>
-                    <b>{active}</b>
-                  </div>
-                );
-              })}
-            </div>
-          </article>
+          <article className="product-panel agent-workload-panel"><div className="product-panel-heading"><div><span>Team capacity</span><h2>Agent Workload</h2></div></div><div className="agent-workload-list">{(performance.length ? performance : agents).slice(0, 6).map((agent, index) => { const name = agent.agent || agent.name; const active = Number(agent.open ?? agent.activeTickets ?? 0); const max = Math.max(5, ...agents.map((item) => Number(item.activeTickets || 0))); return <div key={name || index}><span className="workload-avatar">{String(name || "A").charAt(0)}</span><div><strong>{name}</strong><small>{active} active tickets</small></div><div className="workload-bar"><span style={{ width: `${Math.min(100, (active / max) * 100)}%` }} /></div><b>{active}</b></div>; })}</div></article>
         </section>
 
         <section className="product-two-column manager-bottom-grid">
-          <article className="product-panel product-table-panel">
-            <div className="product-panel-heading">
-              <div><span>Latest requests</span><h2>Recent Tickets</h2></div>
-              <button type="button" onClick={() => navigate("/tickets/all")} style={{ border: 0, background: "transparent", color: "#7659bd", fontSize: 11, fontWeight: 800 }}>View all</button>
-            </div>
-            <div className="product-table-wrap">
-              <table className="product-table">
-                <thead><tr><th>Ticket</th><th>Requester</th><th>Priority</th><th>Status</th><th>Owner</th></tr></thead>
-                <tbody>
-                  {recentTickets.slice(0, 6).map((ticket) => (
-                    <tr key={ticket.id}>
-                      <td><button type="button" onClick={() => navigate(`/tickets/${ticket.id}`)}><span>{ticket.ticketNumber}</span><strong>{ticket.subject}</strong></button></td>
-                      <td>{ticket.employee}</td>
-                      <td><span className={`product-badge priority-${normalize(ticket.priority)}`}>{ticket.priority}</span></td>
-                      <td><span className={`product-badge status-${normalize(ticket.status)}`}>{ticket.status}</span></td>
-                      <td>{ticket.assignedTo || "Unassigned"}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </article>
-
-          <aside className="product-panel manager-quick-actions">
-            <div className="product-panel-heading"><div><span>Shortcuts</span><h2>Quick Actions</h2></div></div>
-            <button onClick={() => document.querySelector(".manager-needs-attention")?.scrollIntoView({ behavior: "smooth" })}><span>＋</span><strong>Assign Tickets</strong></button>
-            <button onClick={() => navigate("/tickets/all")}><span>▣</span><strong>View All Tickets</strong></button>
-            <button onClick={() => navigate("/reports")}><span>▤</span><strong>View Reports</strong></button>
-            <button onClick={loadData}><span>↻</span><strong>Refresh Data</strong></button>
-          </aside>
+          <article className="product-panel product-table-panel"><div className="product-panel-heading"><div><span>Latest requests</span><h2>Recent Tickets</h2></div><button type="button" onClick={() => navigate("/tickets/all")} style={{ border: 0, background: "transparent", color: "#7659bd", fontSize: 11, fontWeight: 800 }}>View all</button></div><div className="product-table-wrap"><table className="product-table"><thead><tr><th>Ticket</th><th>Requester</th><th>Priority</th><th>Status</th><th>Owner</th></tr></thead><tbody>{recentTickets.slice(0, 6).map((ticket) => <tr key={ticket.id}><td><button type="button" onClick={() => navigate(`/tickets/${ticket.id}`)}><span>{ticket.ticketNumber}</span><strong>{ticket.subject}</strong></button></td><td>{ticket.employee}</td><td><span className={`product-badge priority-${normalize(ticket.priority)}`}>{ticket.priority}</span></td><td><span className={`product-badge status-${normalize(ticket.status)}`}>{ticket.status}</span></td><td>{ticket.assignedTo || "Unassigned"}</td></tr>)}</tbody></table></div></article>
+          <aside className="product-panel manager-quick-actions"><div className="product-panel-heading"><div><span>Shortcuts</span><h2>Quick Actions</h2></div></div><button onClick={() => document.querySelector(".manager-needs-attention")?.scrollIntoView({ behavior: "smooth" })}><span>＋</span><strong>Assign Tickets</strong></button><button onClick={() => navigate("/tickets/all")}><span>▣</span><strong>View All Tickets</strong></button><button onClick={() => navigate("/reports")}><span>▤</span><strong>View Reports</strong></button><button onClick={loadData}><span>↻</span><strong>Refresh Data</strong></button></aside>
         </section>
       </main>
     </DashboardLayout>

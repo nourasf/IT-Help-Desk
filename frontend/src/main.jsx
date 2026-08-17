@@ -1,9 +1,8 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import "./styles/index.css";
-import "./styles/CreateTicketPolish.css";
-import "./styles/AiAssistantHistory.css";
+import "./styles/global/index.css";
+import "./styles/tickets/CreateTicket.css";
 import App from "./App.jsx";
 
 const queryClient = new QueryClient({
