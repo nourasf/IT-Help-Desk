@@ -1,24 +1,25 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import DashboardLayout from "../../components/DashboardLayout";
-import { sendAiChatMessage } from "../../api/ai";
+import {
+  clearAiConversations,
+  deleteAiConversation,
+  getAiConversation,
+  getAiConversations,
+  sendAiChatMessage,
+} from "../../api/ai";
 import { getStoredRole } from "../../utils/authStorage";
 import "../../styles/AiAssistant.css";
 
 function normalizeRole(role) {
-  return String(role || "")
-    .trim()
-    .toLowerCase()
-    .replaceAll("_", " ")
-    .replaceAll("-", " ");
+  return String(role || "").trim().toLowerCase().replaceAll("_", " ").replaceAll("-", " ");
 }
 
 const ROLE_CONFIG = {
   employee: {
     label: "Employee support",
-    greeting: "Hi! I’m the SupportHub AI Assistant. Tell me what IT issue you’re having and I’ll help you troubleshoot it before you create a ticket.",
+    greeting: "Hi! I’m the SupportHub AI Assistant. What can I help you with?",
     description: "Get quick troubleshooting guidance before opening a support ticket.",
-    info: "Describe the problem in your own words. I’ll give you short troubleshooting steps and you can contact an IT agent if you still need help.",
     prompts: [
       "My printer is connected but nothing will print.",
       "I forgot my company password and cannot sign in.",
@@ -27,9 +28,8 @@ const ROLE_CONFIG = {
   },
   agent: {
     label: "Agent copilot",
-    greeting: "Hi! I’m your SupportHub AI copilot. Tell me what you’re diagnosing and I’ll suggest likely causes, checks, and useful evidence to collect.",
+    greeting: "Hi! I’m your SupportHub AI copilot. What are you working on?",
     description: "Get concise diagnostic ideas while working on support tickets.",
-    info: "Describe the symptoms, environment, and what has already been tested. I’ll help narrow down likely causes and next checks.",
     prompts: [
       "A user's VPN connects but internal sites still time out. What should I check next?",
       "A printer is online but jobs stay in the queue. Give me a diagnostic checklist.",
@@ -38,9 +38,8 @@ const ROLE_CONFIG = {
   },
   manager: {
     label: "Manager assistant",
-    greeting: "Hi! I’m the SupportHub AI Assistant. I can help you reason about ticket impact, likely causes, categorization, priority, and next steps.",
+    greeting: "Hi! I’m the SupportHub AI Assistant. What would you like help with?",
     description: "Get quick help interpreting support issues and operational impact.",
-    info: "Ask about ticket impact, categorization, priority, likely causes, or useful next actions for the support team.",
     prompts: [
       "How should I prioritize a VPN outage affecting one remote employee?",
       "What information should I look for before assigning a recurring printer issue?",
@@ -49,9 +48,8 @@ const ROLE_CONFIG = {
   },
   admin: {
     label: "Admin assistant",
-    greeting: "Hi! I’m the SupportHub AI Assistant. I can help with practical IT troubleshooting and help-desk administration questions.",
+    greeting: "Hi! I’m the SupportHub AI Assistant. What can I help you with today?",
     description: "Get concise operational guidance for SupportHub and general IT issues.",
-    info: "Ask about troubleshooting, user-support scenarios, operational checks, or help-desk workflow questions.",
     prompts: [
       "What should I verify when several users suddenly cannot sign in?",
       "Give me a checklist for investigating a spike in high-priority tickets.",
@@ -61,20 +59,12 @@ const ROLE_CONFIG = {
 };
 
 function getRoleConfig(role) {
-  if (role === "it support agent" || role === "agent" || role === "it") {
-    return ROLE_CONFIG.agent;
-  }
-
+  if (role === "it support agent" || role === "agent" || role === "it") return ROLE_CONFIG.agent;
   return ROLE_CONFIG[role] || ROLE_CONFIG.employee;
 }
 
 function createGreeting(config) {
-  return {
-    id: Date.now(),
-    role: "assistant",
-    text: config.greeting,
-    isGreeting: true,
-  };
+  return { id: `g-${Date.now()}`, role: "assistant", text: config.greeting, isGreeting: true };
 }
 
 function AiAssistant() {
@@ -82,52 +72,101 @@ function AiAssistant() {
   const role = normalizeRole(getStoredRole());
   const roleConfig = getRoleConfig(role);
   const canCreateTicket = role === "employee";
+  const messagesEndRef = useRef(null);
 
   const [message, setMessage] = useState("");
   const [messages, setMessages] = useState(() => [createGreeting(roleConfig)]);
+  const [conversationId, setConversationId] = useState(null);
+  const [conversations, setConversations] = useState([]);
   const [isSending, setIsSending] = useState(false);
+  const [isHistoryLoading, setIsHistoryLoading] = useState(true);
   const [error, setError] = useState("");
-  const messagesEndRef = useRef(null);
+
+  useEffect(() => {
+    loadConversations();
+  }, []);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, isSending]);
 
+  async function loadConversations() {
+    try {
+      setIsHistoryLoading(true);
+      setConversations(await getAiConversations());
+    } catch (requestError) {
+      console.error("AI history error:", requestError);
+    } finally {
+      setIsHistoryLoading(false);
+    }
+  }
+
+  async function openConversation(id) {
+    if (isSending) return;
+    try {
+      setError("");
+      const data = await getAiConversation(id);
+      setConversationId(data.id);
+      setMessages([
+        createGreeting(roleConfig),
+        ...(Array.isArray(data.messages) ? data.messages : []),
+      ]);
+      setMessage("");
+    } catch (requestError) {
+      setError(requestError.message || "Could not open that conversation.");
+    }
+  }
+
+  function newConversation() {
+    setConversationId(null);
+    setMessages([createGreeting(roleConfig)]);
+    setMessage("");
+    setError("");
+  }
+
+  async function removeConversation(event, id) {
+    event.stopPropagation();
+    try {
+      await deleteAiConversation(id);
+      if (conversationId === id) newConversation();
+      await loadConversations();
+    } catch (requestError) {
+      setError(requestError.message || "Could not delete that conversation.");
+    }
+  }
+
+  async function clearHistory() {
+    if (conversations.length === 0) return;
+    try {
+      await clearAiConversations();
+      newConversation();
+      setConversations([]);
+    } catch (requestError) {
+      setError(requestError.message || "Could not clear chat history.");
+    }
+  }
+
   async function submitMessage(text) {
     const cleanMessage = String(text || "").trim();
     if (!cleanMessage || isSending) return;
 
-    const conversationHistory = messages
-      .filter((item) => !item.isGreeting)
-      .filter((item) => item.role === "user" || item.role === "assistant")
-      .slice(-10)
-      .map((item) => ({ role: item.role, text: item.text }));
-
     setError("");
     setMessage("");
-
-    const userMessage = {
-      id: Date.now(),
-      role: "user",
-      text: cleanMessage,
-    };
-
-    setMessages((current) => [...current, userMessage]);
+    setMessages((current) => [...current, { id: `u-${Date.now()}`, role: "user", text: cleanMessage }]);
     setIsSending(true);
 
     try {
-      const result = await sendAiChatMessage(cleanMessage, conversationHistory);
-
+      const result = await sendAiChatMessage(cleanMessage, conversationId);
+      setConversationId(result.conversationId);
       setMessages((current) => [
         ...current,
         {
-          id: Date.now() + 1,
+          id: `a-${Date.now()}`,
           role: "assistant",
-          text:
-            result.reply ||
-            "I couldn't generate a useful response. Try describing the issue with a little more detail.",
+          text: result.reply || "I couldn't generate a useful response. Try describing the issue with a little more detail.",
         },
       ]);
+      await loadConversations();
     } catch (requestError) {
       console.error("AI chat error:", requestError);
       setError(requestError.message || "The AI assistant could not respond right now.");
@@ -148,19 +187,9 @@ function AiAssistant() {
     }
   }
 
-  function clearChat() {
-    setMessages([createGreeting(roleConfig)]);
-    setError("");
-    setMessage("");
-  }
-
   const hasConversation = messages.some((item) => !item.isGreeting);
   const lastMessage = messages[messages.length - 1];
-  const showEmployeeEscalation =
-    canCreateTicket &&
-    hasConversation &&
-    !isSending &&
-    lastMessage?.role === "assistant";
+  const showEmployeeEscalation = canCreateTicket && hasConversation && !isSending && lastMessage?.role === "assistant";
 
   return (
     <DashboardLayout activePage="ai-assistant">
@@ -171,147 +200,138 @@ function AiAssistant() {
             <h1>AI Assistant</h1>
             <p>{roleConfig.description}</p>
           </div>
-
-          <button type="button" className="ai-chat-clear" onClick={clearChat}>
-            New conversation
-          </button>
+          <button type="button" className="ai-chat-clear" onClick={newConversation}>+ New conversation</button>
         </section>
 
-        <section className="ai-chat-shell">
-          <aside className="ai-chat-info-card">
-            <div className="ai-chat-mascot" aria-hidden="true">
-              <span className="ai-chat-mascot-antenna" />
-              <div className="ai-chat-mascot-face">
-                <span />
-                <span />
+        <section className="ai-chat-workspace">
+          <aside className="ai-chat-history-panel">
+            <div className="ai-chat-history-header">
+              <div>
+                <span>History</span>
+                <strong>Recent chats</strong>
               </div>
+              {conversations.length > 0 && <button type="button" onClick={clearHistory}>Clear all</button>}
             </div>
 
-            <div className="ai-chat-info-copy">
-              <span className="ai-chat-ready"><i /> Online locally</span>
-              <h2>Ask SupportHub</h2>
-              <span className="ai-chat-role-badge">{roleConfig.label}</span>
-              <p>{roleConfig.info}</p>
+            <div className="ai-chat-history-list">
+              {isHistoryLoading && <p className="ai-history-empty">Loading chats...</p>}
+              {!isHistoryLoading && conversations.length === 0 && <p className="ai-history-empty">No saved conversations yet.</p>}
+              {!isHistoryLoading && conversations.map((conversation) => (
+                <button
+                  type="button"
+                  key={conversation.id}
+                  className={`ai-history-item ${conversationId === conversation.id ? "active" : ""}`}
+                  onClick={() => openConversation(conversation.id)}
+                >
+                  <span className="ai-history-icon">✦</span>
+                  <span className="ai-history-copy">
+                    <strong>{conversation.title}</strong>
+                    <small>{conversation.messageCount} messages</small>
+                  </span>
+                  <span
+                    role="button"
+                    tabIndex={0}
+                    className="ai-history-delete"
+                    onClick={(event) => removeConversation(event, conversation.id)}
+                    onKeyDown={(event) => {
+                      if (event.key === "Enter" || event.key === " ") removeConversation(event, conversation.id);
+                    }}
+                    aria-label={`Delete ${conversation.title}`}
+                  >×</span>
+                </button>
+              ))}
             </div>
-
-            <div className="ai-chat-tips">
-              <div>
-                <span>01</span>
-                <p>Include the device, app, service, or ticket involved.</p>
-              </div>
-              <div>
-                <span>02</span>
-                <p>Mention any error message or unusual behavior you can see.</p>
-              </div>
-              <div>
-                <span>03</span>
-                <p>Say what has already been tried so AI does not repeat it.</p>
-              </div>
-            </div>
-
-            <p className="ai-chat-local-note">Powered locally by Ollama. Conversation context is sent only with the current chat request.</p>
           </aside>
 
-          <section className="ai-chat-card">
-            <div className="ai-chat-card-topbar">
-              <div>
-                <span className="ai-chat-card-status"><i /> AI ready</span>
-                <strong>SupportHub Assistant</strong>
+          <section className="ai-chat-shell">
+            <aside className="ai-chat-info-card">
+              <div className="ai-chat-mascot" aria-hidden="true">
+                <span className="ai-chat-mascot-antenna" />
+                <div className="ai-chat-mascot-face"><span /><span /></div>
               </div>
-              <span className="ai-chat-model">{roleConfig.label}</span>
-            </div>
+              <div className="ai-chat-info-copy">
+                <span className="ai-chat-ready"><i /> Online locally</span>
+                <h2>Ask SupportHub</h2>
+                <span className="ai-chat-role-badge">{roleConfig.label}</span>
+                <p>Ask a normal question, describe an IT issue, or continue a saved conversation.</p>
+              </div>
+            </aside>
 
-            <div className="ai-chat-messages" aria-live="polite">
-              {messages.map((chatMessage) => (
-                <div
-                  key={chatMessage.id}
-                  className={`ai-chat-message-row ${chatMessage.role}`}
-                >
-                  {chatMessage.role === "assistant" && (
-                    <div className="ai-chat-avatar" aria-hidden="true">✦</div>
-                  )}
-
-                  <div className="ai-chat-message-bubble">
-                    {chatMessage.text.split("\n").map((line, index) => (
-                      <p key={`${chatMessage.id}-${index}`}>{line || " "}</p>
-                    ))}
-                  </div>
+            <section className="ai-chat-card">
+              <div className="ai-chat-card-topbar">
+                <div>
+                  <span className="ai-chat-card-status"><i /> AI ready</span>
+                  <strong>SupportHub Assistant</strong>
                 </div>
-              ))}
+                <span className="ai-chat-model">{roleConfig.label}</span>
+              </div>
 
-              {isSending && (
-                <div className="ai-chat-message-row assistant">
-                  <div className="ai-chat-avatar" aria-hidden="true">✦</div>
-                  <div className="ai-chat-message-bubble thinking">
-                    <span />
-                    <span />
-                    <span />
+              <div className="ai-chat-messages" aria-live="polite">
+                {messages.map((chatMessage) => (
+                  <div key={chatMessage.id} className={`ai-chat-message-row ${chatMessage.role}`}>
+                    {chatMessage.role === "assistant" && <div className="ai-chat-avatar" aria-hidden="true">✦</div>}
+                    <div className="ai-chat-message-bubble">
+                      {String(chatMessage.text || "").split("\n").map((line, index) => (
+                        <p key={`${chatMessage.id}-${index}`}>{line || " "}</p>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+
+                {isSending && (
+                  <div className="ai-chat-message-row assistant">
+                    <div className="ai-chat-avatar" aria-hidden="true">✦</div>
+                    <div className="ai-chat-message-bubble thinking"><span /><span /><span /></div>
+                  </div>
+                )}
+                <div ref={messagesEndRef} />
+              </div>
+
+              {!hasConversation && (
+                <div className="ai-chat-quick-prompts">
+                  <span>Try an example</span>
+                  <div>
+                    {roleConfig.prompts.map((prompt) => (
+                      <button key={prompt} type="button" onClick={() => submitMessage(prompt)} disabled={isSending}>{prompt}</button>
+                    ))}
                   </div>
                 </div>
               )}
 
-              <div ref={messagesEndRef} />
-            </div>
-
-            {!hasConversation && (
-              <div className="ai-chat-quick-prompts">
-                <span>Try an example</span>
-                <div>
-                  {roleConfig.prompts.map((prompt) => (
-                    <button
-                      key={prompt}
-                      type="button"
-                      onClick={() => submitMessage(prompt)}
-                      disabled={isSending}
-                    >
-                      {prompt}
-                    </button>
-                  ))}
+              {showEmployeeEscalation && (
+                <div className="ai-chat-escalation">
+                  <div>
+                    <span className="ai-chat-escalation-eyebrow">Still need help?</span>
+                    <strong>Contact an IT agent</strong>
+                    <p>If the troubleshooting didn’t solve it, create a support ticket and an IT agent can take it from here.</p>
+                  </div>
+                  <button type="button" onClick={() => navigate("/create-ticket")}>Create a Ticket</button>
                 </div>
-              </div>
-            )}
+              )}
 
-            {showEmployeeEscalation && (
-              <div className="ai-chat-escalation">
-                <div>
-                  <span className="ai-chat-escalation-eyebrow">Still need help?</span>
-                  <strong>Contact an IT agent</strong>
-                  <p>If the troubleshooting didn’t solve it, create a support ticket and an IT agent can take it from here.</p>
+              {error && <div className="ai-chat-error" role="alert"><span>{error}</span></div>}
+
+              <form className="ai-chat-composer" onSubmit={handleSubmit}>
+                <textarea
+                  value={message}
+                  onChange={(event) => setMessage(event.target.value)}
+                  onKeyDown={handleKeyDown}
+                  placeholder="Message SupportHub AI..."
+                  rows={1}
+                  maxLength={2000}
+                  disabled={isSending}
+                  aria-label="Message SupportHub AI Assistant"
+                />
+                <div className="ai-chat-composer-bottom">
+                  <span>Enter to send · Shift + Enter for a new line</span>
+                  <button type="submit" disabled={!message.trim() || isSending}>
+                    {isSending ? "Thinking..." : "Send"}<span aria-hidden="true">↗</span>
+                  </button>
                 </div>
-                <button type="button" onClick={() => navigate("/create-ticket")}>Create a Ticket</button>
-              </div>
-            )}
+              </form>
 
-            {error && (
-              <div className="ai-chat-error" role="alert">
-                <span>{error}</span>
-              </div>
-            )}
-
-            <form className="ai-chat-composer" onSubmit={handleSubmit}>
-              <textarea
-                value={message}
-                onChange={(event) => setMessage(event.target.value)}
-                onKeyDown={handleKeyDown}
-                placeholder={canCreateTicket ? "Describe your IT problem..." : "Ask SupportHub AI..."}
-                rows={1}
-                maxLength={2000}
-                disabled={isSending}
-                aria-label="Message SupportHub AI Assistant"
-              />
-
-              <div className="ai-chat-composer-bottom">
-                <span>Enter to send · Shift + Enter for a new line</span>
-                <button type="submit" disabled={!message.trim() || isSending}>
-                  {isSending ? "Thinking..." : "Send"}
-                  <span aria-hidden="true">↗</span>
-                </button>
-              </div>
-            </form>
-
-            <p className="ai-chat-disclaimer">
-              AI guidance may be imperfect. Verify important changes before applying them.
-            </p>
+              <p className="ai-chat-disclaimer">Your 10 most recent conversations are saved to your SupportHub account and can be deleted anytime.</p>
+            </section>
           </section>
         </section>
       </main>
