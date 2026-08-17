@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import DashboardLayout from "../../components/DashboardLayout";
 import { sendAiChatMessage } from "../../api/ai";
+import { getStoredRole } from "../../utils/authStorage";
 import "../../styles/AiAssistant.css";
 
 const QUICK_PROMPTS = [
@@ -10,6 +12,10 @@ const QUICK_PROMPTS = [
 ];
 
 function AiAssistant() {
+  const navigate = useNavigate();
+  const role = String(getStoredRole() || "").trim().toLowerCase();
+  const canCreateTicket = role === "employee";
+
   const [message, setMessage] = useState("");
   const [messages, setMessages] = useState([
     {
@@ -82,6 +88,7 @@ function AiAssistant() {
       },
     ]);
     setError("");
+    setMessage("");
   }
 
   return (
@@ -112,7 +119,7 @@ function AiAssistant() {
             <div className="ai-chat-info-copy">
               <span className="ai-chat-ready"><i /> Online locally</span>
               <h2>Ask SupportHub</h2>
-              <p>Describe the problem in your own words. The assistant will give you concise troubleshooting steps.</p>
+              <p>Describe the problem in your own words. The assistant will give you short troubleshooting steps.</p>
             </div>
 
             <div className="ai-chat-tips">
@@ -189,6 +196,17 @@ function AiAssistant() {
                     </button>
                   ))}
                 </div>
+              </div>
+            )}
+
+            {canCreateTicket && messages.length > 1 && !isSending && (
+              <div className="ai-chat-escalation">
+                <div>
+                  <span className="ai-chat-escalation-eyebrow">Still need help?</span>
+                  <strong>Contact an IT agent</strong>
+                  <p>Create a support ticket and an IT agent can take it from here.</p>
+                </div>
+                <button type="button" onClick={() => navigate("/create-ticket")}>Create a Ticket</button>
               </div>
             )}
 
