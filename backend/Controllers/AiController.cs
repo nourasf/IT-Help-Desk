@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using backend.Data;
 using backend.DTOs.Ai;
 using backend.Services;
@@ -116,11 +117,31 @@ public class AiController : ControllerBase
             });
         }
 
-        var reply = await _ollamaService.ChatAsync(request.Message);
+        if (request.Message.Length > 2000)
+        {
+            return BadRequest(new
+            {
+                message = "Message is too long."
+            });
+        }
+
+        var role = User.FindFirstValue(ClaimTypes.Role) ?? "Employee";
+
+        var history = (request.History ?? new List<AiChatHistoryMessage>())
+            .Where(item => item != null && !string.IsNullOrWhiteSpace(item.Text))
+            .TakeLast(10)
+            .ToList();
+
+        var reply = await _ollamaService.ChatAsync(
+            request.Message,
+            history,
+            role
+        );
 
         return Ok(new
         {
-            reply
+            reply,
+            role
         });
     }
 }
