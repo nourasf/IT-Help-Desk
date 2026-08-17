@@ -12,6 +12,7 @@ import {
 } from "../../api/ticket";
 import { uploadTicketAttachments } from "../../api/attachments";
 import "../../styles/Tickets.css";
+import { analyzeTicket } from "../../api/ai";
 
 const MAX_FILES = 5;
 const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
@@ -38,6 +39,7 @@ function TicketDropdown({ ariaLabel, value, options, placeholder, loadingText, i
   const [activeIndex, setActiveIndex] = useState(0);
   const selectedIndex = options.findIndex((option) => option.value === value);
   const selectedOption = options[selectedIndex];
+  
 
   useEffect(() => {
     function handleOutsideClick(event) {
@@ -125,6 +127,9 @@ function CreateTicket() {
   const [selectedFiles, setSelectedFiles] = useState([]);
   const [attachmentError, setAttachmentError] = useState("");
   const [isDraggingFiles, setIsDraggingFiles] = useState(false);
+  const [aiAnalysis, setAiAnalysis] = useState(null);
+const [isAnalyzing, setIsAnalyzing] = useState(false);
+const [aiError, setAiError] = useState("");
 
   useEffect(() => {
     const controller = new AbortController();
@@ -183,6 +188,36 @@ function CreateTicket() {
   function removeAttachment(indexToRemove) { setSelectedFiles((current) => current.filter((_, index) => index !== indexToRemove)); setAttachmentError(""); }
   function handleDrop(event) { event.preventDefault(); setIsDraggingFiles(false); addFiles(event.dataTransfer.files); }
 
+  async function handleAnalyzeTicket() {
+  setAiError("");
+  setAiAnalysis(null);
+
+  if (!form.subject.trim() || !form.description.trim()) {
+    setAiError("Add a subject and description first.");
+    return;
+  }
+
+  try {
+    setIsAnalyzing(true);
+
+    const result = await analyzeTicket(
+      form.subject,
+      form.description
+    );
+
+    setAiAnalysis(result);
+  } catch (error) {
+    console.error("AI analysis error:", error);
+    setAiError(
+      error.message || "The AI assistant could not analyze this ticket."
+    );
+  } finally {
+    setIsAnalyzing(false);
+  }
+}
+
+
+
   const handleSubmit = async (event) => {
     event.preventDefault(); setSuccessMessage(""); setErrorMessage("");
     if (!form.category || !form.priority) { setErrorMessage("Please select both a category and a priority."); return; }
@@ -205,7 +240,15 @@ function CreateTicket() {
     } finally { setIsSubmitting(false); }
   };
 
-  const handleApplySuggestion = () => setForm((current) => ({ ...current, category: "hardware", priority: "medium" }));
+  function handleApplySuggestion() {
+  if (!aiAnalysis) return;
+
+  setForm((current) => ({
+    ...current,
+    category: aiAnalysis.category.toLowerCase(),
+    priority: aiAnalysis.priority.toLowerCase(),
+  }));
+}
 
   return (
     <DashboardLayout activePage="create-ticket">
@@ -233,7 +276,150 @@ function CreateTicket() {
               </div>
             </div>
           </section>
-          <aside className="ticket-ai-panel"><div className="ai-panel-header"><div className="ai-panel-icon">✦</div><div><h2>AI Assistant</h2><p>Helping you create a clearer support request.</p></div></div><div className="ai-status-message"><span></span>AI analyzes your ticket as you type</div><div className="ai-suggestion-block"><span className="ai-suggestion-label">Suggested category</span><div className="ai-suggestion-value"><span className="suggestion-icon">▣</span><div><strong>Hardware</strong><small>Based on your description</small></div></div></div><div className="ai-suggestion-block"><span className="ai-suggestion-label">Suggested priority</span><div className="ai-suggestion-value"><span className="priority-dot"></span><div><strong>Medium</strong><small>Normal business impact</small></div></div></div><div className="ai-suggestion-block"><span className="ai-suggestion-label">Recommended action</span><div className="recommended-action-box">Add the device name, any error message and when the problem first started.</div></div><button type="button" className="apply-suggestion-button" onClick={handleApplySuggestion}>✦ Apply Suggestion</button><p className="ai-disclaimer">You can review and change all suggested values before sending.</p></aside>
+          <aside className="ticket-ai-panel">
+  <div className="ai-panel-header">
+    <div className="ai-panel-icon">✦</div>
+
+    <div>
+      <h2>AI Assistant</h2>
+      <p>Let SupportHub analyze your issue before you submit it.</p>
+    </div>
+  </div>
+
+  {!aiAnalysis && !isAnalyzing && (
+    <div className="ai-empty-state">
+      <p>
+        Add a subject and description, then let AI suggest the best
+        category and priority.
+      </p>
+
+      <button
+        type="button"
+        className="apply-suggestion-button"
+        onClick={handleAnalyzeTicket}
+        disabled={!form.subject.trim() || !form.description.trim()}
+      >
+        ✦ Analyze Ticket
+      </button>
+    </div>
+  )}
+
+  {isAnalyzing && (
+    <div className="ai-analyzing-state">
+      <div className="ai-thinking-indicator">
+        <span />
+        <span />
+        <span />
+      </div>
+
+      <strong>Analyzing your ticket...</strong>
+      <p>Checking the issue, category and business impact.</p>
+    </div>
+  )}
+
+  {aiError && (
+    <div className="ai-analysis-error" role="alert">
+      {aiError}
+
+      <button
+        type="button"
+        onClick={handleAnalyzeTicket}
+      >
+        Try Again
+      </button>
+    </div>
+  )}
+
+  {aiAnalysis && !isAnalyzing && (
+    <>
+      <div className="ai-status-message">
+        <span />
+        Analysis complete
+      </div>
+
+      <div className="ai-suggestion-block">
+        <span className="ai-suggestion-label">
+          Suggested category
+        </span>
+
+        <div className="ai-suggestion-value">
+          <span className="suggestion-icon">▣</span>
+
+          <div>
+            <strong>{aiAnalysis.category}</strong>
+            <small>Based on your issue</small>
+          </div>
+        </div>
+      </div>
+
+      <div className="ai-suggestion-block">
+        <span className="ai-suggestion-label">
+          Suggested priority
+        </span>
+
+        <div className="ai-suggestion-value">
+          <span className="priority-dot" />
+
+          <div>
+            <strong>{aiAnalysis.priority}</strong>
+            <small>Estimated business impact</small>
+          </div>
+        </div>
+      </div>
+
+      <div className="ai-suggestion-block">
+        <span className="ai-suggestion-label">
+          AI summary
+        </span>
+
+        <div className="recommended-action-box">
+          {aiAnalysis.summary}
+        </div>
+      </div>
+
+      {aiAnalysis.suggestions?.length > 0 && (
+        <div className="ai-suggestion-block">
+          <span className="ai-suggestion-label">
+            Try these first
+          </span>
+
+          <div className="ai-troubleshooting-list">
+            {aiAnalysis.suggestions.map((suggestion, index) => (
+              <div
+                className="ai-troubleshooting-item"
+                key={`${suggestion}-${index}`}
+              >
+                <span>{index + 1}</span>
+                <p>{suggestion}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      <button
+        type="button"
+        className="apply-suggestion-button"
+        onClick={handleApplySuggestion}
+      >
+        ✦ Apply Category & Priority
+      </button>
+
+      <button
+        type="button"
+        className="reanalyze-ticket-button"
+        onClick={handleAnalyzeTicket}
+      >
+        Analyze Again
+      </button>
+
+      <p className="ai-disclaimer">
+        AI suggestions are optional. You can change the category and
+        priority before sending.
+      </p>
+    </>
+  )}
+</aside>
           <footer className="create-ticket-footer"><p>Make sure the details are correct before submitting your ticket.</p><div className="create-ticket-actions"><button type="button" className="cancel-ticket-button" onClick={() => navigate("/employee-dashboard")}>Cancel</button><button type="submit" className="send-ticket-button" disabled={isSubmitting || isLoadingOptions || Boolean(optionsError)}>{isSubmitting ? selectedFiles.length > 0 ? "Creating & uploading..." : "Sending..." : "Send Ticket"}</button></div></footer>
         </form>
       </main>

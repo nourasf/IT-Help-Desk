@@ -207,71 +207,425 @@ function Reports() {
     }
   }
 
-  async function exportExcel() {
-    if (!report) return;
+ async function exportExcel() {
+  if (!report) return;
 
-    try {
-      setExporting("excel");
-      const XLSX = await import("xlsx");
-      const summary = report.summary || {};
-      const charts = report.charts || {};
-      const agents = report.agentPerformance || [];
-      const recentTickets = report.recentTickets || [];
-      const workbook = XLSX.utils.book_new();
+  try {
+    setExporting("excel");
 
-      const summaryRows = [
-        { Metric: "Reporting Period", Value: `${formatDate(report.from)} - ${formatDate(report.to)}` },
-        { Metric: "Total Tickets", Value: summary.totalTickets || 0 },
-        { Metric: "Active Tickets", Value: summary.openTickets || 0 },
-        { Metric: "Resolved Tickets", Value: summary.resolvedTickets || 0 },
-        { Metric: "Closed Tickets", Value: summary.closedTickets || 0 },
-        { Metric: "Unassigned Tickets", Value: summary.unassignedTickets || 0 },
-        { Metric: "Critical Tickets", Value: summary.criticalTickets || 0 },
-        { Metric: "Resolution Rate (%)", Value: summary.resolutionRate || 0 },
-        { Metric: "Average Resolution Minutes", Value: summary.averageResolutionMinutes || 0 },
-        { Metric: "Total Work Minutes", Value: summary.totalWorkMinutes || 0 },
-        { Metric: "Average Work Minutes", Value: summary.averageWorkMinutes || 0 },
-      ];
+    const ExcelJS = await import("exceljs");
+    const workbook = new ExcelJS.Workbook();
 
-      const agentRows = agents.map((agent) => ({
-        Agent: agent.name,
-        Email: agent.email,
-        Assigned: agent.assignedTickets,
-        Resolved: agent.resolvedTickets,
-        "Current Active": agent.activeTickets,
-        "Resolution Rate (%)": agent.assignedTickets ? Math.round((agent.resolvedTickets / agent.assignedTickets) * 100) : 0,
-        "Total Work Minutes": agent.totalWorkMinutes,
-        "Average Work Minutes": agent.averageWorkMinutes,
-        "Comments Added": agent.commentsAdded,
-        "Activity Count": agent.activityCount,
-        Reassignments: agent.reassignments,
-      }));
+    workbook.creator = "SupportHub";
+    workbook.created = new Date();
 
-      const recentRows = recentTickets.map((ticket) => ({
-        Ticket: ticket.ticketNumber,
-        Subject: ticket.subject,
-        Employee: ticket.employee,
-        "Assigned Agent": ticket.assignedTo,
-        Category: ticket.category,
-        Priority: ticket.priority,
-        Status: ticket.status,
-        Created: formatDateTime(ticket.createdAt),
-      }));
+    const summary = report.summary || {};
+    const agents = report.agentPerformance || [];
+    const recentTickets = report.recentTickets || [];
 
-      const addSheet = (rows, name) => XLSX.utils.book_append_sheet(workbook, XLSX.utils.json_to_sheet(rows), name);
-      addSheet(summaryRows, "Summary");
-      addSheet(agentRows, "Agent Performance");
-      addSheet(charts.ticketsByCategory || [], "Categories");
-      addSheet(charts.ticketsByPriority || [], "Priorities");
-      addSheet(charts.ticketsByStatus || [], "Statuses");
-      addSheet(recentRows, "Recent Tickets");
-      XLSX.writeFile(workbook, `SupportHub-Report-${from}-to-${to}.xlsx`);
-    } catch (exportError) {
-      setError(exportError.message || "The Excel file could not be generated.");
-    } finally {
-      setExporting("");
+    const purple = "5B4B8A";
+    const lightPurple = "EDE9F7";
+    const lighterPurple = "F7F5FB";
+    const darkText = "2F2852";
+    const grayText = "6B7280";
+    const borderColor = "D9D6E5";
+    const white = "FFFFFF";
+
+    function styleTitle(sheet, range, text) {
+      sheet.mergeCells(range);
+
+      const cell = sheet.getCell(range.split(":")[0]);
+      cell.value = text;
+      cell.font = {
+        bold: true,
+        size: 20,
+        color: { argb: white },
+      };
+      cell.fill = {
+        type: "pattern",
+        pattern: "solid",
+        fgColor: { argb: purple },
+      };
+      cell.alignment = {
+        vertical: "middle",
+        horizontal: "left",
+      };
     }
+
+    function styleSubtitle(cell) {
+      cell.font = {
+        size: 11,
+        italic: true,
+        color: { argb: grayText },
+      };
+
+      cell.alignment = {
+        vertical: "middle",
+      };
+    }
+
+    function styleHeaderRow(row) {
+      row.height = 24;
+
+      row.eachCell((cell) => {
+        cell.font = {
+          bold: true,
+          color: { argb: white },
+        };
+
+        cell.fill = {
+          type: "pattern",
+          pattern: "solid",
+          fgColor: { argb: purple },
+        };
+
+        cell.alignment = {
+          vertical: "middle",
+          horizontal: "center",
+        };
+
+        cell.border = {
+          top: { style: "thin", color: { argb: borderColor } },
+          left: { style: "thin", color: { argb: borderColor } },
+          bottom: { style: "thin", color: { argb: borderColor } },
+          right: { style: "thin", color: { argb: borderColor } },
+        };
+      });
+    }
+
+    function styleDataRows(sheet, startRow, endRow, columnCount) {
+      for (let rowNumber = startRow; rowNumber <= endRow; rowNumber++) {
+        const row = sheet.getRow(rowNumber);
+
+        row.height = 22;
+
+        for (let col = 1; col <= columnCount; col++) {
+          const cell = row.getCell(col);
+
+          cell.alignment = {
+            vertical: "middle",
+            horizontal: col === 1 ? "left" : "center",
+          };
+
+          cell.border = {
+            top: { style: "thin", color: { argb: borderColor } },
+            left: { style: "thin", color: { argb: borderColor } },
+            bottom: { style: "thin", color: { argb: borderColor } },
+            right: { style: "thin", color: { argb: borderColor } },
+          };
+
+          if (rowNumber % 2 === 0) {
+            cell.fill = {
+              type: "pattern",
+              pattern: "solid",
+              fgColor: { argb: lighterPurple },
+            };
+          }
+        }
+      }
+    }
+
+    // =========================
+    // SUMMARY SHEET
+    // =========================
+
+    const summarySheet = workbook.addWorksheet("Summary", {
+      views: [{ state: "frozen", ySplit: 4 }],
+    });
+
+    summarySheet.columns = [
+      { key: "metric", width: 34 },
+      { key: "value", width: 26 },
+    ];
+
+    summarySheet.getRow(1).height = 34;
+    styleTitle(summarySheet, "A1:B1", "SupportHub Ticket Report");
+
+    summarySheet.mergeCells("A2:B2");
+    summarySheet.getCell("A2").value =
+      `Reporting Period: ${formatDate(report.from)} - ${formatDate(report.to)}`;
+    styleSubtitle(summarySheet.getCell("A2"));
+
+    summarySheet.addRow([]);
+    summarySheet.addRow(["Metric", "Value"]);
+
+    styleHeaderRow(summarySheet.getRow(4));
+
+    const summaryRows = [
+      ["Total Tickets", summary.totalTickets || 0],
+      ["Active Tickets", summary.openTickets || 0],
+      ["Resolved Tickets", summary.resolvedTickets || 0],
+      ["Closed Tickets", summary.closedTickets || 0],
+      ["Unassigned Tickets", summary.unassignedTickets || 0],
+      ["Critical Tickets", summary.criticalTickets || 0],
+      ["Resolution Rate", `${summary.resolutionRate || 0}%`],
+      [
+        "Average Resolution Time",
+        formatMinutes(summary.averageResolutionMinutes || 0),
+      ],
+      ["Total Work Time", formatMinutes(summary.totalWorkMinutes || 0)],
+      ["Average Work Time", formatMinutes(summary.averageWorkMinutes || 0)],
+    ];
+
+    summaryRows.forEach((row) => summarySheet.addRow(row));
+
+    styleDataRows(
+      summarySheet,
+      5,
+      4 + summaryRows.length,
+      2
+    );
+
+    for (let row = 5; row <= 4 + summaryRows.length; row++) {
+      summarySheet.getCell(row, 1).font = {
+        bold: true,
+        color: { argb: darkText },
+      };
+
+      summarySheet.getCell(row, 2).font = {
+        bold: true,
+        color: { argb: purple },
+      };
+
+      summarySheet.getCell(row, 2).alignment = {
+        vertical: "middle",
+        horizontal: "center",
+      };
+    }
+
+    // =========================
+    // TICKET REPORT SHEET
+    // =========================
+
+    const ticketSheet = workbook.addWorksheet("Ticket Report", {
+      views: [{ state: "frozen", ySplit: 4 }],
+    });
+
+    ticketSheet.columns = [
+      { key: "number", width: 18 },
+      { key: "subject", width: 34 },
+      { key: "employee", width: 24 },
+      { key: "agent", width: 24 },
+      { key: "category", width: 18 },
+      { key: "priority", width: 14 },
+      { key: "status", width: 16 },
+      { key: "created", width: 24 },
+    ];
+
+    ticketSheet.getRow(1).height = 34;
+    styleTitle(ticketSheet, "A1:H1", "SupportHub Ticket Report");
+
+    ticketSheet.mergeCells("A2:H2");
+    ticketSheet.getCell("A2").value =
+      `Reporting Period: ${formatDate(report.from)} - ${formatDate(report.to)}`;
+    styleSubtitle(ticketSheet.getCell("A2"));
+
+    ticketSheet.addRow([]);
+
+    ticketSheet.addRow([
+      "Ticket #",
+      "Subject",
+      "Employee",
+      "Assigned Agent",
+      "Category",
+      "Priority",
+      "Status",
+      "Created",
+    ]);
+
+    styleHeaderRow(ticketSheet.getRow(4));
+
+    recentTickets.forEach((ticket) => {
+      ticketSheet.addRow([
+        ticket.ticketNumber || "—",
+        ticket.subject || "—",
+        ticket.employee || "—",
+        ticket.assignedTo || "Unassigned",
+        ticket.category || "—",
+        ticket.priority || "—",
+        ticket.status || "—",
+        formatDateTime(ticket.createdAt),
+      ]);
+    });
+
+    if (recentTickets.length > 0) {
+      ticketSheet.autoFilter = {
+        from: "A4",
+        to: `H${recentTickets.length + 4}`,
+      };
+
+      styleDataRows(
+        ticketSheet,
+        5,
+        recentTickets.length + 4,
+        8
+      );
+    }
+
+    // Priority styling
+    for (let row = 5; row <= recentTickets.length + 4; row++) {
+      const priorityCell = ticketSheet.getCell(row, 6);
+      const priority = String(priorityCell.value || "").toLowerCase();
+
+      if (priority === "critical") {
+        priorityCell.font = {
+          bold: true,
+          color: { argb: "991B1B" },
+        };
+        priorityCell.fill = {
+          type: "pattern",
+          pattern: "solid",
+          fgColor: { argb: "FEE2E2" },
+        };
+      } else if (priority === "high") {
+        priorityCell.font = {
+          bold: true,
+          color: { argb: "9A3412" },
+        };
+        priorityCell.fill = {
+          type: "pattern",
+          pattern: "solid",
+          fgColor: { argb: "FFEDD5" },
+        };
+      } else if (priority === "medium") {
+        priorityCell.font = {
+          bold: true,
+          color: { argb: "92400E" },
+        };
+        priorityCell.fill = {
+          type: "pattern",
+          pattern: "solid",
+          fgColor: { argb: "FEF3C7" },
+        };
+      } else if (priority === "low") {
+        priorityCell.font = {
+          bold: true,
+          color: { argb: "166534" },
+        };
+        priorityCell.fill = {
+          type: "pattern",
+          pattern: "solid",
+          fgColor: { argb: "DCFCE7" },
+        };
+      }
+    }
+
+    // =========================
+    // AGENT PERFORMANCE SHEET
+    // =========================
+
+    const agentSheet = workbook.addWorksheet("Agent Performance", {
+      views: [{ state: "frozen", ySplit: 4 }],
+    });
+
+    agentSheet.columns = [
+      { width: 24 },
+      { width: 30 },
+      { width: 12 },
+      { width: 12 },
+      { width: 12 },
+      { width: 18 },
+      { width: 20 },
+      { width: 20 },
+      { width: 12 },
+      { width: 12 },
+      { width: 16 },
+    ];
+
+    agentSheet.getRow(1).height = 34;
+    styleTitle(agentSheet, "A1:K1", "SupportHub Agent Performance");
+
+    agentSheet.mergeCells("A2:K2");
+    agentSheet.getCell("A2").value =
+      `Reporting Period: ${formatDate(report.from)} - ${formatDate(report.to)}`;
+    styleSubtitle(agentSheet.getCell("A2"));
+
+    agentSheet.addRow([]);
+
+    agentSheet.addRow([
+      "Agent",
+      "Email",
+      "Assigned",
+      "Resolved",
+      "Active",
+      "Resolution Rate",
+      "Total Work Time",
+      "Average Work Time",
+      "Comments",
+      "Activity",
+      "Reassignments",
+    ]);
+
+    styleHeaderRow(agentSheet.getRow(4));
+
+    agents.forEach((agent) => {
+      const resolutionRate = agent.assignedTickets
+        ? Math.round(
+            (agent.resolvedTickets / agent.assignedTickets) * 100
+          )
+        : 0;
+
+      agentSheet.addRow([
+        agent.name || "—",
+        agent.email || "—",
+        agent.assignedTickets || 0,
+        agent.resolvedTickets || 0,
+        agent.activeTickets || 0,
+        `${resolutionRate}%`,
+        formatMinutes(agent.totalWorkMinutes || 0),
+        formatMinutes(agent.averageWorkMinutes || 0),
+        agent.commentsAdded || 0,
+        agent.activityCount || 0,
+        agent.reassignments || 0,
+      ]);
+    });
+
+    if (agents.length > 0) {
+      agentSheet.autoFilter = {
+        from: "A4",
+        to: `K${agents.length + 4}`,
+      };
+
+      styleDataRows(
+        agentSheet,
+        5,
+        agents.length + 4,
+        11
+      );
+    }
+
+    // =========================
+    // CREATE THE FILE
+    // =========================
+
+    const buffer = await workbook.xlsx.writeBuffer();
+
+    const blob = new Blob([buffer], {
+      type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    });
+
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+
+    link.href = url;
+    link.download = `SupportHub-Report-${from}-to-${to}.xlsx`;
+
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+
+    URL.revokeObjectURL(url);
+  } catch (exportError) {
+    console.error("Excel export error:", exportError);
+
+    setError(
+      exportError.message ||
+        "The Excel file could not be generated."
+    );
+  } finally {
+    setExporting("");
   }
+}
 
   if (loading && !report) {
     return (

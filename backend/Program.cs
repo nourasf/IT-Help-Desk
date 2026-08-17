@@ -56,6 +56,7 @@ builder.Services.AddScoped<JwtService>();
 builder.Services.AddScoped<EmailService>();
 builder.Services.AddScoped<NotificationService>();
 builder.Services.AddScoped<AttachmentService>();
+builder.Services.AddHttpClient<OllamaService>();
 
 builder.Services.AddCors(options =>
 {
