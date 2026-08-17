@@ -2,7 +2,7 @@ import { useNavigate } from "react-router-dom";
 import DashboardLayout from "../../components/DashboardLayout";
 import { clearAuthentication, getStoredRole } from "../../utils/authStorage";
 import { getCurrentUser } from "../../utils/getCurrentUser";
-import "../../styles/Profile.css";
+import "../../styles/profile/Profile.css";
 
 function normalizeRole(role) { return String(role || "").trim().toLowerCase().replaceAll("_", " ").replaceAll("-", " "); }
 function getDashboardPath(role) { switch (normalizeRole(role)) { case "admin": return "/admin-dashboard"; case "manager": return "/manager-dashboard"; case "it support agent": case "agent": case "it": return "/agent-dashboard"; case "employee": return "/employee-dashboard"; default: return "/login"; } }
