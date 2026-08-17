@@ -66,7 +66,7 @@ Ticket Description:
             prompt,
             stream = false,
             format = "json",
-            thinl=false
+            think = false
         };
 
         var response = await _httpClient.PostAsJsonAsync(
@@ -75,40 +75,16 @@ Ticket Description:
         );
 
         response.EnsureSuccessStatusCode();
-var rawJson = await response.Content.ReadAsStringAsync();
 
-Console.WriteLine("OLLAMA RAW RESPONSE:");
-Console.WriteLine(rawJson);
+        var responseText = await ReadOllamaTextAsync(response);
 
-var ollamaJson = JsonSerializer.Deserialize<JsonElement>(rawJson);
-
-var responseText = ollamaJson.TryGetProperty("response", out var responseProperty)
-    ? responseProperty.GetString()
-    : null;
-
-var thinkingText = ollamaJson.TryGetProperty("thinking", out var thinkingProperty)
-    ? thinkingProperty.GetString()
-    : null;
-
-if (string.IsNullOrWhiteSpace(responseText) &&
-    !string.IsNullOrWhiteSpace(thinkingText))
-{
-    responseText = thinkingText;
-}
-
-if (string.IsNullOrWhiteSpace(responseText))
-{
-    throw new Exception("Ollama returned no usable response.");
-}
-
-        var result =
-            JsonSerializer.Deserialize<AiTicketAnalysisResponse>(
-                responseText,
-                new JsonSerializerOptions
-                {
-                    PropertyNameCaseInsensitive = true
-                }
-            );
+        var result = JsonSerializer.Deserialize<AiTicketAnalysisResponse>(
+            responseText,
+            new JsonSerializerOptions
+            {
+                PropertyNameCaseInsensitive = true
+            }
+        );
 
         if (result == null)
         {
@@ -116,5 +92,75 @@ if (string.IsNullOrWhiteSpace(responseText))
         }
 
         return result;
+    }
+
+    public async Task<string> ChatAsync(string message)
+    {
+        if (string.IsNullOrWhiteSpace(message))
+        {
+            throw new ArgumentException("Message cannot be empty.");
+        }
+
+        var prompt = $$"""
+You are SupportHub AI, a professional IT help desk assistant.
+
+Your job is to help employees troubleshoot common IT problems before a ticket is escalated.
+
+Rules:
+- Keep the answer concise and practical.
+- Use simple language.
+- Prefer 3 to 5 troubleshooting steps when steps are appropriate.
+- Do not invent company-specific policies, passwords, server names, or procedures.
+- If the problem may involve security, data loss, hardware damage, administrator permissions, or needs an IT technician, clearly recommend contacting IT support.
+- Do not claim that a step definitely fixed the issue unless the employee confirms it.
+- Stay focused on IT support.
+
+Employee message:
+{{message}}
+""";
+
+        var request = new
+        {
+            model = "qwen3:4b",
+            prompt,
+            stream = false,
+            think = false
+        };
+
+        var response = await _httpClient.PostAsJsonAsync(
+            "http://localhost:11434/api/generate",
+            request
+        );
+
+        response.EnsureSuccessStatusCode();
+
+        return await ReadOllamaTextAsync(response);
+    }
+
+    private static async Task<string> ReadOllamaTextAsync(HttpResponseMessage response)
+    {
+        var rawJson = await response.Content.ReadAsStringAsync();
+        var ollamaJson = JsonSerializer.Deserialize<JsonElement>(rawJson);
+
+        var responseText = ollamaJson.TryGetProperty("response", out var responseProperty)
+            ? responseProperty.GetString()
+            : null;
+
+        var thinkingText = ollamaJson.TryGetProperty("thinking", out var thinkingProperty)
+            ? thinkingProperty.GetString()
+            : null;
+
+        if (string.IsNullOrWhiteSpace(responseText) &&
+            !string.IsNullOrWhiteSpace(thinkingText))
+        {
+            responseText = thinkingText;
+        }
+
+        if (string.IsNullOrWhiteSpace(responseText))
+        {
+            throw new Exception("Ollama returned no usable response.");
+        }
+
+        return responseText.Trim();
     }
 }
