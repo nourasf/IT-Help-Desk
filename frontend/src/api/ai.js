@@ -18,17 +18,16 @@ function requireToken() {
   return token;
 }
 
-async function postAi(path, body) {
+async function requestAi(path, options = {}) {
   const token = requireToken();
-
   const response = await fetch(`${API_URL}${path}`, {
-    method: "POST",
+    ...options,
     headers: {
       Accept: "application/json",
-      "Content-Type": "application/json",
       Authorization: `Bearer ${token}`,
+      ...(options.body ? { "Content-Type": "application/json" } : {}),
+      ...(options.headers || {}),
     },
-    body: JSON.stringify(body),
   });
 
   const data = await readResponse(response);
@@ -48,6 +47,13 @@ async function postAi(path, body) {
   return data;
 }
 
+async function postAi(path, body) {
+  return requestAi(path, {
+    method: "POST",
+    body: JSON.stringify(body),
+  });
+}
+
 export async function analyzeTicket(subject, description) {
   return postAi("/analyze-ticket", {
     subject: subject.trim(),
@@ -55,24 +61,33 @@ export async function analyzeTicket(subject, description) {
   });
 }
 
-export async function sendAiChatMessage(message, history = []) {
-  const safeHistory = Array.isArray(history)
-    ? history
-        .filter((item) => item && (item.role === "user" || item.role === "assistant") && String(item.text || "").trim())
-        .slice(-10)
-        .map((item) => ({
-          role: item.role,
-          text: String(item.text).trim(),
-        }))
-    : [];
-
+export async function sendAiChatMessage(message, conversationId = null) {
   const data = await postAi("/chat", {
     message: message.trim(),
-    history: safeHistory,
+    conversationId,
   });
 
   return {
     reply: data.reply || "",
     role: data.role || "",
+    conversationId: data.conversationId ?? null,
+    title: data.title || "New conversation",
   };
+}
+
+export async function getAiConversations() {
+  const data = await requestAi("/conversations", { method: "GET" });
+  return Array.isArray(data) ? data : [];
+}
+
+export async function getAiConversation(id) {
+  return requestAi(`/conversations/${id}`, { method: "GET" });
+}
+
+export async function deleteAiConversation(id) {
+  await requestAi(`/conversations/${id}`, { method: "DELETE" });
+}
+
+export async function clearAiConversations() {
+  await requestAi("/conversations", { method: "DELETE" });
 }
