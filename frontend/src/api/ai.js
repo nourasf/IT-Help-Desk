@@ -55,10 +55,24 @@ export async function analyzeTicket(subject, description) {
   });
 }
 
-export async function sendAiChatMessage(message) {
+export async function sendAiChatMessage(message, history = []) {
+  const safeHistory = Array.isArray(history)
+    ? history
+        .filter((item) => item && (item.role === "user" || item.role === "assistant") && String(item.text || "").trim())
+        .slice(-10)
+        .map((item) => ({
+          role: item.role,
+          text: String(item.text).trim(),
+        }))
+    : [];
+
   const data = await postAi("/chat", {
     message: message.trim(),
+    history: safeHistory,
   });
 
-  return data.reply || "";
+  return {
+    reply: data.reply || "",
+    role: data.role || "",
+  };
 }
