@@ -21,6 +21,7 @@ import TicketDetails from "./pages/tickets/TicketDetails";
 import Profile from "./pages/profile/Profile";
 import Reports from "./pages/Reports";
 import AiAssistant from "./pages/ai/AiAssistant";
+import "./styles/global/ProductTheme.css";
 
 function normalizeRole(role) { return String(role || "").trim().toLowerCase().replaceAll("_", " ").replaceAll("-", " "); }
 function getStoredAuth() { const localToken=localStorage.getItem("token"), localRole=localStorage.getItem("role"), sessionToken=sessionStorage.getItem("token"), sessionRole=sessionStorage.getItem("role"); if(localToken&&localRole)return{token:localToken,role:localRole}; if(sessionToken&&sessionRole)return{token:sessionToken,role:sessionRole}; return{token:null,role:null}; }
