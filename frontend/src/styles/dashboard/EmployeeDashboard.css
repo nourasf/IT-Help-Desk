@@ -1,30 +1,28 @@
-.employee-product-dashboard { gap:20px; }
-.employee-overview-panel::before { background:linear-gradient(90deg,#4d8df7,#6d55c7,#36b7c9); opacity:.8; }
-.employee-status-grid { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:10px; padding:0 18px 18px; }
-.employee-status-grid > div { min-height:96px; display:flex; flex-direction:column; justify-content:center; padding:15px; border:1px solid transparent; border-radius:14px; }
-.employee-status-grid > div span { color:#726b7f; font-size:9px; font-weight:900; letter-spacing:.04em; text-transform:uppercase; }
-.employee-status-grid > div strong { margin-top:7px; color:#302a43; font-size:28px; line-height:1; }
-.employee-status-grid .open { background:#eaf3ff; border-color:#d9e9ff; }
-.employee-status-grid .progress { background:#eee9ff; border-color:#e1d8fb; }
-.employee-status-grid .resolved { background:#e8f8f1; border-color:#d4efe3; }
-.employee-status-grid .closed { background:#f1f0f4; border-color:#e6e3ea; }
-.employee-main-grid { grid-template-columns:minmax(0,1.5fr) minmax(290px,.62fr); }
-.employee-side-stack { display:flex; flex-direction:column; gap:16px; }
-.employee-action-panel::before { background:linear-gradient(90deg,#6d55c7,#4d8df7); opacity:.8; }
-.employee-action-panel { padding-bottom:14px; }
-.employee-action-panel > button { width:calc(100% - 30px); min-height:58px; margin:0 15px 9px; display:grid; grid-template-columns:34px 1fr auto; align-items:center; gap:10px; padding:0 12px; border:1px solid #e8e2ef; border-radius:12px; background:#fff; color:#51495e; text-align:left; transition:.18s ease; }
-.employee-action-panel > button:hover { background:#faf8ff; border-color:#d5c9e8; transform:translateX(2px); }
-.employee-action-panel > button > span { width:34px; height:34px; display:grid; place-items:center; border-radius:10px; background:#eee9ff; color:#6751b4; font-weight:900; }
-.employee-action-panel > button:nth-of-type(2) > span { background:#eaf3ff; color:#4d8df7; }
-.employee-action-panel > button:nth-of-type(3) > span { background:#e8f8f1; color:#32a978; }
-.employee-action-panel strong,.employee-action-panel small { display:block; }.employee-action-panel strong{font-size:10px}.employee-action-panel small{margin-top:3px;color:#958d9f;font-size:8px}.employee-action-panel b{color:#8e80ac;font-size:17px}
-.knowledge-panel::before { background:linear-gradient(90deg,#36b7c9,#32a978); opacity:.8; }
-.knowledge-panel { padding-bottom:18px; }
-.knowledge-panel > button { width:calc(100% - 36px); min-height:39px; margin:0 18px 7px; display:flex; align-items:center; justify-content:space-between; gap:10px; padding:0 11px; border:1px solid #e2efeb; border-radius:10px; background:#fbfffd; color:#52665f; font-size:9px; font-weight:800; text-align:left; }
-.knowledge-panel > button:hover { background:#f0fbf6; border-color:#cce8dc; }
-.knowledge-panel > button span { color:#32a978; }
-.knowledge-illustration { width:44px; height:44px; display:grid; place-items:center; margin:13px 18px 0 auto; border-radius:13px; background:linear-gradient(135deg,#e8f8f1,#eaf3ff); color:#4c97a2; font-size:19px; }
-.employee-product-dashboard .product-table tbody tr { cursor:pointer; }
+.employee-product-dashboard{gap:16px}
+.employee-overview-panel{padding:15px!important}
+.employee-overview-panel::before,.employee-action-panel::before,.knowledge-panel::before{display:none!important}
+.employee-status-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;padding:0}
+.employee-status-grid>div{min-height:96px;display:flex;flex-direction:column;justify-content:center;padding:14px 15px;border:1px solid;border-radius:11px;box-shadow:none}
+.employee-status-grid>div span{color:#737c92;font-size:9px;font-weight:800;letter-spacing:.03em;text-transform:none}
+.employee-status-grid>div strong{margin-top:8px;color:#262d40;font-size:27px;line-height:1}
+.employee-status-grid .open{background:#edf2ff;border-color:#d2dcfb}
+.employee-status-grid .progress{background:#fff7e8;border-color:#efdfba}
+.employee-status-grid .resolved{background:#ecf9f1;border-color:#d0ead9}
+.employee-status-grid .closed{background:#f3f4f7;border-color:#e2e5eb}
+.employee-main-grid{grid-template-columns:minmax(0,1.55fr) minmax(285px,.6fr);gap:14px!important}
+.employee-side-stack{display:flex;flex-direction:column;gap:14px}
+.employee-action-panel{padding-bottom:14px;background:linear-gradient(145deg,#536cf0,#645fe9 52%,#7355dd)!important;border-color:transparent!important;box-shadow:0 9px 20px rgba(85,96,220,.16)!important}
+.employee-action-panel .product-panel-heading h2,.employee-action-panel .product-panel-heading span{color:#fff!important}
+.employee-action-panel>button{width:calc(100% - 28px);min-height:54px;margin:0 14px 8px;display:grid;grid-template-columns:32px 1fr auto;align-items:center;gap:10px;padding:0 11px;border:1px solid rgba(255,255,255,.15)!important;border-radius:9px;background:rgba(255,255,255,.11)!important;color:#fff!important;text-align:left;transition:.16s ease}
+.employee-action-panel>button:hover{background:rgba(255,255,255,.17)!important;transform:none}
+.employee-action-panel>button>span{width:32px;height:32px;display:grid;place-items:center;border-radius:8px;background:rgba(255,255,255,.16)!important;color:#fff!important;font-weight:800}
+.employee-action-panel strong,.employee-action-panel small{display:block;color:#fff!important}.employee-action-panel strong{font-size:10px}.employee-action-panel small{margin-top:2px;opacity:.72;font-size:8px}.employee-action-panel b{color:#fff;font-size:16px}
+.knowledge-panel{padding-bottom:15px}
+.knowledge-panel>button{width:calc(100% - 30px);min-height:38px;margin:0 15px 7px;display:flex;align-items:center;justify-content:space-between;gap:10px;padding:0 11px;border:1px solid #e6eaf1;border-radius:9px;background:#fafbfe;color:#596176;font-size:9px;font-weight:700;text-align:left}
+.knowledge-panel>button:hover{background:#f4f7fc;border-color:#d9dfea}
+.knowledge-panel>button span{color:#6070de}
+.knowledge-illustration{width:42px;height:42px;display:grid;place-items:center;margin:12px 15px 0 auto;border-radius:10px;background:#eef1ff;color:#5e6ddd;font-size:18px}
+.employee-product-dashboard .product-table tbody tr{cursor:pointer}
 @media(max-width:1100px){.employee-main-grid{grid-template-columns:1fr}.employee-side-stack{display:grid;grid-template-columns:1fr 1fr}}
 @media(max-width:720px){.employee-status-grid{grid-template-columns:repeat(2,1fr)}.employee-side-stack{grid-template-columns:1fr}}
 @media(max-width:460px){.employee-status-grid{grid-template-columns:1fr}}
