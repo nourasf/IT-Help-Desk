@@ -11,6 +11,7 @@ import {
 } from "../../api/ai";
 import { getStoredRole } from "../../utils/authStorage";
 import "../../styles/ai/AiAssistant.css";
+import "../../styles/ai/AiArtifacts.css";
 
 function normalizeRole(role) {
   return String(role || "").trim().toLowerCase().replaceAll("_", " ").replaceAll("-", " ");
