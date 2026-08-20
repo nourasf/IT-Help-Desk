@@ -4,7 +4,7 @@
 html,body,#root{width:100%;min-height:100%}
 #root{min-height:100vh}
 html{-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;scroll-behavior:smooth}
-body{font-family:"Inter",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:#F6F5F8;color:#292638;font-size:15px;line-height:1.5}
+body{font-family:"Inter",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:#F6F5F8;color:#292638;font-size:16px;line-height:1.55}
 ::selection{background:rgba(79,70,115,.2);color:#292638}
 *{scrollbar-width:thin;scrollbar-color:#CFC9DC transparent}
 *::-webkit-scrollbar{width:8px;height:8px}
@@ -13,3 +13,118 @@ body{font-family:"Inter",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
 *::-webkit-scrollbar-thumb:hover{background:#6C5FA0}
 a{color:inherit}
 button{font-family:inherit}
+
+/* SupportHub readability scale.
+   The portal reference used very small type; these minimums keep the same
+   visual design while making the real application comfortable to read. */
+body .dashboard-content{font-size:15px}
+
+body .product-page-header p,
+body .admin-dashboard-header p,
+body .create-ticket-header p,
+body .ai-chat-header p,
+body .profile-page-header p,
+body .notifications-page-header p,
+body .reports-header p,
+body .report-page-header p{font-size:15px!important;line-height:1.55}
+
+body .product-eyebrow,
+body .admin-eyebrow,
+body .create-ticket-label,
+body .ai-chat-eyebrow,
+body .profile-eyebrow{font-size:11px!important;padding:5px 10px!important}
+
+body .product-panel-heading>div>span,
+body .admin-panel-heading p,
+body .profile-card-heading span,
+body .report-card-heading span{font-size:11px!important}
+
+body .product-panel-heading h2,
+body .admin-panel-heading h2,
+body .profile-card-heading h2,
+body .report-card-heading h2{font-size:17px!important}
+
+body .product-kpi-grid article span,
+body .admin-metric-copy span,
+body .employee-status-grid>div span{font-size:12px!important}
+
+body .product-kpi-grid article strong,
+body .admin-metric-copy strong,
+body .employee-status-grid>div strong{font-size:28px!important}
+
+body .product-kpi-grid article small,
+body .admin-metric-copy small,
+body .employee-status-grid>div small{font-size:11px!important;line-height:1.45}
+
+body .product-table thead th,
+body .admin-activity-table thead th,
+body .report-table thead th,
+body .tickets-table thead th{font-size:11px!important;padding-top:11px!important;padding-bottom:11px!important}
+
+body .product-table tbody td,
+body .admin-activity-table tbody td,
+body .report-table tbody td,
+body .tickets-table tbody td{font-size:13px!important;padding-top:12px!important;padding-bottom:12px!important}
+
+body .product-badge,
+body .admin-table-badge,
+body .ticket-status-badge,
+body .ticket-priority-badge{font-size:11px!important;min-height:25px}
+
+body .dashboard-content label{font-size:13px!important}
+body .dashboard-content input,
+body .dashboard-content select,
+body .dashboard-content textarea{font-size:14px!important;line-height:1.45}
+body .dashboard-content input,
+body .dashboard-content select{min-height:42px}
+
+body .dashboard-content button:not(.sidebar-toggle):not(.topbar-icon-button):not(.notification-button){font-size:13px!important}
+
+body .ai-chat-message-bubble,
+body .ai-chat-message-bubble p{font-size:14px!important;line-height:1.6}
+body .ai-chat-card-topbar strong{font-size:14px!important}
+body .ai-chat-history-copy strong{font-size:13px!important}
+body .ai-chat-history-copy small,
+body .ai-history-empty{font-size:11px!important}
+body .ai-chat-info-copy p{font-size:13px!important;line-height:1.55}
+body .ai-chat-role-badge,
+body .ai-chat-ready,
+body .ai-chat-card-status,
+body .ai-chat-model{font-size:11px!important}
+body .ai-chat-composer textarea{font-size:14px!important}
+body .ai-chat-composer-bottom span,
+body .ai-chat-disclaimer{font-size:11px!important}
+
+body .ai-artifact-eyebrow{font-size:11px!important}
+body .ai-artifact-header h2{font-size:20px!important}
+body .ai-artifact-form label{font-size:13px!important}
+body .ai-artifact-callout strong,
+body .ai-artifact-list-row strong,
+body .ai-artifact-ticket-row strong,
+body .ai-assignment-card strong{font-size:13px!important}
+body .ai-artifact-callout span,
+body .ai-artifact-list-row small,
+body .ai-artifact-ticket-row small,
+body .ai-assignment-card small{font-size:11px!important;line-height:1.45}
+
+body .manager-queue-title span,
+body .manager-action-label,
+body .agent-incoming-number,
+body .product-mini-metrics span,
+body .product-activity-list small,
+body .employee-action-panel small,
+body .knowledge-panel button{font-size:11px!important}
+
+body .manager-queue-title strong,
+body .agent-incoming-main strong,
+body .product-activity-list strong,
+body .employee-action-panel strong{font-size:13px!important}
+
+@media(max-width:700px){
+  body{font-size:15px}
+  body .dashboard-content{font-size:14px}
+  body .product-page-header p,
+  body .admin-dashboard-header p,
+  body .create-ticket-header p,
+  body .ai-chat-header p{font-size:14px!important}
+}
