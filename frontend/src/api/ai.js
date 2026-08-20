@@ -32,18 +32,9 @@ async function requestAi(path, options = {}) {
 
   const data = await readResponse(response);
 
-  if (response.status === 401) {
-    throw new Error("Your session has expired. Please sign in again.");
-  }
-
-  if (response.status === 403) {
-    throw new Error(data.message || "You do not have permission to use the AI assistant.");
-  }
-
-  if (!response.ok) {
-    throw new Error(data.message || `AI request failed. Error ${response.status}.`);
-  }
-
+  if (response.status === 401) throw new Error("Your session has expired. Please sign in again.");
+  if (response.status === 403) throw new Error(data.message || "You do not have permission to use the AI assistant.");
+  if (!response.ok) throw new Error(data.message || `AI request failed. Error ${response.status}.`);
   return data;
 }
 
@@ -72,6 +63,7 @@ export async function sendAiChatMessage(message, conversationId = null) {
     role: data.role || "",
     conversationId: data.conversationId ?? null,
     title: data.title || "New conversation",
+    artifact: data.artifact || null,
   };
 }
 
