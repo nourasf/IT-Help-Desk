@@ -51,18 +51,10 @@ public class AiController : ControllerBase
         if (priorities.Count == 0)
             return BadRequest(new { message = "No priorities are configured." });
 
-        var result = await _ollamaService.AnalyzeTicketAsync(
-            request.Subject,
-            request.Description,
-            categories,
-            priorities
-        );
+        var result = await _ollamaService.AnalyzeTicketAsync(request.Subject, request.Description, categories, priorities);
 
-        var validCategory = categories.FirstOrDefault(c =>
-            string.Equals(c, result.Category, StringComparison.OrdinalIgnoreCase));
-
-        var validPriority = priorities.FirstOrDefault(p =>
-            string.Equals(p, result.Priority, StringComparison.OrdinalIgnoreCase));
+        var validCategory = categories.FirstOrDefault(c => string.Equals(c, result.Category, StringComparison.OrdinalIgnoreCase));
+        var validPriority = priorities.FirstOrDefault(p => string.Equals(p, result.Priority, StringComparison.OrdinalIgnoreCase));
 
         if (validCategory == null || validPriority == null)
         {
@@ -221,7 +213,8 @@ public class AiController : ControllerBase
             })
             .ToListAsync();
 
-        var reply = await _ollamaService.ChatAsync(request.Message, history, role);
+        var artifact = ResolveArtifact(request.Message, role);
+        var reply = artifact?.Reply ?? await _ollamaService.ChatAsync(request.Message, history, role);
         var now = DateTime.UtcNow;
 
         _context.AiConversationMessages.AddRange(
@@ -249,7 +242,99 @@ public class AiController : ControllerBase
             reply,
             role,
             conversationId = conversation.ID,
-            title = conversation.Title
+            title = conversation.Title,
+            artifact = artifact == null ? null : new
+            {
+                type = artifact.Type,
+                title = artifact.Title,
+                initialData = artifact.InitialData
+            }
         });
     }
+
+    private static AiResolvedArtifact? ResolveArtifact(string message, string role)
+    {
+        var text = message.Trim().ToLowerInvariant();
+        var normalizedRole = role.Trim().ToLowerInvariant();
+        var isAdmin = normalizedRole == "admin";
+        var isManager = normalizedRole == "manager";
+        var isAgent = normalizedRole is "agent" or "it support agent";
+        var isEmployee = normalizedRole == "employee";
+
+        bool HasAny(params string[] terms) => terms.Any(text.Contains);
+
+        if (isAdmin && HasAny("add a user", "add user", "create a user", "create user", "new user", "add an employee", "add employee", "add an agent", "add agent", "add a manager", "add manager"))
+        {
+            var suggestedRole = text.Contains("agent") ? "IT Support Agent"
+                : text.Contains("manager") ? "Manager"
+                : text.Contains("admin") ? "Admin"
+                : "Employee";
+
+            return new AiResolvedArtifact(
+                "create_user",
+                "Create User",
+                "I've opened the Create User form. You can review the details before creating the account.",
+                new Dictionary<string, object?> { ["role"] = suggestedRole }
+            );
+        }
+
+        if (isAdmin && HasAny("show users", "view users", "list users", "all users", "user directory"))
+            return new AiResolvedArtifact("user_list", "User Directory", "I've opened the user directory.", new Dictionary<string, object?>());
+
+        if ((isAdmin || isManager) && HasAny("report", "analytics", "performance report"))
+            return new AiResolvedArtifact("reports", "Reports", "I've opened the reporting workspace for you.", new Dictionary<string, object?>());
+
+        if (isManager && HasAny("assign ticket", "assign a ticket", "assignment", "unassigned ticket", "unassigned tickets"))
+        {
+            var priority = text.Contains("critical") ? "Critical" : text.Contains("high") ? "High" : null;
+            return new AiResolvedArtifact(
+                "assignment_center",
+                "Assignment Center",
+                "I've opened the assignment center with the current unassigned queue.",
+                new Dictionary<string, object?> { ["priority"] = priority }
+            );
+        }
+
+        if ((isAdmin || isManager) && HasAny("show tickets", "view tickets", "all tickets", "critical tickets", "open tickets", "closed tickets", "resolved tickets"))
+        {
+            var priority = text.Contains("critical") ? "Critical" : text.Contains("high") ? "High" : null;
+            var status = text.Contains("closed") ? "Closed"
+                : text.Contains("resolved") ? "Resolved"
+                : text.Contains("open") ? "Open"
+                : null;
+
+            return new AiResolvedArtifact(
+                "ticket_list",
+                "Ticket Explorer",
+                "I've opened the ticket explorer with the closest matching filters.",
+                new Dictionary<string, object?> { ["priority"] = priority, ["status"] = status }
+            );
+        }
+
+        if (isAgent && HasAny("available tickets", "unassigned tickets", "new tickets", "tickets i can take"))
+            return new AiResolvedArtifact("agent_available_tickets", "Available Tickets", "I've opened the available ticket queue.", new Dictionary<string, object?>());
+
+        if (isAgent && HasAny("my tickets", "active tickets", "assigned tickets", "my active tickets"))
+            return new AiResolvedArtifact("agent_my_tickets", "My Active Tickets", "I've opened your active ticket list.", new Dictionary<string, object?>());
+
+        if (isEmployee && HasAny("create ticket", "create a ticket", "open ticket", "open a ticket", "report an issue", "report issue", "contact it", "contact support"))
+            return new AiResolvedArtifact(
+                "create_ticket",
+                "Create Support Ticket",
+                "I've opened a support ticket form. I carried your message into the description so you don't have to repeat yourself.",
+                new Dictionary<string, object?> { ["description"] = message.Trim() }
+            );
+
+        if (isEmployee && HasAny("my tickets", "show my tickets", "view my tickets", "ticket history"))
+            return new AiResolvedArtifact("my_tickets", "My Tickets", "I've opened your ticket list.", new Dictionary<string, object?>());
+
+        return null;
+    }
+
+    private sealed record AiResolvedArtifact(
+        string Type,
+        string Title,
+        string Reply,
+        Dictionary<string, object?> InitialData
+    );
 }
