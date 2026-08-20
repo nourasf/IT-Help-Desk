@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import DashboardLayout from "../../components/DashboardLayout";
+import AiArtifactPanel from "../../components/ai/AiArtifactPanel";
 import {
   clearAiConversations,
   deleteAiConversation,
@@ -19,41 +20,60 @@ const ROLE_CONFIG = {
   employee: {
     label: "Employee support",
     greeting: "Hi! I’m the SupportHub AI Assistant. What can I help you with?",
-    description: "Get quick troubleshooting guidance before opening a support ticket.",
+    description: "Troubleshoot issues, create support tickets, and open your ticket workspace from one place.",
     prompts: [
       "My printer is connected but nothing will print.",
       "I forgot my company password and cannot sign in.",
       "My laptop is connected to Wi-Fi but the VPN will not connect.",
     ],
+    actions: [
+      { label: "Create ticket", prompt: "Create a support ticket" },
+      { label: "My tickets", prompt: "Show my tickets" },
+    ],
   },
   agent: {
     label: "Agent copilot",
     greeting: "Hi! I’m your SupportHub AI copilot. What are you working on?",
-    description: "Get concise diagnostic ideas while working on support tickets.",
+    description: "Get diagnostic help and open your active or available ticket queues instantly.",
     prompts: [
       "A user's VPN connects but internal sites still time out. What should I check next?",
       "A printer is online but jobs stay in the queue. Give me a diagnostic checklist.",
       "A laptop randomly loses Wi-Fi while other devices stay connected. What evidence should I collect?",
     ],
+    actions: [
+      { label: "Available tickets", prompt: "Show available tickets" },
+      { label: "My active tickets", prompt: "Show my active tickets" },
+    ],
   },
   manager: {
     label: "Manager assistant",
     greeting: "Hi! I’m the SupportHub AI Assistant. What would you like help with?",
-    description: "Get quick help interpreting support issues and operational impact.",
+    description: "Review ticket queues, assign work, open reports, and get operational guidance.",
     prompts: [
       "How should I prioritize a VPN outage affecting one remote employee?",
       "What information should I look for before assigning a recurring printer issue?",
       "What makes an IT incident Critical instead of High priority?",
     ],
+    actions: [
+      { label: "Assignment center", prompt: "Show unassigned tickets for assignment" },
+      { label: "Critical tickets", prompt: "Show critical tickets" },
+      { label: "Reports", prompt: "Open reports" },
+    ],
   },
   admin: {
     label: "Admin assistant",
     greeting: "Hi! I’m the SupportHub AI Assistant. What can I help you with today?",
-    description: "Get concise operational guidance for SupportHub and general IT issues.",
+    description: "Manage users, review tickets, open reports, and get concise operational guidance.",
     prompts: [
       "What should I verify when several users suddenly cannot sign in?",
       "Give me a checklist for investigating a spike in high-priority tickets.",
       "What information is useful when reviewing repeated network incidents?",
+    ],
+    actions: [
+      { label: "Create user", prompt: "Add a new employee" },
+      { label: "User directory", prompt: "Show all users" },
+      { label: "All tickets", prompt: "Show all tickets" },
+      { label: "Reports", prompt: "Open reports" },
     ],
   },
 };
@@ -78,6 +98,7 @@ function AiAssistant() {
   const [messages, setMessages] = useState(() => [createGreeting(roleConfig)]);
   const [conversationId, setConversationId] = useState(null);
   const [conversations, setConversations] = useState([]);
+  const [activeArtifact, setActiveArtifact] = useState(null);
   const [isSending, setIsSending] = useState(false);
   const [isHistoryLoading, setIsHistoryLoading] = useState(true);
   const [error, setError] = useState("");
@@ -95,6 +116,7 @@ function AiAssistant() {
     if (isSending) return;
     try {
       setError("");
+      setActiveArtifact(null);
       const data = await getAiConversation(id);
       setConversationId(data.id);
       setMessages([createGreeting(roleConfig), ...(Array.isArray(data.messages) ? data.messages : [])]);
@@ -105,6 +127,7 @@ function AiAssistant() {
   function newConversation() {
     setConversationId(null);
     setMessages([createGreeting(roleConfig)]);
+    setActiveArtifact(null);
     setMessage("");
     setError("");
   }
@@ -132,6 +155,7 @@ function AiAssistant() {
       const result = await sendAiChatMessage(cleanMessage, conversationId);
       setConversationId(result.conversationId);
       setMessages((current) => [...current, { id: `a-${Date.now()}`, role: "assistant", text: result.reply || "I couldn't generate a useful response. Try describing the issue with a little more detail." }]);
+      if (result.artifact) setActiveArtifact(result.artifact);
       await loadConversations();
     } catch (requestError) {
       console.error("AI chat error:", requestError);
@@ -144,26 +168,58 @@ function AiAssistant() {
 
   const hasConversation = messages.some((item) => !item.isGreeting);
   const lastMessage = messages[messages.length - 1];
-  const showEmployeeEscalation = canCreateTicket && hasConversation && !isSending && lastMessage?.role === "assistant";
+  const showEmployeeEscalation = canCreateTicket && hasConversation && !isSending && lastMessage?.role === "assistant" && !activeArtifact;
 
   return (
     <DashboardLayout activePage="ai-assistant">
-      <main className="ai-chat-page">
-        <section className="ai-chat-header"><div><span className="ai-chat-eyebrow">SupportHub intelligence</span><h1>AI Assistant</h1><p>{roleConfig.description}</p></div><button type="button" className="ai-chat-clear" onClick={newConversation}>+ New conversation</button></section>
-        <section className="ai-chat-workspace">
-          <aside className="ai-chat-history-panel"><div className="ai-chat-history-header"><div><span>History</span><strong>Recent chats</strong></div>{conversations.length > 0 && <button type="button" onClick={clearHistory}>Clear all</button>}</div><div className="ai-chat-history-list">{isHistoryLoading && <p className="ai-history-empty">Loading chats...</p>}{!isHistoryLoading && conversations.length === 0 && <p className="ai-history-empty">No saved conversations yet.</p>}{!isHistoryLoading && conversations.map((conversation) => <button type="button" key={conversation.id} className={`ai-history-item ${conversationId === conversation.id ? "active" : ""}`} onClick={() => openConversation(conversation.id)}><span className="ai-history-icon">✦</span><span className="ai-history-copy"><strong>{conversation.title}</strong><small>{conversation.messageCount} messages</small></span><span role="button" tabIndex={0} className="ai-history-delete" onClick={(event) => removeConversation(event, conversation.id)} onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") removeConversation(event, conversation.id); }} aria-label={`Delete ${conversation.title}`}>×</span></button>)}</div></aside>
+      <main className={`ai-chat-page ${activeArtifact ? "has-artifact" : ""}`}>
+        <section className="ai-chat-header">
+          <div><span className="ai-chat-eyebrow">SupportHub intelligence</span><h1>AI Assistant</h1><p>{roleConfig.description}</p></div>
+          <button type="button" className="ai-chat-clear" onClick={newConversation}>+ New conversation</button>
+        </section>
+
+        <section className={`ai-chat-workspace ${activeArtifact ? "artifact-open" : ""}`}>
+          <aside className="ai-chat-history-panel">
+            <div className="ai-chat-history-header"><div><span>History</span><strong>Recent chats</strong></div>{conversations.length > 0 && <button type="button" onClick={clearHistory}>Clear all</button>}</div>
+            <div className="ai-chat-history-list">
+              {isHistoryLoading && <p className="ai-history-empty">Loading chats...</p>}
+              {!isHistoryLoading && conversations.length === 0 && <p className="ai-history-empty">No saved conversations yet.</p>}
+              {!isHistoryLoading && conversations.map((conversation) => (
+                <button type="button" key={conversation.id} className={`ai-history-item ${conversationId === conversation.id ? "active" : ""}`} onClick={() => openConversation(conversation.id)}>
+                  <span className="ai-history-icon">✦</span>
+                  <span className="ai-history-copy"><strong>{conversation.title}</strong><small>{conversation.messageCount} messages</small></span>
+                  <span role="button" tabIndex={0} className="ai-history-delete" onClick={(event) => removeConversation(event, conversation.id)} onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") removeConversation(event, conversation.id); }} aria-label={`Delete ${conversation.title}`}>×</span>
+                </button>
+              ))}
+            </div>
+          </aside>
+
           <section className="ai-chat-shell">
-            <aside className="ai-chat-info-card"><div className="ai-chat-mascot" aria-hidden="true"><span className="ai-chat-mascot-antenna" /><div className="ai-chat-mascot-face"><span /><span /></div></div><div className="ai-chat-info-copy"><span className="ai-chat-ready"><i /> Online locally</span><h2>Ask SupportHub</h2><span className="ai-chat-role-badge">{roleConfig.label}</span><p>Ask a normal question, describe an IT issue, or continue a saved conversation.</p></div></aside>
+            <aside className="ai-chat-info-card">
+              <div className="ai-chat-mascot" aria-hidden="true"><span className="ai-chat-mascot-antenna" /><div className="ai-chat-mascot-face"><span /><span /></div></div>
+              <div className="ai-chat-info-copy"><span className="ai-chat-ready"><i /> Online locally</span><h2>Ask SupportHub</h2><span className="ai-chat-role-badge">{roleConfig.label}</span><p>Ask a question or tell the assistant what you want to do. Supported actions open beside the chat.</p></div>
+              <div className="ai-chat-action-menu">
+                <span>Quick actions</span>
+                <div>{roleConfig.actions.map((action) => <button type="button" key={action.label} onClick={() => submitMessage(action.prompt)} disabled={isSending}>{action.label}<b>↗</b></button>)}</div>
+              </div>
+            </aside>
+
             <section className="ai-chat-card">
               <div className="ai-chat-card-topbar"><div><span className="ai-chat-card-status"><i /> AI ready</span><strong>SupportHub Assistant</strong></div><span className="ai-chat-model">{roleConfig.label}</span></div>
-              <div className="ai-chat-messages" aria-live="polite">{messages.map((chatMessage) => <div key={chatMessage.id} className={`ai-chat-message-row ${chatMessage.role}`}>{chatMessage.role === "assistant" && <div className="ai-chat-avatar" aria-hidden="true">✦</div>}<div className="ai-chat-message-bubble">{String(chatMessage.text || "").split("\n").map((line, index) => <p key={`${chatMessage.id}-${index}`}>{line || " "}</p>)}</div></div>)}{isSending && <div className="ai-chat-message-row assistant"><div className="ai-chat-avatar" aria-hidden="true">✦</div><div className="ai-chat-message-bubble thinking"><span /><span /><span /></div></div>}<div ref={messagesEndRef} /></div>
+              <div className="ai-chat-messages" aria-live="polite">
+                {messages.map((chatMessage) => <div key={chatMessage.id} className={`ai-chat-message-row ${chatMessage.role}`}>{chatMessage.role === "assistant" && <div className="ai-chat-avatar" aria-hidden="true">✦</div>}<div className="ai-chat-message-bubble">{String(chatMessage.text || "").split("\n").map((line, index) => <p key={`${chatMessage.id}-${index}`}>{line || " "}</p>)}</div></div>)}
+                {isSending && <div className="ai-chat-message-row assistant"><div className="ai-chat-avatar" aria-hidden="true">✦</div><div className="ai-chat-message-bubble thinking"><span /><span /><span /></div></div>}
+                <div ref={messagesEndRef} />
+              </div>
               {!hasConversation && <div className="ai-chat-quick-prompts"><span>Try an example</span><div>{roleConfig.prompts.map((prompt) => <button key={prompt} type="button" onClick={() => submitMessage(prompt)} disabled={isSending}>{prompt}</button>)}</div></div>}
-              {showEmployeeEscalation && <div className="ai-chat-escalation"><div><span className="ai-chat-escalation-eyebrow">Still need help?</span><strong>Contact an IT agent</strong><p>If the troubleshooting didn’t solve it, create a support ticket and an IT agent can take it from here.</p></div><button type="button" onClick={() => navigate("/create-ticket")}>Create a Ticket</button></div>}
+              {showEmployeeEscalation && <div className="ai-chat-escalation"><div><span className="ai-chat-escalation-eyebrow">Still need help?</span><strong>Contact an IT agent</strong><p>If troubleshooting didn’t solve it, I can open a support ticket form right here.</p></div><button type="button" onClick={() => submitMessage("Create a support ticket")}>Create a Ticket</button></div>}
               {error && <div className="ai-chat-error" role="alert"><span>{error}</span></div>}
               <form className="ai-chat-composer" onSubmit={handleSubmit}><textarea value={message} onChange={(event) => setMessage(event.target.value)} onKeyDown={handleKeyDown} placeholder="Message SupportHub AI..." rows={1} maxLength={2000} disabled={isSending} aria-label="Message SupportHub AI Assistant" /><div className="ai-chat-composer-bottom"><span>Enter to send · Shift + Enter for a new line</span><button type="submit" disabled={!message.trim() || isSending}>{isSending ? "Thinking..." : "Send"}<span aria-hidden="true">↗</span></button></div></form>
               <p className="ai-chat-disclaimer">Your 10 most recent conversations are saved to your SupportHub account and can be deleted anytime.</p>
             </section>
           </section>
+
+          {activeArtifact && <AiArtifactPanel artifact={activeArtifact} onClose={() => setActiveArtifact(null)} />}
         </section>
       </main>
     </DashboardLayout>
