@@ -19,6 +19,26 @@ namespace backend.Controllers
             _context = context;
         }
 
+        [HttpGet]
+        public async Task<IActionResult> GetUsers()
+        {
+            var users = await _context.Users
+                .AsNoTracking()
+                .Include(user => user.Role)
+                .OrderBy(user => user.FullName)
+                .Select(user => new
+                {
+                    id = user.ID,
+                    fullName = user.FullName,
+                    email = user.Email,
+                    phoneNumber = user.PhoneNumber,
+                    role = user.Role.Name
+                })
+                .ToListAsync();
+
+            return Ok(users);
+        }
+
         [HttpPost]
         public async Task<IActionResult> CreateUser(CreateUserRequestDto request)
         {
@@ -59,7 +79,6 @@ namespace backend.Controllers
                 RoleID = role.ID,
                 PhoneNumber = request.PhoneNumber
             };
-
 
             _context.Users.Add(user);
             await _context.SaveChangesAsync();
