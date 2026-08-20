@@ -34,7 +34,14 @@ function requestDashboard(endpoint) {
 
 export function getEmployeeDashboard() { return requestDashboard("employee"); }
 export function getAdminDashboard() { return requestDashboard("admin"); }
-export function getAgentDashboard() { return requestDashboard("agent"); }
+export async function getAgentDashboard() {
+  const data = await requestDashboard("agent");
+  return {
+    ...data,
+    unassignedTicketsList: Array.isArray(data.availableTickets) ? data.availableTickets : [],
+    assignedTickets: Array.isArray(data.recentTickets) ? data.recentTickets : [],
+  };
+}
 export function getManagerDashboard() { return requestDashboard("manager"); }
 export function getAdminResolvedAnalytics() {
   return requestJson(`${API_URL}/admin/resolved-last-30-days`);
