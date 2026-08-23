@@ -214,7 +214,8 @@ public class AiController : ControllerBase
             .ToListAsync();
 
         var artifact = ResolveArtifact(request.Message, role);
-        var reply = artifact?.Reply ?? await _ollamaService.ChatAsync(request.Message, history, role);
+        var operationalReply = await TryResolveOperationalAnswerAsync(request.Message, role);
+        var reply = operationalReply ?? artifact?.Reply ?? await _ollamaService.ChatAsync(request.Message, history, role);
         var now = DateTime.UtcNow;
 
         _context.AiConversationMessages.AddRange(
@@ -250,6 +251,85 @@ public class AiController : ControllerBase
                 initialData = artifact.InitialData
             }
         });
+    }
+
+    private async Task<string?> TryResolveOperationalAnswerAsync(string message, string role)
+    {
+        var text = message.Trim().ToLowerInvariant();
+        var normalizedRole = role.Trim().ToLowerInvariant();
+        var isManager = normalizedRole == "manager";
+
+        if (!isManager)
+            return null;
+
+        var asksBestAgent = text.Contains("best agent") ||
+            text.Contains("top agent") ||
+            text.Contains("best performing agent") ||
+            text.Contains("best performer") ||
+            text.Contains("who should i assign") ||
+            text.Contains("who should i give") ||
+            text.Contains("least busy agent") ||
+            text.Contains("lightest workload");
+
+        if (!asksBestAgent)
+            return null;
+
+        var agents = await _context.Users
+            .AsNoTracking()
+            .Where(u => u.Role != null &&
+                (u.Role.Name == "IT Support Agent" || u.Role.Name == "Agent" || u.Role.Name == "IT"))
+            .Select(u => new { u.ID, u.FullName })
+            .ToListAsync();
+
+        if (agents.Count == 0)
+            return "There are no support agents configured right now.";
+
+        var metrics = new List<AgentMetric>();
+
+        foreach (var agent in agents)
+        {
+            var active = await _context.Tickets.AsNoTracking().CountAsync(t =>
+                !t.IsDeleted &&
+                t.AssignedToUserId == agent.ID &&
+                t.Status.StatusName != "Resolved" &&
+                t.Status.StatusName != "Closed" &&
+                t.Status.StatusName != "Cancelled");
+
+            var resolved = await _context.Tickets.AsNoTracking().CountAsync(t =>
+                !t.IsDeleted &&
+                t.AssignedToUserId == agent.ID &&
+                (t.Status.StatusName == "Resolved" || t.Status.StatusName == "Closed"));
+
+            metrics.Add(new AgentMetric(agent.FullName, active, resolved));
+        }
+
+        var wantsLeastBusy = text.Contains("least busy") || text.Contains("lightest workload") || text.Contains("who should i assign");
+        AgentMetric best;
+
+        if (wantsLeastBusy)
+        {
+            best = metrics
+                .OrderBy(a => a.Active)
+                .ThenByDescending(a => a.Resolved)
+                .ThenBy(a => a.Name)
+                .First();
+
+            return $"{best.Name} has the lightest workload right now with {best.Active} active ticket{(best.Active == 1 ? "" : "s")}. They also have {best.Resolved} currently assigned resolved/closed ticket{(best.Resolved == 1 ? "" : "s")}.";
+        }
+
+        best = metrics
+            .OrderByDescending(a => a.Resolved)
+            .ThenBy(a => a.Active)
+            .ThenBy(a => a.Name)
+            .First();
+
+        var tiedResolved = metrics.Count(a => a.Resolved == best.Resolved);
+        if (tiedResolved > 1)
+        {
+            return $"There isn't a clear single best agent from the current data. {best.Name} is the strongest assignment option among the tie because they have {best.Active} active ticket{(best.Active == 1 ? "" : "s")}, with {best.Resolved} resolved/closed ticket{(best.Resolved == 1 ? "" : "s")} currently assigned to them. I'm ranking by resolved tickets first, then lighter active workload.";
+        }
+
+        return $"Based on current SupportHub data, {best.Name} is the top performer by resolved tickets: {best.Resolved} resolved/closed and {best.Active} active ticket{(best.Active == 1 ? "" : "s")}. This ranking uses resolved-ticket count first, then active workload as the tie-breaker.";
     }
 
     private static AiResolvedArtifact? ResolveArtifact(string message, string role)
@@ -295,18 +375,29 @@ public class AiController : ControllerBase
             );
         }
 
-        if ((isAdmin || isManager) && HasAny("show tickets", "view tickets", "all tickets", "critical tickets", "open tickets", "closed tickets", "resolved tickets"))
+        if ((isAdmin || isManager) && HasAny(
+            "show tickets", "view tickets", "all tickets", "critical tickets", "open tickets",
+            "closed tickets", "resolved tickets", "solved tickets", "unsolved tickets",
+            "unresolved tickets", "not solved tickets", "not resolved tickets"))
         {
             var priority = text.Contains("critical") ? "Critical" : text.Contains("high") ? "High" : null;
-            var status = text.Contains("closed") ? "Closed"
+            var status = HasAny("unsolved", "unresolved", "not solved", "not resolved") ? "Unsolved"
+                : text.Contains("solved") && !text.Contains("unsolved") ? "Solved"
+                : text.Contains("closed") ? "Closed"
                 : text.Contains("resolved") ? "Resolved"
                 : text.Contains("open") ? "Open"
                 : null;
 
+            var description = status == "Unsolved"
+                ? "I've opened the ticket explorer with all unresolved tickets."
+                : status == "Solved"
+                    ? "I've opened the ticket explorer with resolved and closed tickets."
+                    : "I've opened the ticket explorer with the closest matching filters.";
+
             return new AiResolvedArtifact(
                 "ticket_list",
                 "Ticket Explorer",
-                "I've opened the ticket explorer with the closest matching filters.",
+                description,
                 new Dictionary<string, object?> { ["priority"] = priority, ["status"] = status }
             );
         }
@@ -330,6 +421,8 @@ public class AiController : ControllerBase
 
         return null;
     }
+
+    private sealed record AgentMetric(string Name, int Active, int Resolved);
 
     private sealed record AiResolvedArtifact(
         string Type,
