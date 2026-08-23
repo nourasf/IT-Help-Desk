@@ -73,93 +73,43 @@ export async function getTicketComments(ticketId) {
   const data = await request(`${API_URL}/${ticketId}/comments`, { method: "GET" });
   return Array.isArray(data) ? data : [];
 }
-export async function addTicketComment(
-  ticketId,
-  comment,
-  parentCommentID = null
-) {
+export async function addTicketComment(ticketId, comment, parentCommentID = null) {
   return request(`${API_URL}/${ticketId}/comments`, {
     method: "POST",
-    body: JSON.stringify({
-      comment: comment.trim(),
-      parentCommentID
-    })
+    body: JSON.stringify({ comment: comment.trim(), parentCommentID })
   });
 }
 
-export async function uploadCommentAttachments(
-  ticketId,
-  commentId,
-  files
-) {
+export async function uploadCommentAttachments(ticketId, commentId, files) {
   const token = requireToken();
-
   const formData = new FormData();
-
-  files.forEach((file) => {
-    formData.append("files", file);
-  });
-
+  files.forEach((file) => formData.append("files", file));
   formData.append("ticketCommentId", String(commentId));
 
-  const response = await fetch(
-    `${API_URL}/${ticketId}/attachments`,
-    {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${token}`
-      },
-      body: formData
-    }
-  );
+  const response = await fetch(`${API_URL}/${ticketId}/attachments`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${token}` },
+    body: formData
+  });
 
   const data = await readResponse(response);
-
-  if (response.status === 401) {
-    throw new Error("Your session has expired. Please sign in again.");
-  }
-
-  if (response.status === 403) {
-    throw new Error(
-      data.message || "You do not have permission to upload attachments."
-    );
-  }
-
-  if (!response.ok) {
-    throw new Error(
-      data.message || `Upload failed. Error ${response.status}.`
-    );
-  }
-
+  if (response.status === 401) throw new Error("Your session has expired. Please sign in again.");
+  if (response.status === 403) throw new Error(data.message || "You do not have permission to upload attachments.");
+  if (!response.ok) throw new Error(data.message || `Upload failed. Error ${response.status}.`);
   return data;
 }
 
 export async function getAttachmentBlobUrl(ticketId, attachmentId) {
   const token = requireToken();
+  const response = await fetch(`${API_URL}/${ticketId}/attachments/${attachmentId}/download`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
 
-  const response = await fetch(
-    `${API_URL}/${ticketId}/attachments/${attachmentId}/download`,
-    {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    }
-  );
-
-  if (response.status === 401) {
-    throw new Error("Your session has expired. Please sign in again.");
-  }
-
-  if (response.status === 403) {
-    throw new Error("You do not have permission to view this attachment.");
-  }
-
-  if (!response.ok) {
-    throw new Error("Attachment could not be loaded.");
-  }
+  if (response.status === 401) throw new Error("Your session has expired. Please sign in again.");
+  if (response.status === 403) throw new Error("You do not have permission to view this attachment.");
+  if (!response.ok) throw new Error("Attachment could not be loaded.");
 
   const blob = await response.blob();
-
   return URL.createObjectURL(blob);
 }
 
@@ -184,7 +134,14 @@ async function ticketAction(ticketId, action, note) {
 }
 
 export async function resolveTicket(ticketId, resolutionNotes) { return ticketAction(ticketId, "resolve", resolutionNotes); }
-export async function escalateTicket(ticketId, reason) { return ticketAction(ticketId, "escalate", reason); }
+export async function escalateTicket(ticketId, reason) {
+  const result = await ticketAction(ticketId, "escalate", reason);
+  if (typeof window !== "undefined") {
+    window.location.replace("/agent-dashboard");
+    return new Promise(() => {});
+  }
+  return result;
+}
 export async function cancelTicket(ticketId, reason) { return ticketAction(ticketId, "cancel", reason); }
 export async function returnTicketToManager(ticketId, reason) { return ticketAction(ticketId, "return-to-manager", reason); }
 export async function reopenTicket(ticketId, reason) { return ticketAction(ticketId, "reopen", reason); }
