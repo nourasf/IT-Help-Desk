@@ -180,11 +180,26 @@ function TicketListArtifact({ artifact, mode }) {
     const load = mode === "mine" ? getMyTickets() : getAllTickets();
     Promise.resolve(load).then((data) => setTickets(Array.isArray(data) ? data : data?.tickets || [])).catch((err) => setError(err.message)).finally(() => setLoading(false));
   }, [mode]);
+
   const filtered = useMemo(() => tickets.filter((ticket) => {
-    const status = artifact?.initialData?.status;
-    const priority = artifact?.initialData?.priority;
-    return (!status || String(ticket.status || ticket.statusName || "").toLowerCase() === String(status).toLowerCase()) && (!priority || String(ticket.priority || ticket.priorityName || "").toLowerCase() === String(priority).toLowerCase());
+    const requestedStatus = String(artifact?.initialData?.status || "").toLowerCase();
+    const requestedPriority = String(artifact?.initialData?.priority || "").toLowerCase();
+    const ticketStatus = String(ticket.status || ticket.statusName || "").toLowerCase();
+    const ticketPriority = String(ticket.priority || ticket.priorityName || "").toLowerCase();
+
+    let statusMatches = true;
+    if (requestedStatus === "unsolved") {
+      statusMatches = !["resolved", "closed", "cancelled"].includes(ticketStatus);
+    } else if (requestedStatus === "solved") {
+      statusMatches = ["resolved", "closed"].includes(ticketStatus);
+    } else if (requestedStatus) {
+      statusMatches = ticketStatus === requestedStatus;
+    }
+
+    const priorityMatches = !requestedPriority || ticketPriority === requestedPriority;
+    return statusMatches && priorityMatches;
   }), [tickets, artifact]);
+
   if (loading) return <EmptyState title="Loading tickets" text="Fetching the latest ticket data..." />;
   if (error) return <EmptyState title="Could not load tickets" text={error} />;
   if (!filtered.length) return <EmptyState title="No matching tickets" text="There are no tickets matching those filters right now." />;
@@ -210,7 +225,7 @@ function AgentTicketsArtifact({ available }) {
   useEffect(() => { getAgentDashboard().then(setDashboard).catch((err) => setError(err.message)); }, []);
   if (error) return <EmptyState title="Could not load agent tickets" text={error} />;
   if (!dashboard) return <EmptyState title="Loading agent workspace" text="Fetching your latest ticket queue..." />;
-  const source = available ? (dashboard.unassignedTicketsList || dashboard.unassigned || []) : (dashboard.recentTickets || dashboard.assignedTickets || []);
+  const source = available ? (dashboard.availableTickets || dashboard.unassignedTicketsList || dashboard.unassigned || []) : (dashboard.recentTickets || dashboard.assignedTickets || []);
   if (!Array.isArray(source) || source.length === 0) return <EmptyState title={available ? "No available tickets" : "No active tickets"} text={available ? "There are no unassigned tickets available right now." : "You do not have active tickets in this view."} />;
   return <div className="ai-artifact-list">{source.slice(0, 20).map((ticket) => <button type="button" className="ai-artifact-ticket-row" key={ticket.id} onClick={() => navigate(`/tickets/${ticket.id}`)}><div><strong>{ticket.ticketNumber || `#${ticket.id}`} · {ticket.subject}</strong><small>{ticket.employee || ticket.category || "Support ticket"}</small></div><span><b>{ticket.status}</b><small>{ticket.priority}</small></span></button>)}</div>;
 }
