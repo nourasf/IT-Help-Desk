@@ -70,15 +70,22 @@ var configuredOrigins = (builder.Configuration["Frontend:AllowedOrigins"] ?? str
 configuredOrigins.Add("http://localhost:5173");
 configuredOrigins.Add("https://supporthub-phi.vercel.app");
 
+bool IsAllowedOrigin(string? origin)
+{
+    if (string.IsNullOrWhiteSpace(origin)) return false;
+    var normalized = origin.TrimEnd('/');
+    if (configuredOrigins.Contains(normalized)) return true;
+
+    return Uri.TryCreate(normalized, UriKind.Absolute, out var uri)
+        && uri.Scheme == Uri.UriSchemeHttps
+        && uri.Host.EndsWith(".vercel.app", StringComparison.OrdinalIgnoreCase);
+}
+
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowFrontend", policy =>
     {
-        policy.SetIsOriginAllowed(origin =>
-            configuredOrigins.Contains(origin.TrimEnd('/')) ||
-            (Uri.TryCreate(origin, UriKind.Absolute, out var uri) &&
-             uri.Scheme == Uri.UriSchemeHttps &&
-             uri.Host.EndsWith(".vercel.app", StringComparison.OrdinalIgnoreCase)))
+        policy.SetIsOriginAllowed(IsAllowedOrigin)
             .AllowAnyHeader()
             .AllowAnyMethod()
             .AllowCredentials();
@@ -86,6 +93,32 @@ builder.Services.AddCors(options =>
 });
 
 var app = builder.Build();
+
+// Force CORS headers before anything else so even database/controller failures
+// still return a browser-readable response to the deployed Vercel frontend.
+app.Use(async (context, next) =>
+{
+    var origin = context.Request.Headers.Origin.ToString();
+    if (IsAllowedOrigin(origin))
+    {
+        context.Response.Headers["Access-Control-Allow-Origin"] = origin;
+        context.Response.Headers["Access-Control-Allow-Credentials"] = "true";
+        context.Response.Headers["Vary"] = "Origin";
+
+        if (HttpMethods.IsOptions(context.Request.Method))
+        {
+            context.Response.Headers["Access-Control-Allow-Methods"] = "GET,POST,PUT,PATCH,DELETE,OPTIONS";
+            var requestedHeaders = context.Request.Headers["Access-Control-Request-Headers"].ToString();
+            context.Response.Headers["Access-Control-Allow-Headers"] = string.IsNullOrWhiteSpace(requestedHeaders)
+                ? "Authorization,Content-Type,Accept"
+                : requestedHeaders;
+            context.Response.StatusCode = StatusCodes.Status204NoContent;
+            return;
+        }
+    }
+
+    await next();
+});
 
 app.UseExceptionHandler(errorApp =>
 {
