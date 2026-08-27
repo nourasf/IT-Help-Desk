@@ -22,8 +22,16 @@ public class OllamaService
     private string GetApiKey()
     {
         var apiKey = _configuration["Groq:ApiKey"];
+
+        if (string.IsNullOrWhiteSpace(apiKey))
+            apiKey = Environment.GetEnvironmentVariable("Groq__ApiKey");
+
+        if (string.IsNullOrWhiteSpace(apiKey))
+            apiKey = Environment.GetEnvironmentVariable("GROQ_API_KEY");
+
         if (string.IsNullOrWhiteSpace(apiKey))
             throw new InvalidOperationException("Groq API key is not configured.");
+
         return apiKey.Trim();
     }
 
