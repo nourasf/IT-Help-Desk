@@ -11,6 +11,7 @@ import {
 } from "../../api/ticket";
 import { getAgentDashboard } from "../../api/dashboard";
 import { getStoredToken } from "../../utils/authStorage";
+import { API_ROOT } from "../../config/api";
 
 const USER_ROLES = ["Employee", "IT Support Agent", "Manager", "Admin"];
 
@@ -21,7 +22,7 @@ async function readJson(response) {
 }
 
 async function createUserRequest(form) {
-  const response = await fetch("http://localhost:5099/api/users", {
+  const response = await fetch(`${API_ROOT}/users`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -35,7 +36,7 @@ async function createUserRequest(form) {
 }
 
 async function getUsersRequest() {
-  const response = await fetch("http://localhost:5099/api/users", {
+  const response = await fetch(`${API_ROOT}/users`, {
     headers: { Authorization: `Bearer ${getStoredToken()}` },
   });
   const data = await readJson(response);
