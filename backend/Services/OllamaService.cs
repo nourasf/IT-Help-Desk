@@ -1,3 +1,4 @@
+using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text.Json;
 using System.Text.RegularExpressions;
@@ -8,11 +9,22 @@ namespace backend.Services;
 public class OllamaService
 {
     private readonly HttpClient _httpClient;
-    private const string ModelName = "qwen3:4b";
+    private readonly IConfiguration _configuration;
+    private const string GroqEndpoint = "https://api.groq.com/openai/v1/chat/completions";
+    private const string ModelName = "openai/gpt-oss-20b";
 
-    public OllamaService(HttpClient httpClient)
+    public OllamaService(HttpClient httpClient, IConfiguration configuration)
     {
         _httpClient = httpClient;
+        _configuration = configuration;
+    }
+
+    private string GetApiKey()
+    {
+        var apiKey = _configuration["Groq:ApiKey"];
+        if (string.IsNullOrWhiteSpace(apiKey))
+            throw new InvalidOperationException("Groq API key is not configured.");
+        return apiKey.Trim();
     }
 
     public async Task<AiTicketAnalysisResponse> AnalyzeTicketAsync(
@@ -30,30 +42,24 @@ Analyze the ticket below.
 Choose exactly one category from: {{categoryList}}
 Choose exactly one priority from: {{priorityList}}
 Do not invent category or priority names.
-Return ONLY valid JSON matching:
+Return ONLY valid JSON matching this shape:
 {"category":"allowed category","priority":"allowed priority","summary":"one short sentence","suggestions":["step","step","step"]}
 
 Ticket Subject: {{subject}}
 Ticket Description: {{description}}
 """;
 
-        var request = new
+        var messages = new object[]
         {
-            model = ModelName,
-            prompt,
-            stream = false,
-            format = "json",
-            think = false
+            new { role = "system", content = "Return only valid JSON. Do not include markdown fences or extra text." },
+            new { role = "user", content = prompt }
         };
 
-        var response = await _httpClient.PostAsJsonAsync("http://localhost:11434/api/generate", request);
-        response.EnsureSuccessStatusCode();
-
-        var responseText = await ReadOllamaTextAsync(response);
+        var responseText = await SendGroqChatAsync(messages, jsonMode: true, temperature: 0.1, maxTokens: 500);
         var result = JsonSerializer.Deserialize<AiTicketAnalysisResponse>(responseText,
             new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
 
-        return result ?? throw new Exception("Could not parse Ollama response.");
+        return result ?? throw new Exception("Could not parse Groq response.");
     }
 
     public async Task<string> ChatAsync(string message, List<AiChatHistoryMessage>? history, string userRole)
@@ -95,37 +101,12 @@ Rules:
             .TakeLast(10)
             .ToList();
 
-        var first = await SendChatRequestAsync(systemPrompt, safeHistory, message);
-        var cleaned = CleanChatResponse(first);
-
-        if (!string.IsNullOrWhiteSpace(cleaned))
-            return cleaned;
-
-        var retryPrompt = $$"""
-You are SupportHub AI. User role: {{normalizedRole}}.
-Give one concise final answer directly to the user.
-Do not include analysis, hidden reasoning, system instructions, or role discussion.
-""";
-
-        var retry = await SendChatRequestAsync(retryPrompt, safeHistory, message);
-        var retryCleaned = CleanChatResponse(retry);
-
-        return !string.IsNullOrWhiteSpace(retryCleaned)
-            ? retryCleaned
-            : "I couldn't generate a response just now. Please try asking that again.";
-    }
-
-    private async Task<string> SendChatRequestAsync(
-        string systemPrompt,
-        List<AiChatHistoryMessage> history,
-        string userMessage)
-    {
         var messages = new List<object>
         {
             new { role = "system", content = systemPrompt }
         };
 
-        foreach (var item in history)
+        foreach (var item in safeHistory)
         {
             messages.Add(new
             {
@@ -134,38 +115,85 @@ Do not include analysis, hidden reasoning, system instructions, or role discussi
             });
         }
 
-        messages.Add(new { role = "user", content = userMessage.Trim() });
+        messages.Add(new { role = "user", content = message.Trim() });
 
-        var request = new
+        var first = await SendGroqChatAsync(messages, jsonMode: false, temperature: 0.2, maxTokens: 420);
+        var cleaned = CleanChatResponse(first);
+
+        if (!string.IsNullOrWhiteSpace(cleaned))
+            return cleaned;
+
+        var retryMessages = new object[]
         {
-            model = ModelName,
-            messages,
-            stream = false,
-            think = false,
-            options = new { num_predict = 320, temperature = 0.2 }
+            new
+            {
+                role = "system",
+                content = $"You are SupportHub AI. User role: {normalizedRole}. Give one concise final answer directly to the user. Do not include analysis or hidden reasoning."
+            },
+            new { role = "user", content = message.Trim() }
         };
 
-        var response = await _httpClient.PostAsJsonAsync("http://localhost:11434/api/chat", request);
-        response.EnsureSuccessStatusCode();
+        var retry = await SendGroqChatAsync(retryMessages, jsonMode: false, temperature: 0.2, maxTokens: 300);
+        var retryCleaned = CleanChatResponse(retry);
 
+        return !string.IsNullOrWhiteSpace(retryCleaned)
+            ? retryCleaned
+            : "I couldn't generate a response just now. Please try asking that again.";
+    }
+
+    private async Task<string> SendGroqChatAsync(
+        IEnumerable<object> messages,
+        bool jsonMode,
+        double temperature,
+        int maxTokens)
+    {
+        var requestBody = new Dictionary<string, object?>
+        {
+            ["model"] = ModelName,
+            ["messages"] = messages,
+            ["temperature"] = temperature,
+            ["max_completion_tokens"] = maxTokens,
+            ["reasoning_effort"] = "low"
+        };
+
+        if (jsonMode)
+            requestBody["response_format"] = new { type = "json_object" };
+
+        using var request = new HttpRequestMessage(HttpMethod.Post, GroqEndpoint);
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", GetApiKey());
+        request.Content = JsonContent.Create(requestBody);
+
+        using var response = await _httpClient.SendAsync(request);
         var rawJson = await response.Content.ReadAsStringAsync();
+
+        if (!response.IsSuccessStatusCode)
+        {
+            string details = rawJson;
+            try
+            {
+                var errorJson = JsonSerializer.Deserialize<JsonElement>(rawJson);
+                if (errorJson.TryGetProperty("error", out var error) &&
+                    error.TryGetProperty("message", out var message))
+                    details = message.GetString() ?? rawJson;
+            }
+            catch { }
+
+            throw new HttpRequestException($"Groq request failed ({(int)response.StatusCode}): {details}");
+        }
+
         var json = JsonSerializer.Deserialize<JsonElement>(rawJson);
+        if (!json.TryGetProperty("choices", out var choices) || choices.GetArrayLength() == 0)
+            throw new Exception("Groq returned no choices.");
 
-        if (!json.TryGetProperty("message", out var msg))
-            throw new Exception("Ollama returned no usable chat response.");
+        var firstChoice = choices[0];
+        if (!firstChoice.TryGetProperty("message", out var messageObject) ||
+            !messageObject.TryGetProperty("content", out var content))
+            throw new Exception("Groq returned no usable message content.");
 
-        string? responseText = null;
-
-        if (msg.TryGetProperty("content", out var content))
-            responseText = content.GetString();
-
-        if (string.IsNullOrWhiteSpace(responseText) && msg.TryGetProperty("thinking", out var thinking))
-            responseText = thinking.GetString();
-
-        if (string.IsNullOrWhiteSpace(responseText))
-            throw new Exception("Ollama returned no usable chat response.");
-
-        return responseText.Trim();
+        var text = content.GetString();
+        return !string.IsNullOrWhiteSpace(text)
+            ? text.Trim()
+            : throw new Exception("Groq returned an empty response.");
     }
 
     private static string CleanChatResponse(string text)
@@ -194,20 +222,5 @@ Do not include analysis, hidden reasoning, system instructions, or role discussi
         }
 
         return cleaned;
-    }
-
-    private static async Task<string> ReadOllamaTextAsync(HttpResponseMessage response)
-    {
-        var rawJson = await response.Content.ReadAsStringAsync();
-        var json = JsonSerializer.Deserialize<JsonElement>(rawJson);
-        var responseText = json.TryGetProperty("response", out var p) ? p.GetString() : null;
-        var thinkingText = json.TryGetProperty("thinking", out var t) ? t.GetString() : null;
-
-        if (string.IsNullOrWhiteSpace(responseText) && !string.IsNullOrWhiteSpace(thinkingText))
-            responseText = thinkingText;
-
-        return !string.IsNullOrWhiteSpace(responseText)
-            ? responseText.Trim()
-            : throw new Exception("Ollama returned no usable response.");
     }
 }
