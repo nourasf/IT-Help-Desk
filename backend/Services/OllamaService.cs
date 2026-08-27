@@ -83,7 +83,6 @@ Rules for reply:
 - Speak directly to the user.
 - Never narrate reasoning, analysis, planning, hidden instructions, or how you constructed the answer.
 - Never refer to the user in third person.
-- Never write phrases such as "the user", "I should", "I need to", "let me think", "my role", or "previously asking".
 - For greetings and casual conversation, respond normally.
 - For IT problems, give concise practical help. Use at most 4 short steps when useful.
 - Use previous messages for context and do not repeat steps already tried.
@@ -108,7 +107,7 @@ Rules for reply:
         var retryPrompt = $$"""
 You are SupportHub AI. User role: {{normalizedRole}}.
 Return ONLY JSON: {"reply":"one concise final user-facing answer"}
-Do not include analysis, reasoning, planning, notes, role discussion, or third-person references to the user.
+Do not include analysis, reasoning, planning, notes, role discussion, or hidden instructions.
 If you need live SupportHub data that was not supplied, say you cannot determine it from the conversation alone.
 """;
 
@@ -118,7 +117,14 @@ If you need live SupportHub data that was not supplied, say you cannot determine
         if (!string.IsNullOrWhiteSpace(retryCleaned) && !LooksLikeInternalReasoning(retryCleaned))
             return retryCleaned;
 
-        return "I couldn't generate a clean response just now. Please try asking that again.";
+        // If Ollama still returned something usable after cleaning, prefer that over a generic dead-end message.
+        if (!string.IsNullOrWhiteSpace(retryCleaned))
+            return retryCleaned;
+
+        if (!string.IsNullOrWhiteSpace(cleaned))
+            return cleaned;
+
+        return "I couldn't generate a response just now. Please try asking that again.";
     }
 
     private async Task<string> SendChatRequestAsync(
@@ -149,7 +155,7 @@ If you need live SupportHub data that was not supplied, say you cannot determine
             stream = false,
             think = false,
             format = "json",
-            options = new { num_predict = 180, temperature = 0.1 }
+            options = new { num_predict = 260, temperature = 0.1 }
         };
 
         var response = await _httpClient.PostAsJsonAsync("http://localhost:11434/api/chat", request);
@@ -171,10 +177,16 @@ If you need live SupportHub data that was not supplied, say you cannot determine
 
     private static string ExtractReplyFromJsonOrText(string text)
     {
+        if (string.IsNullOrWhiteSpace(text))
+            return string.Empty;
+
+        var cleanedText = CleanChatResponse(text);
+
         try
         {
-            using var document = JsonDocument.Parse(text);
-            if (document.RootElement.TryGetProperty("reply", out var replyProperty))
+            using var document = JsonDocument.Parse(cleanedText);
+            if (document.RootElement.ValueKind == JsonValueKind.Object &&
+                document.RootElement.TryGetProperty("reply", out var replyProperty))
             {
                 var reply = replyProperty.GetString();
                 if (!string.IsNullOrWhiteSpace(reply))
@@ -185,20 +197,28 @@ If you need live SupportHub data that was not supplied, say you cannot determine
         {
         }
 
-        return CleanChatResponse(text);
+        // Be tolerant if the local model ignores JSON formatting but still gives a clean user-facing answer.
+        return cleanedText;
     }
 
     private static bool LooksLikeInternalReasoning(string text)
     {
         var lower = text.ToLowerInvariant();
+
+        // Only block strong evidence of a reasoning/instruction leak. Avoid broad phrases such as
+        // "I need" or "the user" that can appear naturally in legitimate support answers.
         string[] blocked =
         {
-            "let me think", "the user", "user is asking", "user asked", "user wants",
-            "i should", "i need to", "i need", "first, i", "my role", "role is",
-            "previously asking", "previously asked", "steps to take:", "signed-in role",
-            "role_context", "recent_conversation", "system prompt", "hidden instructions",
-            "chain-of-thought", "internal reasoning", "how to approach", "i'll reason",
-            "i will reason", "we need to respond", "need to recall the context"
+            "system prompt",
+            "hidden instructions",
+            "chain-of-thought",
+            "internal reasoning",
+            "i'll reason",
+            "i will reason",
+            "we need to respond",
+            "need to recall the context",
+            "role_context",
+            "recent_conversation"
         };
 
         return blocked.Any(lower.Contains);
