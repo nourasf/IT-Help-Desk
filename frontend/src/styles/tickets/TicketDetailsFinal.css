@@ -1,0 +1,230 @@
+/* Final Ticket Details overrides — intentionally loaded last. */
+
+.ticket-details-page{
+  max-width:1380px!important;
+  margin:0 auto!important;
+  padding-bottom:34px!important;
+}
+
+.ticket-details-grid{
+  display:grid!important;
+  grid-template-columns:minmax(0,1fr) 310px!important;
+  gap:16px!important;
+  align-items:start!important;
+}
+
+.ticket-details-main-card{
+  padding:22px!important;
+  border-radius:18px!important;
+  box-shadow:0 8px 24px rgba(57,39,93,.06)!important;
+}
+
+.ticket-description{
+  min-height:0!important;
+  margin:0 0 14px!important;
+  padding:15px 16px!important;
+  border-radius:13px!important;
+  line-height:1.55!important;
+}
+
+.ticket-information-grid{
+  gap:9px!important;
+}
+
+.ticket-information-grid>div{
+  min-height:54px!important;
+  padding:11px 13px!important;
+  border-radius:12px!important;
+  box-shadow:none!important;
+}
+
+.ticket-details-sidebar{
+  gap:10px!important;
+}
+
+.ticket-person-card,
+.ticket-work-card{
+  padding:14px!important;
+  border-radius:16px!important;
+  box-shadow:0 7px 20px rgba(57,39,93,.055)!important;
+}
+
+.ticket-work-card h2{
+  margin-bottom:10px!important;
+}
+
+.ticket-work-empty,
+.ticket-work-active{
+  padding:12px!important;
+  min-height:0!important;
+}
+
+.ticket-details-bottom-grid,
+.ticket-details-bottom-grid.ticket-details-bottom-single{
+  margin-top:16px!important;
+}
+
+.ticket-comments-card{
+  min-height:0!important;
+  padding:20px!important;
+  border-radius:18px!important;
+  box-shadow:0 8px 24px rgba(57,39,93,.06)!important;
+}
+
+.ticket-comments-card .ticket-bottom-card-heading{
+  margin-bottom:10px!important;
+  padding-bottom:12px!important;
+}
+
+.ticket-comments-card .ticket-comments-list{
+  min-height:0!important;
+  padding:0!important;
+}
+
+.ticket-comments-card .ticket-empty-section{
+  min-height:88px!important;
+  padding:16px!important;
+  border-radius:13px!important;
+}
+
+.ticket-comments-card .ticket-empty-section::before{
+  width:42px!important;
+  height:32px!important;
+  margin-bottom:5px!important;
+  font-size:14px!important;
+}
+
+.ticket-comments-card .ticket-comment-form{
+  margin-top:10px!important;
+  padding-top:12px!important;
+}
+
+.ticket-comments-card .ticket-comment-form textarea{
+  min-height:84px!important;
+  padding:13px 14px!important;
+  border-radius:12px!important;
+}
+
+.ticket-ticket-files{
+  margin-top:16px!important;
+  padding-top:15px!important;
+  border-top:1px solid #ece7f3!important;
+}
+
+.ticket-ticket-files-header{
+  display:flex!important;
+  align-items:center!important;
+  justify-content:space-between!important;
+  margin-bottom:10px!important;
+}
+
+.ticket-ticket-files-header>div{
+  display:flex!important;
+  align-items:center!important;
+  gap:8px!important;
+}
+
+.ticket-ticket-files-header strong{
+  color:#3e3658!important;
+  font-size:13px!important;
+}
+
+.ticket-ticket-files-header span{
+  display:grid!important;
+  min-width:22px!important;
+  height:22px!important;
+  place-items:center!important;
+  padding:0 6px!important;
+  border-radius:999px!important;
+  background:#eee9f8!important;
+  color:#6856a0!important;
+  font-size:10px!important;
+  font-weight:800!important;
+}
+
+.ticket-ticket-files-list{
+  display:grid!important;
+  grid-template-columns:repeat(auto-fit,minmax(220px,1fr))!important;
+  gap:9px!important;
+}
+
+.ticket-file-card{
+  display:grid!important;
+  grid-template-columns:44px minmax(0,1fr) auto!important;
+  align-items:center!important;
+  gap:10px!important;
+  width:100%!important;
+  min-height:64px!important;
+  padding:9px 11px!important;
+  border:1px solid #e6dfef!important;
+  border-radius:12px!important;
+  background:#fbfafe!important;
+  color:inherit!important;
+  text-align:left!important;
+  box-shadow:none!important;
+  cursor:pointer!important;
+}
+
+.ticket-file-card:hover{
+  border-color:#cfc2e3!important;
+  background:#fff!important;
+  transform:translateY(-1px)!important;
+}
+
+.ticket-file-preview{
+  display:grid!important;
+  width:44px!important;
+  height:44px!important;
+  place-items:center!important;
+  overflow:hidden!important;
+  border-radius:10px!important;
+  background:#eee9f6!important;
+  color:#6a5794!important;
+  font-size:9px!important;
+  font-weight:900!important;
+}
+
+.ticket-file-preview .ticket-comment-image{
+  width:100%!important;
+  height:100%!important;
+  object-fit:cover!important;
+  border-radius:0!important;
+}
+
+.ticket-file-meta{
+  min-width:0!important;
+}
+
+.ticket-file-meta strong{
+  display:block!important;
+  overflow:hidden!important;
+  color:#42395d!important;
+  font-size:11px!important;
+  text-overflow:ellipsis!important;
+  white-space:nowrap!important;
+}
+
+.ticket-file-meta span{
+  display:block!important;
+  margin-top:3px!important;
+  color:#9690a1!important;
+  font-size:9px!important;
+}
+
+.ticket-file-open{
+  color:#6651a0!important;
+  font-size:10px!important;
+  font-weight:800!important;
+}
+
+@media(max-width:980px){
+  .ticket-details-grid{grid-template-columns:1fr!important}
+  .ticket-details-sidebar{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important}
+  .ticket-work-card{grid-column:1/-1!important}
+}
+
+@media(max-width:650px){
+  .ticket-details-sidebar{grid-template-columns:1fr!important}
+  .ticket-ticket-files-list{grid-template-columns:1fr!important}
+  .ticket-comments-card{padding:16px!important}
+}
