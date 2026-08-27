@@ -12,13 +12,14 @@ export async function getMyTickets(){return request(`${API_URL}/my-tickets`,{met
 export async function getAllTickets(){const data=await request(API_URL,{method:"GET"});return Array.isArray(data)?data:[];}
 export async function getAssignmentOptions(signal){const data=await request(`${API_URL}/assignment-options`,{method:"GET",signal});return{tickets:Array.isArray(data.tickets)?data.tickets:[],agents:Array.isArray(data.agents)?data.agents:[]};}
 export async function assignTicket(ticketId,agentUserId){return request(`${API_URL}/${ticketId}/workflow-assign`,{method:"POST",body:JSON.stringify({agentUserId:Number(agentUserId)})});}
-export async function takeTicket(ticketId){return request(`${API_URL}/${ticketId}/take`,{method:"POST"});}
+export async function takeTicket(ticketId){return request(`${API_URL}/${ticketId}/workflow-take`,{method:"POST"});}
 export async function startWork(ticketId){return request(`${API_URL}/${ticketId}/start-work`,{method:"POST"});}
 export async function pauseWork(ticketId){return request(`${API_URL}/${ticketId}/pause-work`,{method:"POST"});}
 export async function getTicketById(ticketId){return request(`${API_URL}/${ticketId}`,{method:"GET"});}
 export async function editTicket(ticketId,data){return request(`${API_URL}/${ticketId}/workflow-edit`,{method:"PUT",body:JSON.stringify(data)});}
 export async function getTicketComments(ticketId){const data=await request(`${API_URL}/${ticketId}/comments`,{method:"GET"});return Array.isArray(data)?data:[];}
 export async function addTicketComment(ticketId,comment,parentCommentID=null){return request(`${API_URL}/${ticketId}/comments`,{method:"POST",body:JSON.stringify({comment:comment.trim(),parentCommentID})});}
+export async function addManagerTicketComment(ticketId,comment,parentCommentID=null){return request(`${API_URL}/${ticketId}/manager-comment`,{method:"POST",body:JSON.stringify({comment:comment.trim(),parentCommentID})});}
 export async function getTicketAttachments(ticketId){const data=await request(`${API_URL}/${ticketId}/attachments`,{method:"GET"});return Array.isArray(data)?data:[];}
 export async function uploadCommentAttachments(ticketId,commentId,files){const token=requireToken();const formData=new FormData();files.forEach(file=>formData.append("files",file));formData.append("ticketCommentId",String(commentId));const response=await fetch(`${API_URL}/${ticketId}/attachments`,{method:"POST",headers:{Authorization:`Bearer ${token}`},body:formData});const data=await readResponse(response);if(!response.ok)throw new Error(data.message||`Upload failed. Error ${response.status}.`);return data;}
 export async function getAttachmentBlobUrl(ticketId,attachmentId){const token=requireToken();const response=await fetch(`${API_URL}/${ticketId}/attachments/${attachmentId}/download`,{headers:{Authorization:`Bearer ${token}`}});if(response.status===401)throw new Error("Your session has expired. Please sign in again.");if(response.status===403)throw new Error("You do not have permission to view this attachment.");if(!response.ok)throw new Error("Attachment could not be loaded.");return URL.createObjectURL(await response.blob());}
