@@ -13,6 +13,10 @@ export async function getAllTickets(){const data=await request(API_URL,{method:"
 export async function getAssignmentOptions(signal){const data=await request(`${API_URL}/assignment-options`,{method:"GET",signal});return{tickets:Array.isArray(data.tickets)?data.tickets:[],agents:Array.isArray(data.agents)?data.agents:[]};}
 export async function assignTicket(ticketId,agentUserId){return request(`${API_URL}/${ticketId}/workflow-assign`,{method:"POST",body:JSON.stringify({agentUserId:Number(agentUserId)})});}
 export async function takeTicket(ticketId){return request(`${API_URL}/${ticketId}/workflow-take`,{method:"POST"});}
+export async function getTakeRequest(ticketId){return request(`${API_URL}/${ticketId}/take-request`,{method:"GET"});}
+export async function approveTakeRequest(ticketId,agentUserId){return request(`${API_URL}/${ticketId}/take-request/approve`,{method:"POST",body:JSON.stringify({agentUserId:Number(agentUserId)})});}
+export async function rejectTakeRequest(ticketId,agentUserId,reason=""){return request(`${API_URL}/${ticketId}/take-request/reject`,{method:"POST",body:JSON.stringify({agentUserId:Number(agentUserId),reason})});}
+export async function deleteTicket(ticketId){return request(`${API_URL}/${ticketId}/withdraw`,{method:"DELETE"});}
 export async function startWork(ticketId){return request(`${API_URL}/${ticketId}/start-work`,{method:"POST"});}
 export async function pauseWork(ticketId){return request(`${API_URL}/${ticketId}/pause-work`,{method:"POST"});}
 export async function getTicketById(ticketId){return request(`${API_URL}/${ticketId}`,{method:"GET"});}
@@ -27,6 +31,7 @@ export async function getInternalNotes(ticketId){const data=await request(`${API
 export async function addInternalNote(ticketId,note){return request(`${API_URL}/${ticketId}/internal-notes`,{method:"POST",body:JSON.stringify({note:note.trim()})});}
 export async function getTicketActivity(ticketId){const data=await request(`${API_URL}/${ticketId}/activity`,{method:"GET"});return Array.isArray(data)?data:[];}
 export async function getTicketHistory(ticketId){const data=await request(`${API_URL}/${ticketId}/manager-history`,{method:"GET"});return Array.isArray(data)?data:[];}
+export async function getAgentTicketHistory(ticketId){const data=await request(`${API_URL}/${ticketId}/agent-history`,{method:"GET"});return Array.isArray(data)?data:[];}
 async function ticketAction(ticketId,action,note){return request(`${API_URL}/${ticketId}/${action}`,{method:"POST",body:JSON.stringify({note:String(note||"").trim()})});}
 export async function resolveTicket(ticketId,note){return ticketAction(ticketId,"resolve",note);}
 export async function escalateTicket(ticketId,reason){return ticketAction(ticketId,"escalate",reason);}
