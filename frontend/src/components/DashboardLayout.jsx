@@ -1,6 +1,7 @@
 import { useState } from "react";
 import Sidebar from "./Sidebar";
 import Topbar from "./Topbar";
+import TicketRoleTools from "./TicketRoleTools";
 import "../styles/dashboard/Dashboard.css";
 
 function DashboardLayout({ children, activePage }) {
@@ -15,7 +16,10 @@ function DashboardLayout({ children, activePage }) {
       />
       <main className="dashboard-main">
         <Topbar />
-        <section className="dashboard-content">{children}</section>
+        <section className="dashboard-content">
+          <TicketRoleTools />
+          {children}
+        </section>
       </main>
     </div>
   );
