@@ -2,6 +2,8 @@ import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import DashboardLayout from "../../components/DashboardLayout";
 import { getEmployeeDashboard } from "../../api/dashboard";
+import { getMyTickets } from "../../api/ticket";
+import { getCurrentUser } from "../../utils/getCurrentUser";
 import "../../styles/dashboard/EmployeeDashboard.css";
 
 function normalize(value) {
@@ -17,7 +19,9 @@ function formatDate(value) {
 
 function EmployeeDashboard() {
   const navigate = useNavigate();
+  const currentUser = getCurrentUser();
   const [dashboard, setDashboard] = useState(null);
+  const [tickets, setTickets] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [search, setSearch] = useState("");
@@ -26,7 +30,9 @@ function EmployeeDashboard() {
     try {
       setLoading(true);
       setError("");
-      setDashboard(await getEmployeeDashboard());
+      const [dashboardData, myTickets] = await Promise.all([getEmployeeDashboard(), getMyTickets()]);
+      setDashboard(dashboardData);
+      setTickets(Array.isArray(myTickets) ? myTickets : []);
     } catch (requestError) {
       setError(requestError.message || "The dashboard could not be loaded.");
     } finally {
@@ -34,16 +40,13 @@ function EmployeeDashboard() {
     }
   }
 
-  useEffect(() => {
-    loadDashboard();
-  }, []);
+  useEffect(() => { loadDashboard(); }, []);
 
-  const tickets = dashboard?.recentTickets || dashboard?.tickets || [];
   const counts = {
-    open: tickets.filter((ticket) => String(ticket.status).toLowerCase() === "open").length,
+    open: tickets.filter((ticket) => ["open", "assigned", "reopened"].includes(String(ticket.status).toLowerCase())).length,
     progress: tickets.filter((ticket) => String(ticket.status).toLowerCase() === "in progress").length,
     resolved: tickets.filter((ticket) => String(ticket.status).toLowerCase() === "resolved").length,
-    closed: tickets.filter((ticket) => String(ticket.status).toLowerCase() === "closed").length,
+    closed: tickets.filter((ticket) => ["closed", "cancelled", "canceled"].includes(String(ticket.status).toLowerCase())).length,
   };
 
   const filteredTickets = useMemo(() => {
@@ -64,7 +67,7 @@ function EmployeeDashboard() {
         <header className="product-page-header">
           <div>
             <span className="product-eyebrow">Employee workspace</span>
-            <h1>Welcome, {dashboard?.fullName || dashboard?.name || "Emily"}.</h1>
+            <h1>Welcome, {currentUser?.name || dashboard?.fullName || dashboard?.name || "Employee"}.</h1>
             <p>Here is the current status of your support requests.</p>
           </div>
           <button className="product-primary-button" onClick={() => navigate("/create-ticket")}>+ Create New Ticket</button>
@@ -73,10 +76,10 @@ function EmployeeDashboard() {
         <section className="product-panel employee-overview-panel">
           <div className="product-panel-heading"><div><span>My requests</span><h2>Ticket Overview</h2></div></div>
           <div className="employee-status-grid">
-            <div className="open"><span>Open</span><strong>{counts.open}</strong></div>
+            <div className="open"><span>Open / Assigned</span><strong>{counts.open}</strong></div>
             <div className="progress"><span>In Progress</span><strong>{counts.progress}</strong></div>
             <div className="resolved"><span>Resolved</span><strong>{counts.resolved}</strong></div>
-            <div className="closed"><span>Closed</span><strong>{counts.closed}</strong></div>
+            <div className="closed"><span>Closed / Cancelled</span><strong>{counts.closed}</strong></div>
           </div>
         </section>
 
@@ -90,7 +93,7 @@ function EmployeeDashboard() {
                 <tbody>
                   {filteredTickets.slice(0, 7).map((ticket) => (
                     <tr key={ticket.id} onClick={() => navigate(`/tickets/${ticket.id}`)}>
-                      <td><button><span>{ticket.ticketNumber || `#${ticket.id}`}</span><strong>{ticket.subject}</strong></button></td>
+                      <td><button type="button"><span>{ticket.ticketNumber || `#${ticket.id}`}</span><strong>{ticket.subject}</strong></button></td>
                       <td><span className={`product-badge status-${normalize(ticket.status)}`}>{ticket.status || "Open"}</span></td>
                       <td><span className={`product-badge priority-${normalize(ticket.priority)}`}>{ticket.priority || "Medium"}</span></td>
                       <td>{formatDate(ticket.updatedAt || ticket.createdAt)}</td>
