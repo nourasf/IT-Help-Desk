@@ -11,7 +11,7 @@ public class OllamaService
     private readonly HttpClient _httpClient;
     private readonly IConfiguration _configuration;
     private const string GroqEndpoint = "https://api.groq.com/openai/v1/chat/completions";
-    private const string ModelName = "openai/gpt-oss-20b";
+    private const string ModelName = "llama-3.3-70b-versatile";
 
     public OllamaService(HttpClient httpClient, IConfiguration configuration)
     {
@@ -152,8 +152,7 @@ Rules:
             ["model"] = ModelName,
             ["messages"] = messages,
             ["temperature"] = temperature,
-            ["max_completion_tokens"] = maxTokens,
-            ["reasoning_effort"] = "low"
+            ["max_completion_tokens"] = maxTokens
         };
 
         if (jsonMode)
