@@ -35,7 +35,6 @@ Return ONLY valid JSON matching:
 
 Ticket Subject: {{subject}}
 Ticket Description: {{description}}
-/no_think
 """;
 
         var request = new
@@ -91,7 +90,6 @@ Rules for reply:
 - For non-IT questions, answer naturally and briefly.
 - Do not invent company-specific passwords, server names, policies, ticket counts, agent metrics, or other live system data.
 - If live SupportHub data is required but was not supplied, say that you cannot determine it from the conversation alone.
-/no_think
 """;
 
         var safeHistory = (history ?? new List<AiChatHistoryMessage>())
@@ -112,7 +110,6 @@ You are SupportHub AI. User role: {{normalizedRole}}.
 Return ONLY JSON: {"reply":"one concise final user-facing answer"}
 Do not include analysis, reasoning, planning, notes, role discussion, or third-person references to the user.
 If you need live SupportHub data that was not supplied, say you cannot determine it from the conversation alone.
-/no_think
 """;
 
         var retry = await SendChatRequestAsync(retryPrompt, safeHistory, message);
@@ -143,7 +140,7 @@ If you need live SupportHub data that was not supplied, say you cannot determine
             });
         }
 
-        messages.Add(new { role = "user", content = $"{userMessage.Trim()}\n/no_think" });
+        messages.Add(new { role = "user", content = userMessage.Trim() });
 
         var request = new
         {
