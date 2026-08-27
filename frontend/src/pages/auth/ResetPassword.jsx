@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { API_ROOT } from "../../config/api";
 
 function ResetPassword() {
   const navigate = useNavigate();
@@ -23,7 +24,7 @@ function ResetPassword() {
     if (newPassword !== confirmPassword) { setError("Passwords do not match."); return; }
     setIsLoading(true);
     try {
-      const response = await fetch("http://localhost:5099/api/auth/reset-password", {
+      const response = await fetch(`${API_ROOT}/auth/reset-password`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, resetToken, newPassword }),
