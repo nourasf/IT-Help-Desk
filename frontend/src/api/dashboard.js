@@ -1,4 +1,6 @@
-const API_URL = "http://localhost:5099/api/dashboard";
+import { API_ROOT } from "../config/api";
+
+const API_URL = `${API_ROOT}/dashboard`;
 
 function getToken() {
   return localStorage.getItem("token") || sessionStorage.getItem("token");
