@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import "../../styles/auth/Auth.css";
 import { saveAuthentication } from "../../utils/authStorage";
+import { API_ROOT } from "../../config/api";
 
 import loginIllustration from "../../assets/login-illustration.png";
 
@@ -25,7 +26,7 @@ function Login() {
   const handleSubmit = async (event) => {
     event.preventDefault(); setError(""); setIsLoading(true);
     try {
-      const response = await fetch("http://localhost:5099/api/auth/login", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email, password }) });
+      const response = await fetch(`${API_ROOT}/auth/login`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email, password }) });
       const data = await response.json();
       if (!response.ok) throw new Error(data.message || "Invalid email or password.");
       if (!data.role) throw new Error("The backend did not return the user's role.");
