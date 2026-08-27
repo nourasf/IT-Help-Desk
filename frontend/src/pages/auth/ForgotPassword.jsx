@@ -4,17 +4,14 @@ import { forgotPassword } from "../../api/auth";
 
 function ForgotPassword() {
   const navigate = useNavigate();
-
   const [email, setEmail] = useState("");
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
   async function handleSubmit(event) {
     event.preventDefault();
-
     setError("");
     setIsLoading(true);
-
     try {
       await forgotPassword(email);
       sessionStorage.setItem("resetEmail", email.trim());
@@ -33,7 +30,7 @@ function ForgotPassword() {
         <div className="recovery-heading">
           <div className="recovery-icon">?</div>
           <h1>Forgot Password?</h1>
-          <p>Enter your SupportHub email address and we'll send a verification code to the phone number linked to your account.</p>
+          <p>Enter your SupportHub email address and we'll send a 6-digit verification code.</p>
         </div>
         {error && <div className="recovery-message error">{error}</div>}
         <form className="recovery-form" onSubmit={handleSubmit}>
