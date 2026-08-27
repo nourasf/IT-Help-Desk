@@ -49,14 +49,17 @@ public class NotificationService
         };
 
         _context.Notifications.Add(notification);
+        await _context.SaveChangesAsync();
 
         await _hub.Clients.Group($"user:{userId}")
             .SendAsync("NotificationReceived", new
             {
-                title,
-                message,
-                type,
-                ticketId,
+                id = notification.Id,
+                title = notification.Title,
+                message = notification.Message,
+                type = notification.Type,
+                ticketId = notification.TicketId,
+                isRead = notification.IsRead,
                 createdAt = notification.CreatedAt
             });
 
@@ -109,28 +112,32 @@ public class NotificationService
         }
 
         var createdAt = DateTime.UtcNow;
-
-        foreach (var userId in recipients)
+        var createdNotifications = recipients.Select(userId => new Notification
         {
-            _context.Notifications.Add(new Notification
-            {
-                UserId = userId,
-                Title = title,
-                Message = message,
-                Type = type,
-                TicketId = ticketId,
-                IsRead = false,
-                CreatedAt = createdAt
-            });
+            UserId = userId,
+            Title = title,
+            Message = message,
+            Type = type,
+            TicketId = ticketId,
+            IsRead = false,
+            CreatedAt = createdAt
+        }).ToList();
 
-            await _hub.Clients.Group($"user:{userId}")
+        _context.Notifications.AddRange(createdNotifications);
+        await _context.SaveChangesAsync();
+
+        foreach (var notification in createdNotifications)
+        {
+            await _hub.Clients.Group($"user:{notification.UserId}")
                 .SendAsync("NotificationReceived", new
                 {
-                    title,
-                    message,
-                    type,
-                    ticketId,
-                    createdAt
+                    id = notification.Id,
+                    title = notification.Title,
+                    message = notification.Message,
+                    type = notification.Type,
+                    ticketId = notification.TicketId,
+                    isRead = notification.IsRead,
+                    createdAt = notification.CreatedAt
                 });
         }
 
