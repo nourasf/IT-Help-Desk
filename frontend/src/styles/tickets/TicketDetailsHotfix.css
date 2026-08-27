@@ -6,96 +6,32 @@
 
 .ticket-manager-assignment-card{background:linear-gradient(180deg,#fff 0%,#fdfbff 100%)!important}.ticket-manager-assignment-grid{gap:14px!important}.ticket-manual-assignment,.ticket-smart-assignment{border:1px solid #e5deed!important;border-radius:14px!important;padding:15px!important;background:#fff!important;box-shadow:0 7px 18px rgba(59,43,88,.07)!important}.ticket-manual-assignment select{box-shadow:0 4px 12px rgba(62,47,90,.07)!important}
 
-.ticket-details-bottom-grid.ticket-details-bottom-single:has(+ .ticket-internal-notes-card){grid-column:1;min-width:0}.ticket-details-bottom-grid.ticket-details-bottom-single:has(+ .ticket-internal-notes-card)+.ticket-internal-notes-card{grid-column:2;min-width:0;margin-top:14px!important}.ticket-details-page{display:grid;grid-template-columns:minmax(0,2.1fr) minmax(315px,.9fr);column-gap:18px;align-items:start}.ticket-details-page>*{grid-column:1/-1}.ticket-comments-card,.ticket-internal-notes-card{min-height:430px!important}
+/* Approved ticket-details reference layout */
+.ticket-details-page{position:relative!important;display:grid!important;grid-template-columns:minmax(0,2.15fr) minmax(300px,.72fr)!important;gap:18px!important;max-width:1480px!important;padding:24px 26px 48px!important;background:linear-gradient(180deg,#f8f7ff 0%,#f4f5fb 100%)!important;border-radius:24px!important}
+.ticket-details-page>*{grid-column:1/-1!important}
 
-/* Stronger visual hierarchy for the ticket page. */
-.ticket-details-page{row-gap:4px!important}
-.ticket-details-grid{
-  margin-top:4px!important;
-  padding:16px!important;
-  border:1px solid #ddd5eb!important;
-  border-radius:22px!important;
-  background:linear-gradient(145deg,#f3f0fa 0%,#f7f5fb 58%,#f0f4fb 100%)!important;
-  box-shadow:inset 0 1px 0 rgba(255,255,255,.8),0 12px 28px rgba(66,49,96,.08)!important;
-}
-.ticket-details-main-card{
-  position:relative!important;
-  overflow:hidden!important;
-  border:1px solid #d9d1e8!important;
-  background:linear-gradient(180deg,#ffffff 0%,#fdfcff 100%)!important;
-  box-shadow:0 12px 28px rgba(67,49,99,.12)!important;
-}
-.ticket-details-main-card::before{
-  content:"";
-  position:absolute;
-  top:0;
-  left:0;
-  width:5px;
-  height:100%;
-  background:linear-gradient(180deg,#8067c8,#a58be0);
-}
-.ticket-details-section-heading{
-  margin:-2px -2px 14px!important;
-  padding:0 0 11px 12px!important;
-  border-bottom:1px solid #ece7f4!important;
-}
-.ticket-details-section-heading h2{color:#342951!important}
-.ticket-description{
-  border-color:#ded6ea!important;
-  background:#f8f6fc!important;
-  box-shadow:inset 0 1px 3px rgba(62,45,93,.045)!important;
-}
-.ticket-information-grid>div{
-  box-shadow:0 5px 14px rgba(66,49,96,.07)!important;
-}
-.ticket-ticket-files{
-  margin-top:18px!important;
-  padding:15px!important;
-  border:1px solid #e5deef!important;
-  border-radius:14px!important;
-  background:#faf8fd!important;
-}
-.ticket-ticket-files-header{margin-bottom:11px!important}
-.ticket-person-card:nth-child(1){background:linear-gradient(145deg,#faf8ff,#f4f1fb)!important;border-color:#ddd4ef!important}
-.ticket-person-card:nth-child(2){background:linear-gradient(145deg,#f7fbff,#eef5fc)!important;border-color:#d5e2ef!important}
-.ticket-work-card{background:linear-gradient(145deg,#fbfcff,#f4f7fb)!important;border-color:#dae2eb!important}
+.ticket-details-header{position:relative!important;min-height:118px!important;margin:0!important;padding:24px 420px 24px 24px!important;border:1px solid #e6e1f2!important;border-left:4px solid #6f52d9!important;border-radius:16px!important;background:linear-gradient(180deg,#ffffff 0%,#fdfcff 100%)!important;box-shadow:0 10px 28px rgba(62,45,94,.10)!important}
+.ticket-details-header h1{margin-top:14px!important;font-size:27px!important;color:#1f2440!important}
+.ticket-details-number{font-size:14px!important;color:#1e2543!important;font-weight:900!important;letter-spacing:.03em!important}
+.ticket-back-button{position:absolute!important;left:0!important;top:-56px!important;min-height:40px!important;padding:0 14px!important;background:#fff!important;border:1px solid #e4e0ef!important;border-radius:10px!important;box-shadow:0 5px 16px rgba(57,42,89,.08)!important;color:#2c3153!important;font-weight:800!important}
+.ticket-details-badges{margin-top:12px!important;display:flex!important;gap:9px!important}.ticket-details-badge{padding:7px 12px!important;font-size:10px!important;border-radius:999px!important}.priority-high{background:#fff0f1!important;color:#db4f5b!important;border:1px solid #ffd5d9!important}.status-in-progress{background:#edf5ff!important;color:#3d75d8!important;border:1px solid #d5e5ff!important}.status-open{background:#eef5ff!important;color:#4a73d8!important;border:1px solid #dbe7ff!important}
 
-.ticket-details-bottom-grid.ticket-details-bottom-single{
-  margin-top:26px!important;
-  padding:10px!important;
-  border:1px solid #ded5ef!important;
-  border-radius:20px!important;
-  background:linear-gradient(145deg,#f2eefb,#f7f4fc)!important;
-  box-shadow:0 10px 24px rgba(66,49,96,.08)!important;
-}
-.ticket-comments-card{
-  border-color:#d8cfea!important;
-  background:linear-gradient(180deg,#fff 0%,#fcfaff 100%)!important;
-  box-shadow:0 12px 28px rgba(68,49,101,.12)!important;
-}
-.ticket-comments-card .ticket-bottom-card-heading{
-  margin:-2px 0 14px!important;
-  padding:0 0 12px 10px!important;
-  border-bottom:1px solid #e9e2f3!important;
-}
-.ticket-comments-card .ticket-bottom-card-heading span{color:#7560b8!important}
-.ticket-empty-section{background:rgba(255,255,255,.72)!important}
+.ticket-action-bar-clear{position:absolute!important;z-index:25!important;top:49px!important;right:50px!important;width:auto!important;margin:0!important;padding:0!important;border:0!important;background:transparent!important;box-shadow:none!important}.ticket-action-bar-copy{display:none!important}.ticket-action-buttons{gap:12px!important}.ticket-toolbar-button{min-height:44px!important;padding:0 18px!important;background:#fff!important;border:1px solid #d8d3e5!important;color:#2b3150!important;border-radius:10px!important;font-size:12px!important;font-weight:800!important;box-shadow:0 4px 12px rgba(57,42,89,.06)!important}.ticket-toolbar-button.primary{border-color:#8e72da!important;color:#5f43bf!important;background:#fff!important}.ticket-toolbar-button:hover{transform:translateY(-1px)!important;box-shadow:0 8px 20px rgba(57,42,89,.10)!important}
 
-.ticket-internal-notes-card{
-  margin-top:26px!important;
-  border:1px solid #ead8a8!important;
-  background:linear-gradient(180deg,#fffdf6 0%,#fff9e9 100%)!important;
-  box-shadow:0 12px 28px rgba(123,91,28,.10)!important;
-}
-.ticket-internal-notes-card .ticket-bottom-card-heading{
-  padding-bottom:12px!important;
-  border-bottom:1px solid #f0dfb8!important;
-}
-.ticket-internal-notes-card .ticket-bottom-card-heading span{color:#b77a10!important}
-.ticket-internal-notes-card .ticket-empty-section{
-  border-color:#edd59b!important;
-  background:#fffaf0!important;
-}
+.ticket-manager-assignment-card{margin:0!important;border-left:4px solid #8d74dc!important;border-radius:16px!important;box-shadow:0 9px 24px rgba(58,42,86,.08)!important}
 
-@media(max-width:1050px){.ticket-details-page{display:block}.ticket-details-bottom-grid.ticket-details-bottom-single:has(+ .ticket-internal-notes-card),.ticket-details-bottom-grid.ticket-details-bottom-single:has(+ .ticket-internal-notes-card)+.ticket-internal-notes-card{margin-top:18px!important}.ticket-more-actions-menu{position:fixed;top:50%;left:50%;right:auto;transform:translate(-50%,-50%);width:min(420px,calc(100vw - 32px));max-height:75vh;overflow:auto}.ticket-details-grid{padding:12px!important}.ticket-details-bottom-grid.ticket-details-bottom-single{padding:8px!important}}
-@media(max-width:700px){.ticket-edit-row{grid-template-columns:1fr}.ticket-action-buttons,.ticket-toolbar-button{width:100%}.ticket-toolbar-button{justify-content:center}.ticket-details-grid{padding:8px!important;border-radius:16px!important}.ticket-details-bottom-grid.ticket-details-bottom-single{padding:6px!important;border-radius:16px!important}}
+.ticket-details-grid{grid-column:1/-1!important;display:grid!important;grid-template-columns:minmax(0,2.15fr) minmax(300px,.72fr)!important;gap:18px!important;align-items:start!important;margin:6px 0 0!important}
+.ticket-details-main-card{position:relative!important;padding:20px!important;border:1px solid #e7e2ef!important;border-left:4px solid #7657d7!important;border-radius:16px!important;background:#fff!important;box-shadow:0 9px 24px rgba(58,42,86,.08)!important}
+.ticket-details-section-heading h2{font-size:17px!important;color:#292e49!important}.ticket-description{margin:8px 0 18px!important;padding:18px 16px!important;background:#fbfbfe!important;border:1px solid #e8e8f0!important;border-radius:12px!important;color:#5b6278!important;font-size:12px!important}
+.ticket-information-grid{display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:12px!important}.ticket-information-grid>div{min-height:74px!important;padding:14px!important;border-radius:12px!important;box-shadow:none!important}.ticket-information-grid>div:nth-child(1){background:#f3f0ff!important;border-color:#d9d1ff!important}.ticket-information-grid>div:nth-child(2){background:#fff9ed!important;border-color:#f3d99e!important}.ticket-information-grid>div:nth-child(3){background:#eef9f4!important;border-color:#cae8db!important}.ticket-information-grid>div:nth-child(n+4){background:#fff!important;border-color:#e6e8ef!important}.ticket-information-grid span{font-size:8px!important;color:#8a92a7!important}.ticket-information-grid strong{font-size:12px!important;color:#3f4659!important}
+
+.ticket-ticket-files{margin-top:18px!important;padding:16px!important;border-top:0!important;border:1px solid #e7e5ee!important;border-radius:14px!important;background:#fff!important;box-shadow:0 5px 14px rgba(55,41,84,.04)!important}.ticket-ticket-files-header strong{font-size:12px!important;color:#2e3550!important}.ticket-file-card{min-height:66px!important;background:#fcfcff!important;border-color:#e5e3ed!important;border-radius:12px!important;box-shadow:none!important}.ticket-file-preview{background:#f1edff!important;color:#6a4fd0!important}.ticket-file-open{color:#6248c2!important}
+
+.ticket-details-sidebar{display:grid!important;gap:14px!important}.ticket-person-card,.ticket-work-card{padding:16px!important;border:1px solid #e7e2ef!important;border-radius:14px!important;background:#fff!important;box-shadow:0 8px 22px rgba(58,42,86,.08)!important}.ticket-person-card:nth-child(1){border-top:3px solid #8e72da!important}.ticket-person-card:nth-child(2){border-top:3px solid #76a9e8!important}.ticket-work-card{border-top:3px solid #78c9a3!important}.ticket-person-label{font-size:8px!important;color:#98a0b2!important}.ticket-person-avatar{background:#eee8ff!important;color:#6a4fd0!important}.ticket-person-avatar.agent{background:#e7f1ff!important;color:#467ec7!important}.ticket-work-empty,.ticket-work-active{padding:13px!important;border-radius:11px!important}.ticket-work-empty{background:#eef9f4!important;color:#285f4c!important}.ticket-total-work-time{padding-top:12px!important}
+
+.ticket-details-bottom-grid.ticket-details-bottom-single{grid-column:1!important;margin-top:4px!important}.ticket-comments-card{min-height:400px!important;padding:18px!important;border:1px solid #e5e0ef!important;border-left:4px solid #7657d7!important;border-radius:16px!important;background:#fff!important;box-shadow:0 9px 24px rgba(58,42,86,.08)!important}.ticket-comments-card .ticket-bottom-card-heading{padding-bottom:12px!important}.ticket-comments-card .ticket-bottom-card-heading span{color:#6f60c4!important;font-weight:900!important}.ticket-comments-card .ticket-empty-section{min-height:145px!important;display:grid!important;place-items:center!important;background:#fbfbff!important;border:1px dashed #d8d2e8!important}.ticket-comments-card .ticket-comment-form{margin-top:14px!important}.ticket-comments-card .ticket-comment-form textarea{background:#fff!important;min-height:76px!important}
+
+.ticket-details-bottom-grid.ticket-details-bottom-single+.ticket-internal-notes-card{grid-column:2!important;margin-top:4px!important;min-height:400px!important;padding:18px!important;border:1px solid #f0dcae!important;border-left:4px solid #f1a313!important;border-radius:16px!important;background:linear-gradient(180deg,#fffdfa 0%,#fff9ef 100%)!important;box-shadow:0 9px 24px rgba(108,73,22,.08)!important}.ticket-internal-notes-card .ticket-bottom-card-heading{padding-bottom:12px!important;border-bottom:1px solid #f1dfb7!important}.ticket-internal-notes-card .ticket-bottom-card-heading span{color:#d88900!important;font-weight:900!important}.ticket-internal-notes-card .ticket-empty-section{min-height:145px!important;display:grid!important;place-items:center!important;background:#fffdf9!important;border:1px dashed #efc76d!important}.ticket-internal-notes-card .ticket-comment-form textarea{background:#fff!important;border-color:#efd49c!important}
+
+@media(max-width:1100px){.ticket-details-page{display:block!important}.ticket-action-bar-clear{position:static!important;margin-top:12px!important}.ticket-action-bar-copy{display:block!important}.ticket-details-header{padding-right:24px!important}.ticket-details-grid{grid-template-columns:1fr!important}.ticket-details-sidebar{grid-template-columns:repeat(3,minmax(0,1fr))!important;margin-top:0!important}.ticket-details-bottom-grid.ticket-details-bottom-single,.ticket-details-bottom-grid.ticket-details-bottom-single+.ticket-internal-notes-card{margin-top:18px!important}.ticket-details-bottom-grid.ticket-details-bottom-single+.ticket-internal-notes-card{grid-column:1!important}.ticket-back-button{position:static!important;margin-bottom:10px!important}}
+@media(max-width:760px){.ticket-details-page{padding:16px!important}.ticket-details-header{padding:18px!important}.ticket-details-header h1{font-size:23px!important}.ticket-information-grid{grid-template-columns:1fr!important}.ticket-details-sidebar{grid-template-columns:1fr!important}.ticket-action-buttons,.ticket-toolbar-button{width:100%!important}.ticket-edit-row{grid-template-columns:1fr!important}}
