@@ -4,12 +4,13 @@ import { useForm } from "react-hook-form";
 import { useNavigate } from "react-router-dom";
 import DashboardLayout from "../../components/DashboardLayout";
 import { getStoredToken } from "../../utils/authStorage";
+import { API_ROOT } from "../../config/api";
 import "../../styles/admin/Admin.css";
 
 const roles = ["Employee", "IT Support Agent", "Manager", "Admin"];
 
 async function createUserRequest(form) {
-  const response = await fetch("http://localhost:5099/api/users", {
+  const response = await fetch(`${API_ROOT}/users`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
