@@ -1,4 +1,6 @@
-const API_URL = "http://localhost:5099/api/auth";
+import { API_ROOT } from "../config/api";
+
+const API_URL = `${API_ROOT}/auth`;
 
 async function readResponse(response) {
   const text = await response.text();
