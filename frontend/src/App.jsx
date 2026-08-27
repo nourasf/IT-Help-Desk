@@ -2,6 +2,7 @@ import "./styles/auth/Auth.css";
 import "./styles/tickets/TicketDetails.css";
 import "./styles/tickets/TicketOverrides.css";
 import "./styles/VisualPolish.css";
+import "./styles/tickets/TicketDetailsFinal.css";
 import "./utils/globalDashboardFixes.js";
 import { BrowserRouter, Navigate, Route, Routes, useNavigate } from "react-router-dom";
 import Notifications from "./pages/notifications/Notifications";
