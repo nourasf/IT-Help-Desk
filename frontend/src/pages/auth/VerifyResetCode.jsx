@@ -1,5 +1,13 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { API_ROOT } from "../../config/api";
+
+async function readResponse(response) {
+  const text = await response.text();
+  if (!text) return {};
+  try { return JSON.parse(text); }
+  catch { return { message: text }; }
+}
 
 function VerifyResetCode() {
   const navigate = useNavigate();
@@ -48,14 +56,15 @@ function VerifyResetCode() {
     if (otp.length !== 6) { setError("Enter the complete 6-digit code."); return; }
     setIsLoading(true);
     try {
-      const response = await fetch("http://localhost:5099/api/auth/verify-reset-otp", {
+      const response = await fetch(`${API_ROOT}/auth/verify-reset-otp`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", Accept: "application/json" },
         body: JSON.stringify({ email, otp }),
       });
-      const data = await response.json();
+      const data = await readResponse(response);
       if (!response.ok) throw new Error(data.message || "The verification code is invalid.");
-      if (data.resetToken) sessionStorage.setItem("passwordResetToken", data.resetToken);
+      if (!data.resetToken) throw new Error("The reset token was not returned by the server.");
+      sessionStorage.setItem("passwordResetToken", data.resetToken);
       navigate("/reset-password");
     } catch (err) {
       setError(err.message || "The verification code is invalid.");
@@ -68,7 +77,7 @@ function VerifyResetCode() {
     <main className="recovery-page">
       <section className="recovery-card">
         <button type="button" className="recovery-back" onClick={() => navigate("/forgot-password")}>← Change email</button>
-        <div className="recovery-heading"><div className="recovery-icon">#</div><h1>Enter Verification Code</h1><p>Enter the 6-digit code sent to the phone number linked to your account.</p><strong className="recovery-email">{email}</strong></div>
+        <div className="recovery-heading"><div className="recovery-icon">#</div><h1>Enter Verification Code</h1><p>Enter the 6-digit code sent to your email address.</p><strong className="recovery-email">{email}</strong></div>
         {error && <div className="recovery-message error">{error}</div>}
         <form className="recovery-form" onSubmit={handleSubmit}>
           <div className="otp-inputs" onPaste={handlePaste}>
