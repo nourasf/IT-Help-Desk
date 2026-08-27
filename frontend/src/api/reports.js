@@ -1,6 +1,7 @@
 import { getStoredToken } from "../utils/authStorage";
+import { API_ROOT } from "../config/api";
 
-const REPORTS_URL = "http://localhost:5099/api/reports";
+const REPORTS_URL = `${API_ROOT}/reports`;
 
 async function readResponse(response) {
   const text = await response.text();
