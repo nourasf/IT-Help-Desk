@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import * as signalR from "@microsoft/signalr";
-import { getNotifications, getUnreadNotificationCount, markAllNotificationsAsRead, markNotificationAsRead } from "../api/notifications";
+import { BACKEND_BASE_URL, getNotifications, getUnreadNotificationCount, markAllNotificationsAsRead, markNotificationAsRead } from "../api/notifications";
 import { getStoredToken } from "../utils/authStorage";
 import { getCurrentUser } from "../utils/getCurrentUser";
 import "../styles/notifications/Notifications.css";
@@ -21,7 +21,7 @@ function Topbar() {
   useEffect(() => { loadNotifications(); }, []);
   useEffect(() => {
     const token = getStoredToken(); if (!token) return undefined;
-    const connection = new signalR.HubConnectionBuilder().withUrl("http://localhost:5099/hubs/notifications", { accessTokenFactory: () => getStoredToken() || "" }).withAutomaticReconnect().configureLogging(signalR.LogLevel.Warning).build();
+    const connection = new signalR.HubConnectionBuilder().withUrl(`${BACKEND_BASE_URL}/hubs/notifications`, { accessTokenFactory: () => getStoredToken() || "" }).withAutomaticReconnect().configureLogging(signalR.LogLevel.Warning).build();
     connection.on("NotificationReceived", (notification) => { setNotifications((current) => [notification, ...current.filter((item) => item.id !== notification.id)].slice(0, 5)); setUnreadCount((current) => current + 1); showNotificationToast(notification); });
     connection.start().catch(() => loadUnreadCount());
     return () => { connection.stop().catch(() => {}); window.clearTimeout(toastTimerRef.current); };
