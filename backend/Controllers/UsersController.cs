@@ -59,6 +59,12 @@ namespace backend.Controllers
             var roleName = request.Role.Trim();
             var normalizedRoleName = roleName.ToLower();
 
+            // The UI presents this role as "IT Support Agent", while the database
+            // stores the canonical role name as "Agent". Accept both names so
+            // user creation stays compatible with the rest of the app.
+            if (normalizedRoleName == "it support agent" || normalizedRoleName == "it")
+                normalizedRoleName = "agent";
+
             var role = await _context.Roles
                 .FirstOrDefaultAsync(existingRole =>
                     existingRole.Name.ToLower() == normalizedRoleName);
