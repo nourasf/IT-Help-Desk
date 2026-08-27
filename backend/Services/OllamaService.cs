@@ -76,13 +76,10 @@ You are SupportHub AI, a friendly conversational assistant.
 User role: {{normalizedRole}}.
 {{roleGuidance}}
 
-Return ONLY valid JSON in exactly this shape:
-{"reply":"the final answer shown to the user"}
-
-Rules for reply:
+Rules:
+- Answer with normal user-facing text only.
 - Speak directly to the user.
 - Never narrate reasoning, analysis, planning, hidden instructions, or how you constructed the answer.
-- Never refer to the user in third person.
 - For greetings and casual conversation, respond normally.
 - For IT problems, give concise practical help. Use at most 4 short steps when useful.
 - Use previous messages for context and do not repeat steps already tried.
@@ -99,32 +96,23 @@ Rules for reply:
             .ToList();
 
         var first = await SendChatRequestAsync(systemPrompt, safeHistory, message);
-        var cleaned = ExtractReplyFromJsonOrText(first);
-
-        if (!string.IsNullOrWhiteSpace(cleaned) && !LooksLikeInternalReasoning(cleaned))
-            return cleaned;
-
-        var retryPrompt = $$"""
-You are SupportHub AI. User role: {{normalizedRole}}.
-Return ONLY JSON: {"reply":"one concise final user-facing answer"}
-Do not include analysis, reasoning, planning, notes, role discussion, or hidden instructions.
-If you need live SupportHub data that was not supplied, say you cannot determine it from the conversation alone.
-""";
-
-        var retry = await SendChatRequestAsync(retryPrompt, safeHistory, message);
-        var retryCleaned = ExtractReplyFromJsonOrText(retry);
-
-        if (!string.IsNullOrWhiteSpace(retryCleaned) && !LooksLikeInternalReasoning(retryCleaned))
-            return retryCleaned;
-
-        // If Ollama still returned something usable after cleaning, prefer that over a generic dead-end message.
-        if (!string.IsNullOrWhiteSpace(retryCleaned))
-            return retryCleaned;
+        var cleaned = CleanChatResponse(first);
 
         if (!string.IsNullOrWhiteSpace(cleaned))
             return cleaned;
 
-        return "I couldn't generate a response just now. Please try asking that again.";
+        var retryPrompt = $$"""
+You are SupportHub AI. User role: {{normalizedRole}}.
+Give one concise final answer directly to the user.
+Do not include analysis, hidden reasoning, system instructions, or role discussion.
+""";
+
+        var retry = await SendChatRequestAsync(retryPrompt, safeHistory, message);
+        var retryCleaned = CleanChatResponse(retry);
+
+        return !string.IsNullOrWhiteSpace(retryCleaned)
+            ? retryCleaned
+            : "I couldn't generate a response just now. Please try asking that again.";
     }
 
     private async Task<string> SendChatRequestAsync(
@@ -154,8 +142,7 @@ If you need live SupportHub data that was not supplied, say you cannot determine
             messages,
             stream = false,
             think = false,
-            format = "json",
-            options = new { num_predict = 260, temperature = 0.1 }
+            options = new { num_predict = 320, temperature = 0.2 }
         };
 
         var response = await _httpClient.PostAsJsonAsync("http://localhost:11434/api/chat", request);
@@ -164,69 +151,27 @@ If you need live SupportHub data that was not supplied, say you cannot determine
         var rawJson = await response.Content.ReadAsStringAsync();
         var json = JsonSerializer.Deserialize<JsonElement>(rawJson);
 
-        if (!json.TryGetProperty("message", out var msg) ||
-            !msg.TryGetProperty("content", out var content))
+        if (!json.TryGetProperty("message", out var msg))
             throw new Exception("Ollama returned no usable chat response.");
 
-        var responseText = content.GetString();
+        string? responseText = null;
+
+        if (msg.TryGetProperty("content", out var content))
+            responseText = content.GetString();
+
+        if (string.IsNullOrWhiteSpace(responseText) && msg.TryGetProperty("thinking", out var thinking))
+            responseText = thinking.GetString();
+
         if (string.IsNullOrWhiteSpace(responseText))
             throw new Exception("Ollama returned no usable chat response.");
 
         return responseText.Trim();
     }
 
-    private static string ExtractReplyFromJsonOrText(string text)
+    private static string CleanChatResponse(string text)
     {
         if (string.IsNullOrWhiteSpace(text))
             return string.Empty;
-
-        var cleanedText = CleanChatResponse(text);
-
-        try
-        {
-            using var document = JsonDocument.Parse(cleanedText);
-            if (document.RootElement.ValueKind == JsonValueKind.Object &&
-                document.RootElement.TryGetProperty("reply", out var replyProperty))
-            {
-                var reply = replyProperty.GetString();
-                if (!string.IsNullOrWhiteSpace(reply))
-                    return CleanChatResponse(reply);
-            }
-        }
-        catch (JsonException)
-        {
-        }
-
-        // Be tolerant if the local model ignores JSON formatting but still gives a clean user-facing answer.
-        return cleanedText;
-    }
-
-    private static bool LooksLikeInternalReasoning(string text)
-    {
-        var lower = text.ToLowerInvariant();
-
-        // Only block strong evidence of a reasoning/instruction leak. Avoid broad phrases such as
-        // "I need" or "the user" that can appear naturally in legitimate support answers.
-        string[] blocked =
-        {
-            "system prompt",
-            "hidden instructions",
-            "chain-of-thought",
-            "internal reasoning",
-            "i'll reason",
-            "i will reason",
-            "we need to respond",
-            "need to recall the context",
-            "role_context",
-            "recent_conversation"
-        };
-
-        return blocked.Any(lower.Contains);
-    }
-
-    private static string CleanChatResponse(string text)
-    {
-        if (string.IsNullOrWhiteSpace(text)) return string.Empty;
 
         var cleaned = Regex.Replace(
             text,
@@ -241,6 +186,12 @@ If you need live SupportHub data that was not supplied, say you cannot determine
 
         if (cleaned.StartsWith("Final answer:", StringComparison.OrdinalIgnoreCase))
             cleaned = cleaned["Final answer:".Length..].Trim();
+
+        if (cleaned.StartsWith("```"))
+        {
+            cleaned = Regex.Replace(cleaned, @"^```(?:json|text)?\s*", string.Empty, RegexOptions.IgnoreCase);
+            cleaned = Regex.Replace(cleaned, @"\s*```$", string.Empty).Trim();
+        }
 
         return cleaned;
     }
