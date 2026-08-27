@@ -63,7 +63,7 @@ export async function getAssignmentOptions(signal) {
 }
 
 export async function assignTicket(ticketId, agentUserId) {
-  return request(`${API_URL}/${ticketId}/assign`, { method: "POST", body: JSON.stringify({ agentUserId: Number(agentUserId) }) });
+  return request(`${API_URL}/${ticketId}/workflow-assign`, { method: "POST", body: JSON.stringify({ agentUserId: Number(agentUserId) }) });
 }
 export async function takeTicket(ticketId) { return request(`${API_URL}/${ticketId}/take`, { method: "POST" }); }
 export async function startWork(ticketId) { return request(`${API_URL}/${ticketId}/start-work`, { method: "POST" }); }
@@ -131,7 +131,7 @@ export async function getTicketActivity(ticketId) {
   return Array.isArray(data) ? data : [];
 }
 export async function getTicketHistory(ticketId) {
-  const data = await request(`${API_URL}/${ticketId}/history`, { method: "GET" });
+  const data = await request(`${API_URL}/${ticketId}/manager-history`, { method: "GET" });
   return Array.isArray(data) ? data : [];
 }
 
@@ -148,8 +148,8 @@ export async function escalateTicket(ticketId, reason) {
   }
   return result;
 }
-export async function cancelTicket(ticketId, reason) { return ticketAction(ticketId, "cancel", reason); }
-export async function returnTicketToManager(ticketId, reason) { return ticketAction(ticketId, "return-to-manager", reason); }
+export async function cancelTicket(ticketId, reason) { return ticketAction(ticketId, "workflow-cancel", reason); }
+export async function returnTicketToManager(ticketId, reason) { return ticketAction(ticketId, "workflow-return", reason); }
 export async function reopenTicket(ticketId, reason) { return ticketAction(ticketId, "reopen", reason); }
 export async function managerReopenTicket(ticketId, reason) { return reopenTicket(ticketId, reason); }
-export async function closeTicket(ticketId) { return request(`${API_URL}/${ticketId}/close`, { method: "POST" }); }
+export async function closeTicket(ticketId, note = "Resolved issue verified and closed by the assigned agent.") { return ticketAction(ticketId, "workflow-close", note); }
