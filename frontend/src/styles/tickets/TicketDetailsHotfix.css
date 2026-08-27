@@ -8,5 +8,94 @@
 
 .ticket-details-bottom-grid.ticket-details-bottom-single:has(+ .ticket-internal-notes-card){grid-column:1;min-width:0}.ticket-details-bottom-grid.ticket-details-bottom-single:has(+ .ticket-internal-notes-card)+.ticket-internal-notes-card{grid-column:2;min-width:0;margin-top:14px!important}.ticket-details-page{display:grid;grid-template-columns:minmax(0,2.1fr) minmax(315px,.9fr);column-gap:18px;align-items:start}.ticket-details-page>*{grid-column:1/-1}.ticket-comments-card,.ticket-internal-notes-card{min-height:430px!important}
 
-@media(max-width:1050px){.ticket-details-page{display:block}.ticket-details-bottom-grid.ticket-details-bottom-single:has(+ .ticket-internal-notes-card),.ticket-details-bottom-grid.ticket-details-bottom-single:has(+ .ticket-internal-notes-card)+.ticket-internal-notes-card{margin-top:14px!important}.ticket-more-actions-menu{position:fixed;top:50%;left:50%;right:auto;transform:translate(-50%,-50%);width:min(420px,calc(100vw - 32px));max-height:75vh;overflow:auto}}
-@media(max-width:700px){.ticket-edit-row{grid-template-columns:1fr}.ticket-action-buttons,.ticket-toolbar-button{width:100%}.ticket-toolbar-button{justify-content:center}}
+/* Stronger visual hierarchy for the ticket page. */
+.ticket-details-page{row-gap:4px!important}
+.ticket-details-grid{
+  margin-top:4px!important;
+  padding:16px!important;
+  border:1px solid #ddd5eb!important;
+  border-radius:22px!important;
+  background:linear-gradient(145deg,#f3f0fa 0%,#f7f5fb 58%,#f0f4fb 100%)!important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.8),0 12px 28px rgba(66,49,96,.08)!important;
+}
+.ticket-details-main-card{
+  position:relative!important;
+  overflow:hidden!important;
+  border:1px solid #d9d1e8!important;
+  background:linear-gradient(180deg,#ffffff 0%,#fdfcff 100%)!important;
+  box-shadow:0 12px 28px rgba(67,49,99,.12)!important;
+}
+.ticket-details-main-card::before{
+  content:"";
+  position:absolute;
+  top:0;
+  left:0;
+  width:5px;
+  height:100%;
+  background:linear-gradient(180deg,#8067c8,#a58be0);
+}
+.ticket-details-section-heading{
+  margin:-2px -2px 14px!important;
+  padding:0 0 11px 12px!important;
+  border-bottom:1px solid #ece7f4!important;
+}
+.ticket-details-section-heading h2{color:#342951!important}
+.ticket-description{
+  border-color:#ded6ea!important;
+  background:#f8f6fc!important;
+  box-shadow:inset 0 1px 3px rgba(62,45,93,.045)!important;
+}
+.ticket-information-grid>div{
+  box-shadow:0 5px 14px rgba(66,49,96,.07)!important;
+}
+.ticket-ticket-files{
+  margin-top:18px!important;
+  padding:15px!important;
+  border:1px solid #e5deef!important;
+  border-radius:14px!important;
+  background:#faf8fd!important;
+}
+.ticket-ticket-files-header{margin-bottom:11px!important}
+.ticket-person-card:nth-child(1){background:linear-gradient(145deg,#faf8ff,#f4f1fb)!important;border-color:#ddd4ef!important}
+.ticket-person-card:nth-child(2){background:linear-gradient(145deg,#f7fbff,#eef5fc)!important;border-color:#d5e2ef!important}
+.ticket-work-card{background:linear-gradient(145deg,#fbfcff,#f4f7fb)!important;border-color:#dae2eb!important}
+
+.ticket-details-bottom-grid.ticket-details-bottom-single{
+  margin-top:26px!important;
+  padding:10px!important;
+  border:1px solid #ded5ef!important;
+  border-radius:20px!important;
+  background:linear-gradient(145deg,#f2eefb,#f7f4fc)!important;
+  box-shadow:0 10px 24px rgba(66,49,96,.08)!important;
+}
+.ticket-comments-card{
+  border-color:#d8cfea!important;
+  background:linear-gradient(180deg,#fff 0%,#fcfaff 100%)!important;
+  box-shadow:0 12px 28px rgba(68,49,101,.12)!important;
+}
+.ticket-comments-card .ticket-bottom-card-heading{
+  margin:-2px 0 14px!important;
+  padding:0 0 12px 10px!important;
+  border-bottom:1px solid #e9e2f3!important;
+}
+.ticket-comments-card .ticket-bottom-card-heading span{color:#7560b8!important}
+.ticket-empty-section{background:rgba(255,255,255,.72)!important}
+
+.ticket-internal-notes-card{
+  margin-top:26px!important;
+  border:1px solid #ead8a8!important;
+  background:linear-gradient(180deg,#fffdf6 0%,#fff9e9 100%)!important;
+  box-shadow:0 12px 28px rgba(123,91,28,.10)!important;
+}
+.ticket-internal-notes-card .ticket-bottom-card-heading{
+  padding-bottom:12px!important;
+  border-bottom:1px solid #f0dfb8!important;
+}
+.ticket-internal-notes-card .ticket-bottom-card-heading span{color:#b77a10!important}
+.ticket-internal-notes-card .ticket-empty-section{
+  border-color:#edd59b!important;
+  background:#fffaf0!important;
+}
+
+@media(max-width:1050px){.ticket-details-page{display:block}.ticket-details-bottom-grid.ticket-details-bottom-single:has(+ .ticket-internal-notes-card),.ticket-details-bottom-grid.ticket-details-bottom-single:has(+ .ticket-internal-notes-card)+.ticket-internal-notes-card{margin-top:18px!important}.ticket-more-actions-menu{position:fixed;top:50%;left:50%;right:auto;transform:translate(-50%,-50%);width:min(420px,calc(100vw - 32px));max-height:75vh;overflow:auto}.ticket-details-grid{padding:12px!important}.ticket-details-bottom-grid.ticket-details-bottom-single{padding:8px!important}}
+@media(max-width:700px){.ticket-edit-row{grid-template-columns:1fr}.ticket-action-buttons,.ticket-toolbar-button{width:100%}.ticket-toolbar-button{justify-content:center}.ticket-details-grid{padding:8px!important;border-radius:16px!important}.ticket-details-bottom-grid.ticket-details-bottom-single{padding:6px!important;border-radius:16px!important}}
