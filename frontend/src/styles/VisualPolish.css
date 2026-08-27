@@ -1,0 +1,357 @@
+/* Visual polish overrides for notifications, agent focus card and ticket history. */
+
+/* =========================
+   Notifications page
+   ========================= */
+.notifications-page {
+  width: min(1200px, 100%);
+}
+
+.notifications-page-header {
+  align-items: center;
+  margin-bottom: 26px;
+}
+
+.notifications-page-header > div > span {
+  color: #6256d9;
+  font-size: 11px;
+  letter-spacing: 0.14em;
+}
+
+.notifications-page-header h1 {
+  color: #25284a;
+  font-size: clamp(34px, 3vw, 44px);
+  letter-spacing: -0.035em;
+}
+
+.notifications-page-header p {
+  color: #747b95;
+  font-size: 15px;
+}
+
+.notifications-page-header > button {
+  min-height: 42px;
+  padding: 0 18px;
+  border-color: #dcd8fb;
+  background: linear-gradient(180deg, #ffffff 0%, #f7f5ff 100%);
+  color: #6558d8;
+  box-shadow: 0 8px 20px rgba(83, 73, 169, 0.08);
+}
+
+.notifications-page-list {
+  overflow: hidden;
+  border: 1px solid #e8e5f4;
+  border-radius: 20px;
+  background: #fff;
+  box-shadow: 0 16px 38px rgba(57, 52, 104, 0.09);
+}
+
+.notifications-page-item {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 22px;
+  align-items: center;
+  width: 100%;
+  min-height: 78px;
+  padding: 17px 22px 17px 30px;
+  border: 0;
+  border-bottom: 1px solid #efedf7;
+  background: #fff;
+  text-align: left;
+  transition: background 0.18s ease, transform 0.18s ease;
+}
+
+.notifications-page-item:last-child {
+  border-bottom: 0;
+}
+
+.notifications-page-item::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 14px;
+  bottom: 14px;
+  width: 4px;
+  border-radius: 0 8px 8px 0;
+  background: #7869e8;
+  opacity: 0.85;
+}
+
+.notifications-page-item:nth-child(4n + 1)::before { background: #ef647c; }
+.notifications-page-item:nth-child(4n + 2)::before { background: #38a875; }
+.notifications-page-item:nth-child(4n + 3)::before { background: #efaa3a; }
+.notifications-page-item:nth-child(4n)::before { background: #6687e8; }
+
+.notifications-page-item:hover {
+  background: linear-gradient(90deg, #fbfaff 0%, #f7f9ff 100%);
+}
+
+.notifications-page-item.is-unread {
+  background: linear-gradient(90deg, rgba(117, 96, 230, 0.08), rgba(255, 255, 255, 1) 32%);
+}
+
+.notifications-page-item strong {
+  display: block;
+  color: #2f3159;
+  font-size: 14px;
+  line-height: 1.35;
+}
+
+.notifications-page-item p {
+  margin: 5px 0 0;
+  color: #7b7e98;
+  font-size: 12px;
+  line-height: 1.55;
+}
+
+.notifications-page-item time {
+  color: #676b8e;
+  font-size: 11px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+/* =========================
+   Agent current ticket card
+   ========================= */
+.current-ticket-panel {
+  position: relative;
+  overflow: hidden;
+  background: linear-gradient(145deg, #536bf0 0%, #655ce8 52%, #7a4fe0 100%) !important;
+  box-shadow: 0 18px 34px rgba(86, 79, 202, 0.22) !important;
+}
+
+.current-ticket-panel::after {
+  content: "";
+  position: absolute;
+  width: 180px;
+  height: 180px;
+  right: -58px;
+  bottom: -78px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255,255,255,.18), rgba(255,255,255,0) 68%);
+  pointer-events: none;
+}
+
+.current-ticket-panel .product-panel-heading {
+  position: relative;
+  z-index: 1;
+}
+
+.current-ticket-panel .product-panel-heading > div > span {
+  font-size: 10px !important;
+  letter-spacing: 0.11em;
+  opacity: 0.82;
+}
+
+.current-ticket-panel .product-panel-heading h2 {
+  margin-top: 4px;
+  font-size: 20px !important;
+  letter-spacing: -0.02em;
+}
+
+.current-ticket-content {
+  position: relative;
+  z-index: 1;
+  width: calc(100% - 30px);
+  min-height: 132px;
+  margin: 0 15px 15px;
+  padding: 17px 18px;
+  border: 1px solid rgba(255, 255, 255, 0.25) !important;
+  border-radius: 14px;
+  background: linear-gradient(135deg, rgba(255,255,255,.16), rgba(255,255,255,.09)) !important;
+  backdrop-filter: blur(8px);
+}
+
+.current-ticket-content > span {
+  font-size: 10px !important;
+  font-weight: 850;
+  letter-spacing: 0.04em;
+  opacity: 0.8;
+}
+
+.current-ticket-content > strong {
+  margin-top: 7px !important;
+  font-size: 16px !important;
+  line-height: 1.35;
+  letter-spacing: -0.015em;
+}
+
+.current-ticket-content > small {
+  margin-top: 7px !important;
+  font-size: 10px !important;
+  opacity: 0.84 !important;
+}
+
+.current-ticket-content > div {
+  align-items: center;
+  margin-top: 16px !important;
+  font-size: 10px !important;
+}
+
+.current-ticket-content > div > span {
+  padding: 5px 9px;
+  border: 1px solid rgba(255,255,255,.18);
+  border-radius: 999px;
+  background: rgba(255,255,255,.12);
+  font-weight: 800;
+}
+
+.current-ticket-content b {
+  padding: 7px 10px;
+  border-radius: 9px;
+  background: rgba(255,255,255,.94);
+  color: #5a4ed6 !important;
+  font-size: 10px;
+  font-weight: 900;
+}
+
+/* =========================
+   Ticket history modal
+   ========================= */
+.ticket-history-modal {
+  width: min(920px, calc(100vw - 40px));
+  max-height: min(760px, calc(100vh - 52px));
+  border: 1px solid #e6e2f2;
+  border-radius: 24px;
+  background: #fff;
+  box-shadow: 0 30px 80px rgba(39, 34, 69, 0.28);
+}
+
+.ticket-history-modal > header {
+  padding: 24px 28px 20px;
+  background: linear-gradient(135deg, #fbfaff 0%, #f5f3ff 55%, #f8fbff 100%);
+}
+
+.ticket-history-modal > header span {
+  color: #695bd7;
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: 0.12em;
+}
+
+.ticket-history-modal > header h3 {
+  margin-top: 5px;
+  color: #30314f;
+  font-size: 24px;
+  letter-spacing: -0.025em;
+}
+
+.ticket-history-modal > header p {
+  margin-top: 7px;
+  color: #7c7f96;
+  font-size: 13px;
+}
+
+.ticket-history-modal > header button {
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  background: #eeeaf8;
+  color: #615b7e;
+  font-size: 19px;
+}
+
+.ticket-history-modal-list {
+  padding: 20px 28px 26px;
+}
+
+.ticket-timeline-item {
+  position: relative;
+  display: grid;
+  grid-template-columns: 18px minmax(0, 1fr);
+  gap: 13px;
+  padding: 10px 0 14px;
+}
+
+.ticket-timeline-item:not(:last-child)::before {
+  content: "";
+  position: absolute;
+  left: 7px;
+  top: 24px;
+  bottom: -4px;
+  width: 2px;
+  background: linear-gradient(#d6cff8, #eeeaf9);
+}
+
+.ticket-timeline-dot {
+  position: relative;
+  z-index: 1;
+  width: 15px !important;
+  height: 15px !important;
+  margin-top: 3px;
+  border: 3px solid #fff;
+  border-radius: 50%;
+  background: #695bd7 !important;
+  box-shadow: 0 0 0 2px rgba(105, 91, 215, .17);
+}
+
+.ticket-timeline-item:nth-child(5n + 1) .ticket-timeline-dot { background: #43a874 !important; box-shadow: 0 0 0 2px rgba(67,168,116,.16); }
+.ticket-timeline-item:nth-child(5n + 2) .ticket-timeline-dot { background: #5a83df !important; box-shadow: 0 0 0 2px rgba(90,131,223,.16); }
+.ticket-timeline-item:nth-child(5n + 3) .ticket-timeline-dot { background: #e9a23b !important; box-shadow: 0 0 0 2px rgba(233,162,59,.16); }
+.ticket-timeline-item:nth-child(5n + 4) .ticket-timeline-dot { background: #8a62dc !important; box-shadow: 0 0 0 2px rgba(138,98,220,.16); }
+.ticket-timeline-item:nth-child(5n) .ticket-timeline-dot { background: #e66a83 !important; box-shadow: 0 0 0 2px rgba(230,106,131,.16); }
+
+.ticket-timeline-content {
+  min-width: 0;
+}
+
+.ticket-timeline-meta {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 4px;
+}
+
+.ticket-timeline-meta > span {
+  color: #6a5fd0;
+  font-size: 10px !important;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.ticket-timeline-meta time {
+  color: #8b8fa4;
+  font-size: 10px !important;
+  font-weight: 650;
+  white-space: nowrap;
+}
+
+.ticket-timeline-content > strong {
+  display: block;
+  color: #36384f;
+  font-size: 13px !important;
+  line-height: 1.45;
+}
+
+.ticket-timeline-content > p {
+  margin: 4px 0 0;
+  color: #8a8da0;
+  font-size: 11px !important;
+  line-height: 1.4;
+}
+
+@media (max-width: 720px) {
+  .notifications-page-item {
+    grid-template-columns: 1fr;
+    gap: 8px;
+    padding-right: 18px;
+  }
+
+  .notifications-page-item time {
+    white-space: normal;
+  }
+
+  .ticket-history-modal-list,
+  .ticket-history-modal > header {
+    padding-left: 18px;
+    padding-right: 18px;
+  }
+
+  .ticket-timeline-meta {
+    flex-direction: column;
+    gap: 2px;
+  }
+}
