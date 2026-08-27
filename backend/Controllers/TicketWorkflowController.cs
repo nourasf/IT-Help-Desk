@@ -170,31 +170,47 @@ public class TicketWorkflowController : ControllerBase
     }
 
     [HttpPost("{id:int}/workflow-close")]
-    [Authorize(Roles = "Agent,IT Support Agent")]
+    [Authorize(Roles = "Manager,Admin")]
     public async Task<IActionResult> Close(int id, NoteRequest request)
     {
-        if (!TryUserId(out var agentId)) return Unauthorized();
-        if (string.IsNullOrWhiteSpace(request?.Note)) return BadRequest(new { message = "A closing note is required." });
-        var ticket = await _context.Tickets.Include(t => t.Status).FirstOrDefaultAsync(t => t.Id == id && !t.IsDeleted);
+        if (!TryUserId(out var managerId)) return Unauthorized();
+        if (string.IsNullOrWhiteSpace(request?.Note)) return BadRequest(new { message = "A closing review note is required." });
+
+        var ticket = await _context.Tickets
+            .Include(t => t.Status)
+            .Include(t => t.AssignedToUser)
+            .FirstOrDefaultAsync(t => t.Id == id && !t.IsDeleted);
         if (ticket == null) return NotFound(new { message = "Ticket not found." });
-        if (ticket.AssignedToUserId != agentId) return Forbid();
-        if (!ticket.Status.StatusName.Equals("Resolved", StringComparison.OrdinalIgnoreCase)) return BadRequest(new { message = "Only resolved tickets can be closed." });
+        if (!ticket.Status.StatusName.Equals("Resolved", StringComparison.OrdinalIgnoreCase))
+            return BadRequest(new { message = "Only resolved tickets can be closed after manager review." });
+
         var closed = await StatusAsync("Closed");
         if (closed == null) return BadRequest(new { message = "The Closed status is missing from the database." });
+
         var now = DateTime.UtcNow;
         var note = request.Note.Trim();
-        await EndWorkAsync(ticket.Id, now, "Ticket closed");
-        await EndAssignmentAsync(ticket.Id, now, "Ticket closed");
+        var assignedAgentId = ticket.AssignedToUserId;
+        var assignedAgentName = ticket.AssignedToUser?.FullName;
+
+        await EndWorkAsync(ticket.Id, now, "Ticket closed after manager review");
+        await EndAssignmentAsync(ticket.Id, now, "Ticket closed after manager review");
         ticket.StatusId = closed.ID;
         ticket.ClosedAt = now;
         ticket.ProgressPercentage = 100;
         ticket.UpdatedAt = now;
-        History(ticket, agentId, "Ticket closed", "Resolved", $"Closed - {note}", now);
-        Activity(ticket, agentId, "Closed", $"Ticket closed. Note: {note}", now, 100);
-        var recipients = (await _notifications.GetUserIdsByRoleAsync("Manager", "Admin")).Append(ticket.CreatedByUserId).Where(x => x != agentId).Distinct();
-        await _notifications.CreateNotificationsAsync(recipients, "Ticket Closed", $"{ticket.TicketNumber} has been closed by the assigned agent.", "TicketClosed", ticket.Id);
+        ticket.ResolutionNotes = string.IsNullOrWhiteSpace(ticket.ResolutionNotes)
+            ? note
+            : $"{ticket.ResolutionNotes}\nManager closing note: {note}";
+
+        History(ticket, managerId, "Ticket closed by manager", "Resolved", $"Closed - {note}", now);
+        Activity(ticket, managerId, "Closed", $"Manager reviewed the resolved ticket and closed it. Note: {note}", now, 100);
+
+        var recipients = new List<int> { ticket.CreatedByUserId };
+        if (assignedAgentId.HasValue) recipients.Add(assignedAgentId.Value);
+        await _notifications.CreateNotificationsAsync(recipients.Where(x => x != managerId).Distinct(), "Ticket Closed", $"{ticket.TicketNumber} has been reviewed and closed by the manager.", "TicketClosed", ticket.Id);
+
         await _context.SaveChangesAsync();
-        return Ok(new { message = "Ticket closed successfully.", status = "Closed", closedAt = ticket.ClosedAt });
+        return Ok(new { message = "Resolved ticket reviewed and closed successfully.", status = "Closed", closedAt = ticket.ClosedAt, reviewedAgent = assignedAgentName });
     }
 
     [HttpGet("{id:int}/manager-history")]
