@@ -1,6 +1,7 @@
 import { getStoredToken } from "../utils/authStorage";
+import { API_ROOT } from "../config/api";
 
-const API_URL = "http://localhost:5099/api/tickets";
+const API_URL = `${API_ROOT}/tickets`;
 
 function getToken() {
   const token = getStoredToken();
