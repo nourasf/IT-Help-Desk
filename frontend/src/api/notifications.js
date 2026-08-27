@@ -1,6 +1,7 @@
 import { getStoredToken } from "../utils/authStorage";
 
-const API_URL = "http://localhost:5099/api/notifications";
+export const BACKEND_BASE_URL = "http://localhost:5099";
+const API_URL = `${BACKEND_BASE_URL}/api/notifications`;
 
 function requireToken() {
   const token = getStoredToken();
@@ -39,14 +40,13 @@ async function request(url, options = {}) {
   return data;
 }
 
-export function getNotifications(take = 20, days=7) {
+export function getNotifications(take = 20, days = 7) {
   return request(`${API_URL}?take=${take}&days=${days}`, { method: "GET" });
 }
 
 export function getUnreadNotificationCount() {
   return request(`${API_URL}/unread-count`, { method: "GET" });
 }
-
 
 export function markNotificationAsRead(notificationId) {
   return request(`${API_URL}/${notificationId}/read`, { method: "POST" });
