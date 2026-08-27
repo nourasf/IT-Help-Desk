@@ -19,6 +19,17 @@ function SupportHubBrand() {
   );
 }
 
+async function readLoginResponse(response) {
+  const text = await response.text();
+  if (!text) return {};
+
+  try {
+    return JSON.parse(text);
+  } catch {
+    return { message: text };
+  }
+}
+
 function Login() {
   const navigate = useNavigate();
   const [email, setEmail] = useState(""); const [password, setPassword] = useState(""); const [rememberMe, setRememberMe] = useState(false); const [error, setError] = useState(""); const [isLoading, setIsLoading] = useState(false);
@@ -26,8 +37,8 @@ function Login() {
   const handleSubmit = async (event) => {
     event.preventDefault(); setError(""); setIsLoading(true);
     try {
-      const response = await fetch(`${API_ROOT}/auth/login`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email, password }) });
-      const data = await response.json();
+      const response = await fetch(`${API_ROOT}/auth/login`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email: email.trim(), password }) });
+      const data = await readLoginResponse(response);
       if (!response.ok) throw new Error(data.message || "Invalid email or password.");
       if (!data.role) throw new Error("The backend did not return the user's role.");
       if (!data.token) throw new Error("The backend did not return a login token.");
