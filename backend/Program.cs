@@ -63,17 +63,22 @@ builder.Services.AddScoped<AttachmentService>();
 builder.Services.AddHttpClient<OllamaService>();
 
 var configuredOrigins = (builder.Configuration["Frontend:AllowedOrigins"] ?? string.Empty)
-    .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
-var frontendOrigins = new[] { "http://localhost:5173" }
-    .Concat(configuredOrigins)
-    .Distinct(StringComparer.OrdinalIgnoreCase)
-    .ToArray();
+    .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+    .Select(origin => origin.TrimEnd('/'))
+    .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+configuredOrigins.Add("http://localhost:5173");
+configuredOrigins.Add("https://supporthub-phi.vercel.app");
 
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowFrontend", policy =>
     {
-        policy.WithOrigins(frontendOrigins)
+        policy.SetIsOriginAllowed(origin =>
+            configuredOrigins.Contains(origin.TrimEnd('/')) ||
+            (Uri.TryCreate(origin, UriKind.Absolute, out var uri) &&
+             uri.Scheme == Uri.UriSchemeHttps &&
+             uri.Host.EndsWith(".vercel.app", StringComparison.OrdinalIgnoreCase)))
             .AllowAnyHeader()
             .AllowAnyMethod()
             .AllowCredentials();
@@ -81,6 +86,17 @@ builder.Services.AddCors(options =>
 });
 
 var app = builder.Build();
+
+app.UseExceptionHandler(errorApp =>
+{
+    errorApp.Run(async context =>
+    {
+        context.Response.StatusCode = StatusCodes.Status500InternalServerError;
+        context.Response.ContentType = "application/json";
+        await context.Response.WriteAsJsonAsync(new { message = "The server could not complete the request." });
+    });
+});
+
 if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
