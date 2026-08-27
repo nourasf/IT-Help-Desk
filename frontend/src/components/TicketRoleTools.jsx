@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { approveTakeRequest, getAgentTicketHistory, getAssignmentOptions, getTakeRequest, rejectTakeRequest } from "../api/ticket";
+import { approveTakeRequest, getAssignmentOptions, getTakeRequest, rejectTakeRequest } from "../api/ticket";
 import "../styles/tickets/TicketRoleTools.css";
 
 const normalize = (value) => String(value || "").trim().toLowerCase().replaceAll("_", " ").replaceAll("-", " ");
@@ -11,10 +11,8 @@ export default function TicketRoleTools() {
   const onManagerDashboard = window.location.pathname === "/manager-dashboard";
   const currentRole = role();
   const isManager = currentRole === "manager" || currentRole === "admin";
-  const isAgent = currentRole === "agent" || currentRole === "it support agent";
   const [request, setRequest] = useState(null);
   const [dashboardRequests, setDashboardRequests] = useState([]);
-  const [history, setHistory] = useState(null);
   const [busy, setBusy] = useState(false);
   const [busyRequestId, setBusyRequestId] = useState(null);
   const [message, setMessage] = useState("");
@@ -40,7 +38,7 @@ export default function TicketRoleTools() {
   }
 
   useEffect(() => { loadRequest(); loadDashboardRequests(); }, [ticketId, currentRole, onManagerDashboard]);
-  if ((!ticketId && !onManagerDashboard) || (!isManager && !isAgent)) return null;
+  if (!isManager || (!ticketId && !onManagerDashboard)) return null;
 
   async function approve() {
     setBusy(true); setMessage("");
@@ -67,14 +65,8 @@ export default function TicketRoleTools() {
     finally { setBusyRequestId(null); }
   }
 
-  async function showHistory() {
-    setBusy(true); setMessage("");
-    try { setHistory(await getAgentTicketHistory(ticketId)); }
-    catch (error) { setMessage(error.message); } finally { setBusy(false); }
-  }
-
   return <>
-    {onManagerDashboard && isManager && dashboardRequests.length > 0 && <section className="manager-take-requests-panel">
+    {onManagerDashboard && dashboardRequests.length > 0 && <section className="manager-take-requests-panel">
       <div className="manager-take-requests-heading"><div><span>Approval queue</span><h2>Agent Take Requests</h2><p>Agents need your approval before an unassigned ticket becomes theirs.</p></div><b>{dashboardRequests.length}</b></div>
       <div className="manager-take-requests-list">{dashboardRequests.map((item) => <article key={item.requestId} className="manager-take-request-card">
         <button type="button" className="manager-take-request-ticket" onClick={() => { window.location.href = `/tickets/${item.ticket.id}`; }}><span>{item.ticket.ticketNumber}</span><strong>{item.ticket.subject}</strong><small>{item.ticket.category || "Support request"} · {item.ticket.priority || "Normal"} priority</small></button>
@@ -82,9 +74,7 @@ export default function TicketRoleTools() {
         <div className="manager-take-request-actions"><button type="button" className="reject" disabled={busyRequestId === item.requestId} onClick={() => decideDashboardRequest(item, false)}>Reject</button><button type="button" className="accept" disabled={busyRequestId === item.requestId} onClick={() => decideDashboardRequest(item, true)}>{busyRequestId === item.requestId ? "Working..." : "Accept Request"}</button></div>
       </article>)}</div>
     </section>}
-    {isManager && request?.pending && <section className="ticket-role-tool approval"><div><span>Agent take request</span><strong>{request.agentName} wants to take this ticket</strong><small>Approval is required before the ticket is assigned.</small></div><div className="ticket-role-tool-actions"><button type="button" onClick={reject} disabled={busy}>Reject</button><button type="button" className="primary" onClick={approve} disabled={busy}>Approve & Assign</button></div></section>}
-    {ticketId && isAgent && <section className="ticket-role-tool history"><div><span>Ticket history</span><strong>Your recent involvement</strong><small>History remains available for 7 days after you stop working on the ticket.</small></div><button type="button" className="primary" onClick={showHistory} disabled={busy}>View History</button></section>}
+    {request?.pending && <section className="ticket-role-tool approval"><div><span>Agent take request</span><strong>{request.agentName} wants to take this ticket</strong><small>Approval is required before the ticket is assigned.</small></div><div className="ticket-role-tool-actions"><button type="button" onClick={reject} disabled={busy}>Reject</button><button type="button" className="primary" onClick={approve} disabled={busy}>Approve & Assign</button></div></section>}
     {message && <div className="ticket-role-tool-message">{message}</div>}
-    {history && <div className="ticket-role-history-backdrop" onMouseDown={() => setHistory(null)}><section className="ticket-role-history-modal" onMouseDown={(event) => event.stopPropagation()}><header><div><span>Agent history</span><h3>Ticket Timeline</h3></div><button type="button" onClick={() => setHistory(null)}>×</button></header><div>{history.length ? history.map((item) => <article key={item.id}><time>{new Date(item.createdAt).toLocaleString()}</time><strong>{item.action}</strong><p>{item.oldValue || "—"} → {item.newValue || "—"}</p><small>{item.changedBy?.name}</small></article>) : <p>No history has been recorded yet.</p>}</div></section></div>}
   </>;
 }
