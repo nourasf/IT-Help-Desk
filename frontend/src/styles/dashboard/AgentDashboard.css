@@ -14,11 +14,11 @@
   border:1px solid #dfe4ef!important;
   border-radius:16px!important;
   background:#fff!important;
-  box-shadow:0 8px 24px rgba(46,55,90,.08)!important;
+  box-shadow:0 10px 28px rgba(46,55,90,.10)!important;
 }
 
 .agent-product-dashboard .product-panel:hover{
-  box-shadow:0 10px 28px rgba(46,55,90,.10)!important;
+  box-shadow:0 14px 32px rgba(46,55,90,.12)!important;
 }
 
 .agent-product-dashboard .product-panel-heading{
@@ -40,7 +40,6 @@
   line-height:1.2!important;
 }
 
-/* Overview */
 .compact-overview-panel{
   background:linear-gradient(180deg,#fbfcff 0%,#f6f8ff 100%)!important;
   border-top:4px solid #6f8df6!important;
@@ -59,7 +58,7 @@
   padding:14px;
   border:1px solid;
   border-radius:12px;
-  box-shadow:none;
+  box-shadow:0 5px 14px rgba(46,55,90,.06);
 }
 
 .product-mini-metrics>div:nth-child(1){background:#edf3ff;border-color:#cddcff}
@@ -67,429 +66,101 @@
 .product-mini-metrics>div:nth-child(3){background:#f3efff;border-color:#ddd0fb}
 .product-mini-metrics>div:nth-child(4){background:#eaf8f0;border-color:#c9e7d5}
 
-.product-mini-metrics span{
-  display:block;
-  color:#6d7690;
-  font-size:11px;
-  font-weight:800;
-  letter-spacing:.01em;
-}
+.product-mini-metrics span{display:block;color:#6d7690;font-size:11px;font-weight:800;letter-spacing:.01em}
+.product-mini-metrics strong{display:block;margin-top:7px;color:#283044;font-size:26px;line-height:1}
 
-.product-mini-metrics strong{
-  display:block;
-  margin-top:7px;
-  color:#283044;
-  font-size:26px;
-  line-height:1;
-}
-
-/* Current ticket */
+/* Current ticket - no giant blue slab */
 .agent-product-dashboard .current-ticket-panel{
-  background:linear-gradient(150deg,#425bc6 0%,#5268d8 58%,#5f70df 100%)!important;
-  border:1px solid #4258bc!important;
-  border-top:4px solid #314aa9!important;
-  box-shadow:0 8px 22px rgba(58,75,160,.18)!important;
+  position:relative;
+  background:linear-gradient(180deg,#fff 0%,#f7f8ff 100%)!important;
+  border:1px solid #d9def5!important;
+  border-top:4px solid #5b6fe2!important;
+  box-shadow:0 12px 30px rgba(69,82,170,.13)!important;
 }
 
-.agent-product-dashboard .current-ticket-panel::after,
 .agent-product-dashboard .current-ticket-panel::before{
-  display:none!important;
+  content:"";
+  position:absolute;
+  inset:0 auto 0 0;
+  width:4px;
+  background:linear-gradient(180deg,#5d70e2,#8b76df);
+  pointer-events:none;
 }
+
+.agent-product-dashboard .current-ticket-panel::after{display:none!important}
 
 .agent-product-dashboard .current-ticket-panel .product-panel-heading{
-  border-bottom:1px solid rgba(255,255,255,.16)!important;
+  background:linear-gradient(180deg,#f7f8ff 0%,#f3f5ff 100%)!important;
+  border-bottom:1px solid #e4e7f7!important;
 }
 
-.agent-product-dashboard .current-ticket-panel .product-panel-heading>div>span{
-  color:#dfe6ff!important;
-}
-
-.agent-product-dashboard .current-ticket-panel .product-panel-heading h2{
-  color:#fff!important;
-}
-
-.agent-product-dashboard .current-ticket-panel .product-badge{
-  background:#f8fbff!important;
-  border-color:#e5ebff!important;
-  color:#4055b9!important;
-  font-size:10px!important;
-  font-weight:900!important;
-}
+.agent-product-dashboard .current-ticket-panel .product-panel-heading>div>span{color:#6772c6!important}
+.agent-product-dashboard .current-ticket-panel .product-panel-heading h2{color:#252c40!important}
+.agent-product-dashboard .current-ticket-panel .product-badge{background:#eef1ff!important;border-color:#d9def8!important;color:#5163cb!important;font-size:10px!important;font-weight:900!important}
 
 .agent-product-dashboard .current-ticket-content{
   width:calc(100% - 36px);
   min-height:144px;
   margin:18px;
   padding:18px;
-  border:1px solid rgba(255,255,255,.26)!important;
+  border:1px solid #dfe3f6!important;
   border-radius:13px;
-  background:rgba(255,255,255,.12)!important;
-  color:#fff!important;
-  text-align:left;
-  box-shadow:none!important;
-}
-
-.agent-product-dashboard .current-ticket-content:hover{
-  background:rgba(255,255,255,.16)!important;
-}
-
-.agent-product-dashboard .current-ticket-content>span,
-.agent-product-dashboard .current-ticket-content>strong,
-.agent-product-dashboard .current-ticket-content>small{
-  display:block;
-  color:#fff!important;
-}
-
-.agent-product-dashboard .current-ticket-content>span{
-  font-size:10px!important;
-  font-weight:900!important;
-  letter-spacing:.04em;
-  opacity:.86!important;
-}
-
-.agent-product-dashboard .current-ticket-content>strong{
-  margin-top:7px!important;
-  font-size:17px!important;
-  line-height:1.35!important;
-  font-weight:800!important;
-}
-
-.agent-product-dashboard .current-ticket-content>small{
-  margin-top:7px!important;
-  font-size:11px!important;
-  opacity:.85!important;
-}
-
-.agent-product-dashboard .current-ticket-content>div{
-  display:flex;
-  align-items:center;
-  justify-content:space-between;
-  gap:12px;
-  margin-top:18px!important;
-}
-
-.agent-product-dashboard .current-ticket-content>div>span{
-  padding:5px 9px;
-  border:1px solid rgba(255,255,255,.24);
-  border-radius:999px;
-  background:rgba(255,255,255,.13);
-  color:#fff!important;
-  font-size:10px!important;
-  font-weight:800!important;
-}
-
-.agent-product-dashboard .current-ticket-content b{
-  display:inline-flex!important;
-  align-items:center;
-  min-height:34px;
-  padding:0 12px;
-  border-radius:9px;
   background:#fff!important;
-  color:#3f54b6!important;
-  font-size:10px!important;
-  font-weight:900!important;
+  color:#2d3348!important;
+  text-align:left;
+  box-shadow:0 8px 20px rgba(62,74,145,.08)!important;
 }
 
-/* Work timer */
-.work-timer-panel{
-  background:linear-gradient(180deg,#fbfffd 0%,#f2fbf6 100%)!important;
-  border-top:4px solid #46aa76!important;
+.agent-product-dashboard .current-ticket-content:hover{border-color:#cbd2f1!important;box-shadow:0 12px 24px rgba(62,74,145,.12)!important}
+.agent-product-dashboard .current-ticket-content>span,.agent-product-dashboard .current-ticket-content>strong,.agent-product-dashboard .current-ticket-content>small{display:block;color:#2f3549!important}
+.agent-product-dashboard .current-ticket-content>span{font-size:10px!important;font-weight:900!important;letter-spacing:.04em;color:#6570c8!important}
+.agent-product-dashboard .current-ticket-content>strong{margin-top:7px!important;font-size:17px!important;line-height:1.35!important;font-weight:800!important}
+.agent-product-dashboard .current-ticket-content>small{margin-top:7px!important;font-size:11px!important;color:#8a91a4!important}
+.agent-product-dashboard .current-ticket-content>div{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:18px!important}
+.agent-product-dashboard .current-ticket-content>div>span{padding:5px 9px;border:1px solid #dfe2f2;border-radius:999px;background:#f5f6fb;color:#626d88!important;font-size:10px!important;font-weight:800!important}
+.agent-product-dashboard .current-ticket-content b{display:inline-flex!important;align-items:center;min-height:34px;padding:0 12px;border-radius:9px;background:#5e6ed9!important;color:#fff!important;font-size:10px!important;font-weight:900!important}
+
+.agent-product-dashboard .current-ticket-panel .product-empty{
+  position:relative;
+  min-height:170px;
+  margin:18px!important;
+  padding:34px 22px!important;
+  border:1px dashed #cfd5ee!important;
+  border-radius:14px!important;
+  background:linear-gradient(180deg,#ffffff 0%,#f6f7fd 100%)!important;
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.7)!important;
   text-align:center;
 }
-
-.timer-display{
-  margin:18px 18px 0;
-  padding:18px 12px;
-  border:1px solid #c8e5d4;
-  border-radius:12px;
-  background:#e9f8ef;
-  color:#258b59;
-  font-size:30px;
-  font-weight:900;
-  letter-spacing:.04em;
-}
-
-.work-timer-panel p{
-  margin:12px 18px;
-  color:#748097;
-  font-size:11px;
-  line-height:1.45;
-}
-
-.work-timer-panel>button{
-  min-height:38px;
-  margin:0 18px 18px;
-  padding:0 14px;
-  border:1px solid #bfe1ce;
-  border-radius:9px;
-  background:#fff;
-  color:#287f54;
-  font-size:11px;
-  font-weight:850;
-}
-
-.work-timer-panel>button:hover:not(:disabled){
-  background:#edf9f2;
-}
-
-.work-timer-panel>button:disabled{
-  opacity:.5;
-  cursor:not-allowed;
-}
-
-/* Incoming queue */
-.agent-incoming-panel{
-  border-top:4px solid #e1a43b!important;
-  background:linear-gradient(180deg,#fffdf8 0%,#fffaf0 100%)!important;
-}
-
-.agent-incoming-panel .product-panel-heading{
-  background:#fffaf0!important;
-}
-
-.agent-incoming-description{
-  margin:5px 0 0!important;
-  color:#7d8497!important;
-  font-size:11px!important;
-  line-height:1.45!important;
-  text-transform:none!important;
-  letter-spacing:0!important;
-  font-weight:500!important;
-}
-
-.agent-incoming-list{
-  display:flex;
-  flex-direction:column;
-  gap:10px;
-  padding:16px 18px 18px;
-}
-
-.agent-incoming-card{
-  display:grid;
-  grid-template-columns:minmax(0,1.3fr) minmax(210px,.8fr) auto;
-  align-items:center;
-  gap:14px;
-  padding:14px 15px;
-  border:1px solid #eadfca;
-  border-radius:11px;
-  background:#fff;
-}
-
-.agent-incoming-card:hover{
-  border-color:#dec79d;
-  background:#fffdf8;
-}
-
-.agent-incoming-main span,
-.agent-incoming-main strong,
-.agent-incoming-main small{
-  display:block;
-}
-
-.agent-incoming-number{
-  color:#b47c25;
-  font-size:10px;
-  font-weight:900;
-}
-
-.agent-incoming-main strong{
-  margin-top:4px;
-  color:#303649;
-  font-size:12px;
-}
-
-.agent-incoming-main small{
-  margin-top:4px;
-  color:#8e95a7;
-  font-size:10px;
-}
-
-.agent-incoming-meta{
-  display:flex;
-  align-items:center;
-  flex-wrap:wrap;
-  gap:7px;
-  color:#7f8799;
-  font-size:10px;
-}
-
-.agent-take-ticket-button{
-  min-height:36px;
-  padding:0 13px;
-  border:0;
-  border-radius:8px;
-  background:#d99a2b;
-  color:#fff;
-  font-size:10px;
-  font-weight:850;
-}
-
-/* Bottom section */
-.agent-product-dashboard .product-two-column{
-  gap:18px!important;
-  align-items:start;
-}
-
-.agent-product-dashboard .product-table-panel{
-  border-top:4px solid #6480e8!important;
-}
-
-.agent-product-dashboard .recent-activity-panel{
-  border-top:4px solid #b86bd2!important;
-  background:linear-gradient(180deg,#fff 0%,#fbf7ff 100%)!important;
-}
-
-.agent-product-dashboard .product-table-toolbar{
-  padding:14px 18px!important;
-  border-bottom:1px solid #edf0f5!important;
-  background:#fbfcff!important;
-}
-
-.agent-product-dashboard .product-table-toolbar input{
-  min-height:40px!important;
-  font-size:11px!important;
-}
-
-.agent-product-dashboard .product-table thead th{
-  padding:12px 14px!important;
-  background:#f4f7fd!important;
-  color:#75809a!important;
-  font-size:9px!important;
-}
-
-.agent-product-dashboard .product-table tbody td{
-  padding:14px!important;
-  font-size:11px!important;
-  border-bottom:1px solid #edf0f5!important;
-}
-
-.agent-product-dashboard .product-table tbody tr:last-child td{
-  border-bottom:0!important;
-}
-
-.agent-product-dashboard .product-table td button span{
-  color:#6074ca!important;
-  font-size:9px!important;
-  font-weight:900!important;
-}
-
-.agent-product-dashboard .product-table td button strong{
-  margin-top:4px!important;
-  color:#30364a!important;
-  font-size:11px!important;
-}
-
-.product-activity-list{
-  display:flex;
-  flex-direction:column;
-  gap:0;
-  padding:4px 18px 18px;
-}
-
-.product-activity-list>div{
-  display:grid;
-  grid-template-columns:34px 1fr;
-  gap:11px;
-  align-items:start;
-  padding:12px 0;
-  border-bottom:1px solid #eee8f4;
-}
-
-.product-activity-list>div:last-child{
-  border-bottom:0;
-}
-
-.product-activity-list>div>span{
-  width:34px;
-  height:34px;
+.agent-product-dashboard .current-ticket-panel .product-empty::before{
+  content:"✓";
   display:grid;
   place-items:center;
-  border-radius:10px;
-  background:#f1e9fb;
-  color:#8c55b5;
-  font-size:10px;
+  width:42px;
+  height:42px;
+  margin:0 auto 12px;
+  border-radius:12px;
+  background:#edf8f2;
+  color:#2d9a66;
+  font-size:20px;
   font-weight:900;
 }
+.agent-product-dashboard .current-ticket-panel .product-empty strong{color:#343b52!important;font-size:13px!important}
+.agent-product-dashboard .current-ticket-panel .product-empty p{max-width:310px;margin:7px auto 0!important;color:#8a91a5!important;font-size:10px!important;line-height:1.5!important}
 
-.product-activity-list strong,
-.product-activity-list small{
-  display:block;
-}
+.work-timer-panel{background:linear-gradient(180deg,#fbfffd 0%,#f2fbf6 100%)!important;border-top:4px solid #46aa76!important;text-align:center}
+.timer-display{margin:18px 18px 0;padding:18px 12px;border:1px solid #c8e5d4;border-radius:12px;background:#e9f8ef;color:#258b59;font-size:30px;font-weight:900;letter-spacing:.04em}
+.work-timer-panel p{margin:12px 18px;color:#748097;font-size:11px;line-height:1.45}
+.work-timer-panel>button{min-height:38px;margin:0 18px 18px;padding:0 14px;border:1px solid #bfe1ce;border-radius:9px;background:#fff;color:#287f54;font-size:11px;font-weight:850}
+.work-timer-panel>button:hover:not(:disabled){background:#edf9f2}.work-timer-panel>button:disabled{opacity:.5;cursor:not-allowed}
 
-.product-activity-list strong{
-  color:#34394b;
-  font-size:11px;
-  line-height:1.35;
-}
+.agent-incoming-panel{border-top:4px solid #e1a43b!important;background:linear-gradient(180deg,#fffdf8 0%,#fffaf0 100%)!important}
+.agent-incoming-panel .product-panel-heading{background:#fffaf0!important}.agent-incoming-description{margin:5px 0 0!important;color:#7d8497!important;font-size:11px!important;line-height:1.45!important;text-transform:none!important;letter-spacing:0!important;font-weight:500!important}
+.agent-incoming-list{display:flex;flex-direction:column;gap:10px;padding:16px 18px 18px}.agent-incoming-card{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(210px,.8fr) auto;align-items:center;gap:14px;padding:14px 15px;border:1px solid #eadfca;border-radius:11px;background:#fff}.agent-incoming-card:hover{border-color:#dec79d;background:#fffdf8}.agent-incoming-main span,.agent-incoming-main strong,.agent-incoming-main small{display:block}.agent-incoming-number{color:#b47c25;font-size:10px;font-weight:900}.agent-incoming-main strong{margin-top:4px;color:#303649;font-size:12px}.agent-incoming-main small{margin-top:4px;color:#8e95a7;font-size:10px}.agent-incoming-meta{display:flex;align-items:center;flex-wrap:wrap;gap:7px;color:#7f8799;font-size:10px}.agent-take-ticket-button{min-height:36px;padding:0 13px;border:0;border-radius:8px;background:#d99a2b;color:#fff;font-size:10px;font-weight:850}
 
-.product-activity-list small{
-  margin-top:4px;
-  color:#8b91a3;
-  font-size:10px;
-}
+.agent-product-dashboard .product-two-column{gap:18px!important;align-items:start}.agent-product-dashboard .product-table-panel{border-top:4px solid #6480e8!important}.agent-product-dashboard .recent-activity-panel{border-top:4px solid #b86bd2!important;background:linear-gradient(180deg,#fff 0%,#fbf7ff 100%)!important}.agent-product-dashboard .product-table-toolbar{padding:14px 18px!important;border-bottom:1px solid #edf0f5!important;background:#fbfcff!important}.agent-product-dashboard .product-table-toolbar input{min-height:40px!important;font-size:11px!important}.agent-product-dashboard .product-table thead th{padding:12px 14px!important;background:#f4f7fd!important;color:#75809a!important;font-size:9px!important}.agent-product-dashboard .product-table tbody td{padding:14px!important;font-size:11px!important;border-bottom:1px solid #edf0f5!important}.agent-product-dashboard .product-table tbody tr:last-child td{border-bottom:0!important}.agent-product-dashboard .product-table td button span{color:#6074ca!important;font-size:9px!important;font-weight:900!important}.agent-product-dashboard .product-table td button strong{margin-top:4px!important;color:#30364a!important;font-size:11px!important}
+.product-activity-list{display:flex;flex-direction:column;gap:0;padding:4px 18px 18px}.product-activity-list>div{display:grid;grid-template-columns:34px 1fr;gap:11px;align-items:start;padding:12px 0;border-bottom:1px solid #eee8f4}.product-activity-list>div:last-child{border-bottom:0}.product-activity-list>div>span{width:34px;height:34px;display:grid;place-items:center;border-radius:10px;background:#f1e9fb;color:#8c55b5;font-size:10px;font-weight:900}.product-activity-list strong,.product-activity-list small{display:block}.product-activity-list strong{color:#34394b;font-size:11px;line-height:1.35}.product-activity-list small{margin-top:4px;color:#8b91a3;font-size:10px}
+.product-alert-panel{border-top:4px solid #dc6c69!important;background:#fffafa!important}.product-alert-list{display:flex;flex-direction:column;gap:8px;padding:16px 18px 18px}.product-alert-list button{display:grid;grid-template-columns:110px minmax(0,1fr) auto;align-items:center;gap:12px;min-height:58px;padding:11px 13px;border:1px solid #f0d2d0;border-radius:10px;background:#fff;color:#7e747a;text-align:left}.product-alert-list button>span{color:#c25b56;font-size:9px;font-weight:900}.product-alert-list strong{font-size:11px;color:#453f45}.product-alert-list small{font-size:9px}.product-alert-list b{font-size:9px;color:#ad5551}
+.agent-product-dashboard .product-empty{margin:0!important;padding:34px 18px 36px!important;border-top:1px solid #edf0f5;background:rgba(255,255,255,.72)!important}.agent-product-dashboard .product-empty strong{color:#4a5165!important;font-size:11px!important}.agent-product-dashboard .product-empty p{margin-top:6px!important;color:#8a91a5!important;font-size:11px!important}
 
-/* Needs attention */
-.product-alert-panel{
-  border-top:4px solid #dc6c69!important;
-  background:#fffafa!important;
-}
-
-.product-alert-list{
-  display:flex;
-  flex-direction:column;
-  gap:8px;
-  padding:16px 18px 18px;
-}
-
-.product-alert-list button{
-  display:grid;
-  grid-template-columns:110px minmax(0,1fr) auto;
-  align-items:center;
-  gap:12px;
-  min-height:58px;
-  padding:11px 13px;
-  border:1px solid #f0d2d0;
-  border-radius:10px;
-  background:#fff;
-  color:#7e747a;
-  text-align:left;
-}
-
-.product-alert-list button>span{color:#c25b56;font-size:9px;font-weight:900}
-.product-alert-list strong{font-size:11px;color:#453f45}
-.product-alert-list small{font-size:9px}
-.product-alert-list b{font-size:9px;color:#ad5551}
-
-.agent-product-dashboard .product-empty{
-  margin:0!important;
-  padding:34px 18px 36px!important;
-  border-top:1px solid #edf0f5;
-  background:rgba(255,255,255,.72)!important;
-}
-
-.agent-product-dashboard .product-empty strong{
-  color:#4a5165!important;
-  font-size:11px!important;
-}
-
-.agent-product-dashboard .product-empty p{
-  margin-top:6px!important;
-  color:#8a91a5!important;
-  font-size:11px!important;
-}
-
-@media(max-width:1200px){
-  .product-agent-top-grid{grid-template-columns:1fr 1fr}
-  .work-timer-panel{grid-column:1/-1}
-  .agent-incoming-card{grid-template-columns:1fr auto}
-  .agent-incoming-meta{grid-column:1/-1}
-}
-
-@media(max-width:760px){
-  .agent-product-dashboard{gap:16px}
-  .product-agent-top-grid{grid-template-columns:1fr}
-  .work-timer-panel{grid-column:auto}
-  .agent-incoming-card{grid-template-columns:1fr}
-  .agent-take-ticket-button{width:100%}
-  .agent-product-dashboard .product-two-column{grid-template-columns:1fr!important}
-}
+@media(max-width:1200px){.product-agent-top-grid{grid-template-columns:1fr 1fr}.work-timer-panel{grid-column:1/-1}.agent-incoming-card{grid-template-columns:1fr auto}.agent-incoming-meta{grid-column:1/-1}}
+@media(max-width:760px){.agent-product-dashboard{gap:16px}.product-agent-top-grid{grid-template-columns:1fr}.work-timer-panel{grid-column:auto}.agent-incoming-card{grid-template-columns:1fr}.agent-take-ticket-button{width:100%}.agent-product-dashboard .product-two-column{grid-template-columns:1fr!important}}
