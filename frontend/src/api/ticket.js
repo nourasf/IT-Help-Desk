@@ -81,6 +81,11 @@ export async function addTicketComment(ticketId, comment, parentCommentID = null
   });
 }
 
+export async function getTicketAttachments(ticketId) {
+  const data = await request(`${API_URL}/${ticketId}/attachments`, { method: "GET" });
+  return Array.isArray(data) ? data : [];
+}
+
 export async function uploadCommentAttachments(ticketId, commentId, files) {
   const token = requireToken();
   const formData = new FormData();
