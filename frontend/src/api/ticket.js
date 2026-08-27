@@ -34,4 +34,4 @@ export async function cancelTicket(ticketId,reason){return ticketAction(ticketId
 export async function returnTicketToManager(ticketId,reason){return ticketAction(ticketId,"workflow-return",reason);}
 export async function reopenTicket(ticketId,reason){return ticketAction(ticketId,"reopen",reason);}
 export async function managerReopenTicket(ticketId,reason){return reopenTicket(ticketId,reason);}
-export async function closeTicket(ticketId,note="Resolved issue verified and closed by the assigned agent."){return ticketAction(ticketId,"workflow-close",note);}
+export async function closeTicket(ticketId,note="Resolved work reviewed and approved by the manager."){return ticketAction(ticketId,"workflow-close",note);}
