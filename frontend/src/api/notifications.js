@@ -1,6 +1,7 @@
 import { getStoredToken } from "../utils/authStorage";
+import { API_BASE_URL } from "../config/api";
 
-export const BACKEND_BASE_URL = "http://localhost:5099";
+export const BACKEND_BASE_URL = API_BASE_URL;
 const API_URL = `${BACKEND_BASE_URL}/api/notifications`;
 
 function requireToken() {
